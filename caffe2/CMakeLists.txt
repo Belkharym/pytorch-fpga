@@ -63,6 +63,10 @@ add_subdirectory(serialize)
 add_subdirectory(utils)
 add_subdirectory(perfkernels)
 
+if (USE_OPENCL)
+  add_subdirectory(opencl)
+endif()
+
 # Skip modules that are not used by libtorch mobile yet.
 if (NOT INTERN_BUILD_MOBILE OR BUILD_CAFFE2_MOBILE)
   add_subdirectory(contrib)
@@ -1063,6 +1067,22 @@ if(USE_ROCM)
   # Since PyTorch files contain HIP headers, this is also needed to capture the includes.
   target_include_directories(torch PRIVATE ${Caffe2_HIP_INCLUDE})
   target_include_directories(torch INTERFACE $<INSTALL_INTERFACE:include>)
+endif()
+
+if (USE_OPENCL)
+  target_link_libraries(torch PUBLIC c10_opencl)
+  target_link_libraries(torch PUBLIC )
+
+  target_include_directories(torch INTERFACE $<INSTALL_INTERFACE:include>)
+  target_include_directories(
+      torch PRIVATE ${Caffe2_CPU_INCLUDE})
+  target_link_libraries(
+      torch PRIVATE ${Caffe2_OPENCL_DEPENDENCY_LIBS})
+
+  # These public dependencies must go after the previous dependencies, as the
+  # order of the libraries in the linker call matters here when statically
+  # linking; libculibos and cublas must be last.
+  target_link_libraries(torch PUBLIC ${Caffe2_PUBLIC_OPENCL_DEPENDENCY_LIBS})
 endif()
 
 # ---[ Check if warnings should be errors.

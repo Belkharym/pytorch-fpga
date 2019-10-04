@@ -105,7 +105,6 @@ option(BUILD_CUSTOM_PROTOBUF "Build and use Caffe2's own protobuf under third_pa
 option(BUILD_PYTHON "Build Python binaries" ON)
 option(BUILD_CAFFE2_OPS "Build Caffe2 operators" ON)
 option(BUILD_SHARED_LIBS "Build libcaffe2.so" ON)
-option(BUILD_CAFFE2_MOBILE "Build libcaffe2 for mobile (deprecating)" ON)
 option(BUILD_NAMEDTENSOR "Experimental: compile with namedtensor support" OFF)
 option(USE_STATIC_DISPATCH "Use static dispatch for ATen operators" OFF)
 cmake_dependent_option(
@@ -158,6 +157,9 @@ cmake_dependent_option(
 option(USE_NUMPY "Use NumPy" ON)
 option(USE_OBSERVERS "Use observers module." OFF)
 option(USE_OPENCL "Use OpenCL" OFF)
+cmake_dependent_option(
+  BUILD_CAFFE2_MOBILE "Build libcaffe2 for mobile (deprecating)" ON
+  "NOT USE_OPENCL" OFF)
 option(USE_OPENCV "Use OpenCV" OFF)
 option(USE_OPENMP "Use OpenMP for parallel code" ON)
 option(USE_PROF "Use profiling" OFF)

@@ -90,6 +90,10 @@ if(USE_ROCM)
   add_subdirectory(hip)
 endif()
 
+if(USE_OPENCL)
+  add_subdirectory(opencl)
+endif()
+
 # ---[ Installation
 # Note: for now, we will put all export path into one single Caffe2Targets group
 # to deal with the cmake deployment need. Inside the Caffe2Targets set, the

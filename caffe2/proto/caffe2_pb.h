@@ -67,6 +67,8 @@ inline CAFFE2_API DeviceTypeProto TypeToProto(const DeviceType& t) {
       return caffe2::PROTO_IDEEP;
     case DeviceType::HIP:
       return caffe2::PROTO_HIP;
+    case DeviceType::FPGA:
+      return caffe2::PROTO_FPGA;
     case DeviceType::COMPILE_TIME_MAX_DEVICE_TYPES:
       return caffe2::PROTO_COMPILE_TIME_MAX_DEVICE_TYPES;
     case DeviceType::ONLY_FOR_TEST:

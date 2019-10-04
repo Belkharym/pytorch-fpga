@@ -410,6 +410,8 @@ struct C10_API TensorOptions {
             return TensorTypeId::IDEEPTensorId;
           case DeviceType::HIP:
             return TensorTypeId::HIPTensorId;
+          case DeviceType::FPGA:
+            return TensorTypeId::OpenCLTensorId;
           case DeviceType::MSNPU:
             return TensorTypeId::MSNPUTensorId;
           case DeviceType::XLA:
