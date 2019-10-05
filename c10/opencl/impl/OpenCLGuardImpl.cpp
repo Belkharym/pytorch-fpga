@@ -20,7 +20,7 @@ Device OpenCLGuardImpl::exchangeDevice(Device d) const {
 Device OpenCLGuardImpl::getDevice() const {
     int device;
     device = c10::opencl::current_device();
-    TORCH_CHECK(device < c10::opencl::device_count(), "OpenCL Error: Device not found ", device);
+    TORCH_CHECK(device < c10::opencl::device_count(), "OpenCL Error: Device not found ", device, " (device count:", c10::opencl::device_count(), ")");
     return Device(DeviceType::OPENCL, device);
 }
 void OpenCLGuardImpl::setDevice(Device d) const {
