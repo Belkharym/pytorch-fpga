@@ -4,6 +4,7 @@
 #include <c10/opencl/OpenCLGuard.h>
 #include <c10/util/Logging.h>
 #include <c10/util/Exception.h>
+#include <c10/core/CopyBytes.h>
 
 #include <vector>
 #include <mutex>
@@ -74,7 +75,7 @@ void OpenCLContext::CopyBytesSameDevice(
         nbytes,
         NULL,
         NULL);
-    TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : cannot copy bytes from CPU to OpenCL device.");
+    TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : cannot copy bytes from OpenCL device to OpenCL device.");
 }
 
 void OpenCLContext::CopyBytesFromCPU(size_t nbytes, const void* src, void* dst) {
@@ -98,7 +99,7 @@ void OpenCLContext::CopyBytesToCPU(size_t nbytes, const void* src, void* dst) {
         dst,
         NULL,
         NULL);
-    TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : cannot copy bytes from CPU to OpenCL device.");
+    TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : cannot copy bytes from OpenCL device to CPU.");
 }
 
 void OpenCLContext::CopyBytesAsync(
@@ -107,15 +108,39 @@ void OpenCLContext::CopyBytesAsync(
     Device src_device,
     void* dst,
     Device dst_device) {
-    c10::opencl::OpenCLStream stream = c10::opencl::getCurrentOpenCLStream();
-    cl_int err = stream.stream()->enqueueReadBuffer(*(cl::Buffer*)src,
-        /* blocking */ CL_TRUE,
-        /* offset */ 0,
-        nbytes,
-        dst,
-        NULL,
-        NULL);
-    TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : cannot copy bytes from CPU to OpenCL device.");
+    cl_int err = CL_SUCCESS;
+    switch (src_device.type()) {
+        case OPENCL: {
+            c10::opencl::OpenCLStream stream = c10::opencl::getStreamFromPool(src_device.index());
+            c10::opencl::OpenCLStreamGuard guard{stream};
+            if (dst_device.type() == OPENCL) {
+                err = stream.stream()->enqueueCopyBuffer(*(cl::Buffer*)src, *(cl::Buffer*)dst, 0, 0, nbytes, NULL, NULL);
+            }
+            else {
+                err = stream.stream()->enqueueReadBuffer(*(cl::Buffer*)src, CL_FALSE, 0, nbytes, dst, NULL, NULL);
+            }
+            break;
+        }
+        case CPU: {
+            if (dst_device.type() == OPENCL) {
+                c10::opencl::OpenCLStream stream = c10::opencl::getStreamFromPool(dst_device.index());
+                c10::opencl::OpenCLStreamGuard guard{stream};
+                err = stream.stream()->enqueueWriteBuffer(*(cl::Buffer*)dst, CL_FALSE, 0, nbytes, src, NULL, NULL);
+            }
+            else {
+                err = CL_INVALID_MEM_OBJECT;
+            }
+            break;
+        }
+        default: {
+            err = CL_INVALID_MEM_OBJECT;
+            break;
+        }
+    }
+    TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : cannot copy bytes from device ",
+        DeviceTypeName(src_device.type()),
+        " to device ",
+        DeviceTypeName(src_device.type()));
 }
 
 void OpenCLContext::CopyBytesSync(
@@ -123,7 +148,43 @@ void OpenCLContext::CopyBytesSync(
     const void* src,
     Device src_device,
     void* dst,
-    Device dst_device) {}
+    Device dst_device) {
+    cl_int err = CL_SUCCESS;
+    switch (src_device.type()) {
+        case OPENCL: {
+            c10::opencl::OpenCLStream stream = c10::opencl::getStreamFromPool(src_device.index());
+            c10::opencl::OpenCLStreamGuard guard{stream};
+            if (dst_device.type() == OPENCL) {
+                cl::Event cl_ev;
+                err = stream.stream()->enqueueCopyBuffer(*(cl::Buffer*)src, *(cl::Buffer*)dst, 0, 0, nbytes, NULL, &cl_ev);
+                cl_ev.wait();
+            }
+            else {
+                err = stream.stream()->enqueueReadBuffer(*(cl::Buffer*)src, CL_TRUE, 0, nbytes, dst, NULL, NULL);
+            }
+            break;
+        }
+        case CPU: {
+            if (dst_device.type() == OPENCL) {
+                c10::opencl::OpenCLStream stream = c10::opencl::getStreamFromPool(dst_device.index());
+                c10::opencl::OpenCLStreamGuard guard{stream};
+                err = stream.stream()->enqueueWriteBuffer(*(cl::Buffer*)dst, CL_TRUE, 0, nbytes, src, NULL, NULL);
+            }
+            else {
+                err = CL_INVALID_MEM_OBJECT;
+            }
+            break;
+        }
+        default: {
+            err = CL_INVALID_MEM_OBJECT;
+            break;
+        }
+    }
+    TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : cannot copy bytes from device ",
+        DeviceTypeName(src_device.type()),
+        " to device ",
+        DeviceTypeName(src_device.type()));
+}
 
 } // namespace opencl
 
@@ -137,7 +198,7 @@ struct DefaultOpenCLAllocator final : public at::Allocator {
 
         if (nbytes != 0) {
             cl_int err;
-            ptr = new cl::Buffer{CL_MEM_READ_WRITE, nbytes, NULL, &err};
+            ptr = new cl::Buffer{c10::opencl::opencl_context(), CL_MEM_READ_WRITE, nbytes, NULL, &err};
             TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : Cannot allocate buffer of ", nbytes, " byte(s). (", err, ")");
         }
         return {ptr, ptr, &Delete, at::Device(OPENCL, c10::opencl::current_device())};
@@ -163,6 +224,24 @@ REGISTER_ALLOCATOR(OPENCL, &g_opencl_alloc);
 } // namespace caffe2
 
 namespace at {
+
+REGISTER_COPY_BYTES_FUNCTION(
+    DeviceType::OPENCL,
+    DeviceType::OPENCL,
+    caffe2::opencl::OpenCLContext::CopyBytesSync,
+    caffe2::opencl::OpenCLContext::CopyBytesAsync);
+
+REGISTER_COPY_BYTES_FUNCTION(
+    DeviceType::OPENGL,
+    DeviceType::CPU,
+    caffe2::opencl::OpenCLContext::CopyBytesSync,
+    caffe2::opencl::OpenCLContext::CopyBytesAsync);
+
+REGISTER_COPY_BYTES_FUNCTION(
+    DeviceType::CPU,
+    DeviceType::OPENCL,
+    caffe2::opencl::OpenCLContext::CopyBytesSync,
+    caffe2::opencl::OpenCLContext::CopyBytesAsync);
 
 REGISTER_CONTEXT(DeviceType::OPENCL, caffe2::opencl::OpenCLContext);
 

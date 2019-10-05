@@ -11,16 +11,19 @@
 # CMakeLists.txt files under each folder respectively.
 set(Caffe2_CPU_SRCS)
 set(Caffe2_GPU_SRCS)
+set(Caffe2_OPENCL_SRCS)
 
 # Caffe2_{CPU,GPU}_TEST_SRCS is the list that will have all the related source
 # files for CPU and GPU tests respectively.
 set(Caffe2_CPU_TEST_SRCS)
 set(Caffe2_GPU_TEST_SRCS)
+set(Caffe2_OPENCL_TEST_SRCS)
 
 # Caffe2_{CPU,GPU}_INCLUDE is the list that will have all the include
 # directories for CPU and GPU respectively.
 set(Caffe2_CPU_INCLUDE)
 set(Caffe2_GPU_INCLUDE)
+set(Caffe2_OPENCL_INCLUDE)
 
 # Caffe2_MAIN_LIBS is a list of the libraries that a dependent library should
 # depend on when it links against Caffe2.

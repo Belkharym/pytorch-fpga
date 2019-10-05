@@ -1015,6 +1015,7 @@
     MkldnnCPU: empty_mkldnn
     SparseCPU: empty_sparse
     SparseCUDA: empty_sparse
+    OpenCL: empty_opencl
 
 - func: new_empty(Tensor self, int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
   variants: method
