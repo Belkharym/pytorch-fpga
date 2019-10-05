@@ -155,6 +155,11 @@ if (FALSE)
     message(STATUS "  " ${tmp})
   endforeach()
 
+  message(STATUS "OPENCL sources: ")
+  foreach(tmp ${Caffe2_OPENCL_SRCS})
+    message(STATUS "  " ${tmp})
+  endforeach()
+
   message(STATUS "ATen CPU test sources: ")
   foreach(tmp ${ATen_CPU_TEST_SRCS})
     message(STATUS "  " ${tmp})

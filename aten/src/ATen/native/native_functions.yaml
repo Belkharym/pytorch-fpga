@@ -2318,6 +2318,7 @@
   dispatch:
     CPU: sigmoid
     CUDA: sigmoid
+    OpenCL: sigmoid
     MkldnnCPU: mkldnn_sigmoid
 
 - func: sigmoid_(Tensor(a!) self) -> Tensor(a!)
@@ -2326,6 +2327,7 @@
   dispatch:
     CPU: sigmoid_
     CUDA: sigmoid_
+    OpenCL: sigmoid_
     MkldnnCPU: mkldnn_sigmoid_
 
 - func: sigmoid.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
