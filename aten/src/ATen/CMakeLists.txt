@@ -117,7 +117,7 @@ endif()
 
 IF(USE_OPENCL)
   set(ATen_OPENCL_SRCS ${ATen_OPENCL_SRCS} ${native_opencl_cl})
-  set(all_opencl_cpp ${native_opencl_cpp} ${ATen_CUDA_SRCS})
+  set(all_opencl_cpp ${native_opencl_cpp} ${ATen_OPENCL_SRCS})
 endif()
 
 filter_list(generated_h generated_cpp "\\.h$")

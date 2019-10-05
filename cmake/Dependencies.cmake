@@ -564,7 +564,7 @@ if(USE_LMDB)
 endif()
 
 if (USE_OPENCL)
-  message(INFO "USING OPENCL")
+  message(STATUS "USING OPENCL")
   find_package(OpenCL REQUIRED)
   include_directories(SYSTEM ${OpenCL_INCLUDE_DIRS})
   include_directories(${CMAKE_CURRENT_LIST_DIR}/../c10/opencl)
