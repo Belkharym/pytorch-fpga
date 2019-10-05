@@ -141,7 +141,7 @@ def backend_to_devicetype(backend):
         return 'CPU'
     return backend
 
-backends = ['CPU', 'CUDA']
+backends = ['CPU', 'CUDA', 'OpenCL']
 densities = ['Dense', 'Sparse', 'Mkldnn']  # TODO: layout instead of densities?
 
 quantized_backends = ['QuantizedCPU']
@@ -158,6 +158,7 @@ quantized_scalar_types = [
 top_env = {
     'cpu_type_headers': [],
     'cuda_type_headers': [],
+    'opencl_type_headers': [],
     'function_registrations': [],
     'c10_ops_already_moved_from_aten_to_c10': [],
     'c10_ops_not_moved_from_aten_to_c10_yet': [],
@@ -294,6 +295,9 @@ def generate_storage_type_and_tensor(backend, density, declarations):
         env['legacy_th_headers'].append('#include <ATen/LegacyTHFunctions' + env['Backend'] + ".h>")
         fm.write('LegacyTHFunctions' + env['Backend'] + ".h", LEGACY_TH_FUNCTIONS_H, env)
         fm.write('LegacyTHFunctions' + env['Backend'] + ".cpp", LEGACY_TH_FUNCTIONS_CPP, env)
+    
+    if env['Backend'] == 'OpenCL':
+        env['namespace'] = env['Backend'].lower()
 
     if density != 'Sparse':
         fm.write(env['Type'] + ".cpp", TYPE_DERIVED_CPP, env)
@@ -304,9 +308,12 @@ def generate_storage_type_and_tensor(backend, density, declarations):
     if env['DeviceType'] == 'CPU':
         top_env['cpu_type_headers'].append(
             '#include "ATen/{}.h"'.format(env['Type']))
-    else:
-        assert env['DeviceType'] == 'CUDA'
+    elif env['DeviceType'] == 'CUDA':
         top_env['cuda_type_headers'].append(
+            '#include "ATen/{}.h"'.format(env['Type']))
+    else:
+        assert env['DeviceType'] == 'OpenCL'
+        top_env['opencl_type_headers'].append(
             '#include "ATen/{}.h"'.format(env['Type']))
 
 
