@@ -1,6 +1,8 @@
 #pragma once
 
-// Automatically generated header file for the C10 CUDA library.  Do not
-// include this file directly.  Instead, include c10/cuda/CUDAMacros.h
+// Automatically generated header file for the C10 OpenCL library.  Do not
+// include this file directly.  Instead, include c10/opencl/OpenCLMacros.h
 
 #cmakedefine C10_OPENCL_BUILD_SHARED_LIBS
+
+#cmakedefine _OPENCL_KERNEL_DIR @_OPENCL_KERNEL_DIR@

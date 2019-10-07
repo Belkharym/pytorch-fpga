@@ -25,7 +25,7 @@ namespace c10 {
  * or "SparseCUDA"; backend in torch.backends is something like "MKL" or
  * "CUDNN".
  */
-enum class Backend { CPU, CUDA, HIP, OpenCL, SparseCPU, SparseCUDA, SparseHIP, MSNPU, XLA, QuantizedCPU, ComplexCPU, ComplexCUDA, Undefined, MkldnnCPU, NumOptions };
+enum class Backend { CPU, CUDA, HIP, OpenCL, SparseCPU, SparseCUDA, SparseOpenCL, SparseHIP, MSNPU, XLA, QuantizedCPU, ComplexCPU, ComplexCUDA, Undefined, MkldnnCPU, NumOptions };
 
 static inline Backend toSparse(Backend b) {
   switch (b) {
@@ -35,6 +35,8 @@ static inline Backend toSparse(Backend b) {
       return Backend::SparseCUDA;
     case Backend::HIP:
       return Backend::SparseHIP;
+    case Backend::OpenCL:
+      return Backend::SparseOpenCL;
     case Backend::SparseCPU:
       return Backend::SparseCPU;
     case Backend::SparseCUDA:
@@ -54,6 +56,8 @@ static inline Backend toDense(Backend b) {
       return Backend::CUDA;
     case Backend::HIP:
       return Backend::HIP;
+    case Backend::OpenCL:
+      return Backend::OpenCL;
     case Backend::MSNPU:
       return Backend::MSNPU;
     case Backend::XLA:
@@ -64,6 +68,8 @@ static inline Backend toDense(Backend b) {
       return Backend::CUDA;
     case Backend::SparseHIP:
       return Backend::HIP;
+    case Backend::SparseOpenCL:
+      return Backend::OpenCL;
     case Backend::QuantizedCPU:
       return Backend::QuantizedCPU;
     case Backend::ComplexCPU:
@@ -94,6 +100,8 @@ static inline Backend tensorTypeIdToBackend(TensorTypeId t) {
     return Backend::SparseCUDA;
   } else if (t == TensorTypeId::SparseHIPTensorId) {
     return Backend::SparseHIP;
+  } else if (t == TensorTypeId::SparseOpenCLTensorId) {
+    return Backend::SparseOpenCL;
   } else if (t == TensorTypeId::MkldnnCPUTensorId) {
     return Backend::MkldnnCPU;
   } else if (t == TensorTypeId::QuantizedCPUTensorId) {
@@ -129,6 +137,8 @@ static inline TensorTypeId backendToTensorTypeId(Backend b) {
       return TensorTypeId::SparseCUDATensorId;
     case Backend::SparseHIP:
       return TensorTypeId::SparseHIPTensorId;
+    case Backend::SparseOpenCL:
+      return TensorTypeId::SparseOpenCLTensorId;
     case Backend::MkldnnCPU:
       return TensorTypeId::MkldnnCPUTensorId;
     case Backend::QuantizedCPU:
@@ -164,6 +174,8 @@ static inline DeviceType backendToDeviceType(Backend b) {
       return DeviceType::CUDA;
     case Backend::SparseHIP:
       return DeviceType::HIP;
+    case Backend::SparseOpenCL:
+      return DeviceType::OPENCL;
     case Backend::MkldnnCPU:
     case Backend::QuantizedCPU:
     case Backend::ComplexCPU:
@@ -186,12 +198,14 @@ static inline Backend backendToCPU(Backend b) {
     case Backend::HIP:
       return Backend::CPU;
     case Backend::OpenCL:
-      return Backend::OpenCL;
+      return Backend::CPU;
     case Backend::SparseCPU:
       return Backend::SparseCPU;
     case Backend::SparseCUDA:
       return Backend::SparseCPU;
     case Backend::SparseHIP:
+      return Backend::SparseCPU;
+    case Backend::SparseOpenCL:
       return Backend::SparseCPU;
     case Backend::MSNPU:
     case Backend::XLA:
@@ -222,6 +236,7 @@ static inline Backend backendToCUDA(Backend b) {
     case Backend::SparseCPU:
     case Backend::SparseCUDA:
     case Backend::SparseHIP:
+    case Backend::SparseOpenCL:
       return Backend::SparseCUDA;
     case Backend::ComplexCPU:
     case Backend::ComplexCUDA:
@@ -245,7 +260,29 @@ static inline Backend backendToHIP(Backend b) {
     case Backend::SparseCPU:
     case Backend::SparseCUDA:
     case Backend::SparseHIP:
+    case Backend::SparseOpenCL:
       return Backend::SparseHIP;
+    case Backend::Undefined:
+      return Backend::Undefined;
+    default:
+      AT_ERROR("Unknown backend");
+  }
+}
+
+static inline Backend backendToOpenCL(Backend b) {
+  switch (b) {
+    case Backend::CPU:
+    case Backend::CUDA:
+    case Backend::HIP:
+    case Backend::OpenCL:
+    case Backend::MSNPU:
+    case Backend::XLA:
+      return Backend::OpenCL;
+    case Backend::SparseCPU:
+    case Backend::SparseCUDA:
+    case Backend::SparseHIP:
+    case Backend::SparseOpenCL:
+      return Backend::SparseOpenCL;
     case Backend::Undefined:
       return Backend::Undefined;
     default:
@@ -274,6 +311,8 @@ static inline const char* toString(Backend b) {
       return "SparseCUDA";
     case Backend::SparseHIP:
       return "SparseHIP";
+    case Backend::SparseOpenCL:
+      return "SparseOpenCL";
     case Backend::MkldnnCPU:
       return "MkldnnCPU";
     case Backend::QuantizedCPU:
@@ -292,6 +331,7 @@ static inline bool isSparse(Backend b) {
     case Backend::SparseCPU:
     case Backend::SparseCUDA:
     case Backend::SparseHIP:
+    case Backend::SparseOpenCL:
       return true;
     default:
       return false;

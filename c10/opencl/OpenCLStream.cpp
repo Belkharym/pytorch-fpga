@@ -10,6 +10,8 @@ namespace c10 {
 namespace opencl {
 namespace {
 
+/* TODO Reimplement LeakyStreamInternals to work with OpenCL */
+
 // Internal implementation that leaks the stream. It's not intended to be used
 // outside of this file.
 struct LeakyStreamInternals {

@@ -6,6 +6,7 @@ include(../../cmake/public/utils.cmake)
 
 # ---[ Configure macro file.
 set(C10_OPENCL_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS}) # used in cmake_macros.h.in
+set(_OPENCL_KERNEL_DIR ${CMAKE_INSTALL_PREFIX}/opencl)
 configure_file(
     ${CMAKE_CURRENT_LIST_DIR}/impl/opencl_cmake_macros.h.in
     ${CMAKE_BINARY_DIR}/c10/opencl/impl/opencl_cmake_macros.h)
@@ -26,10 +27,15 @@ file(GLOB C10_OPENCL_HEADERS
 
 message(INFO "C10_OPENCL_HEADERS ${C10_OPENCL_HEADERS}")
 
+if(CMAKE_CXX_STANDARD GREATER_EQUAL 17)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    add_compile_options(-stdc++fs)
+  endif()
+endif()
 add_library(c10_opencl ${C10_OPENCL_SRCS} ${C10_OPENCL_HEADERS})
 
 # ---[ Dependency of c10_opencl
-target_link_libraries(c10_opencl PUBLIC c10)
+target_link_libraries(c10_opencl PUBLIC c10 stdc++fs)
 
 target_include_directories(
     c10_opencl PUBLIC
@@ -52,3 +58,5 @@ install(FILES ${CMAKE_BINARY_DIR}/c10/opencl/impl/opencl_cmake_macros.h
 if (MSVC AND C10_OPENCL_BUILD_SHARED_LIBS)
   install(FILES $<TARGET_PDB_FILE:c10_opencl> DESTINATION lib OPTIONAL)
 endif()
+
+set(_OPENCL_KERNEL_DIR ${_OPENCL_KERNEL_DIR} PARENT_SCOPE)

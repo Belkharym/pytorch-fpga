@@ -181,8 +181,12 @@ constexpr uint32_t CUDA_THREADS_PER_BLOCK_FALLBACK = 256;
 #define C10_LAUNCH_BOUNDS_0 __launch_bounds__(256, 4) // default launch bounds that should give good occupancy and versatility across all architectures.
 #define C10_LAUNCH_BOUNDS_1(max_threads_per_block) __launch_bounds__((C10_MAX_THREADS_PER_BLOCK((max_threads_per_block))))
 #define C10_LAUNCH_BOUNDS_2(max_threads_per_block, min_blocks_per_sm) __launch_bounds__((C10_MAX_THREADS_PER_BLOCK((max_threads_per_block))), (C10_MIN_BLOCKS_PER_SM((max_threads_per_block), (min_blocks_per_sm))))
+#elif defined(__OPENCL_VERSION__) && __OPENCL_VERSION__ >= 120
+#define C10_HOST_DEVICE __kernel
+#define C10_HOST
+#define C10_DEVICE __kernel
 #else
-#define C10_HOST_DEVICE
+#define C10_HOST_DEVICE 
 #define C10_HOST
 #define C10_DEVICE
 #endif

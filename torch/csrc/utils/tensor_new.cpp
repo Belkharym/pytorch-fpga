@@ -52,6 +52,8 @@ Backend backendToBackendOfDeviceType(Backend b, DeviceType d) {
       return backendToCUDA(b);
     case DeviceType::HIP:
       return backendToHIP(b);
+    case DeviceType::OPENCL:
+      return backendToOpenCL(b);
     case DeviceType::MSNPU:
       TORCH_CHECK(!isSparse(b), "Sparse not implemented for MSNPU");
       return Backend::MSNPU;

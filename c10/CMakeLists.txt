@@ -92,6 +92,7 @@ endif()
 
 if(USE_OPENCL)
   add_subdirectory(opencl)
+  set(_OPENCL_KERNEL_DIR ${_OPENCL_KERNEL_DIR} PARENT_SCOPE)
 endif()
 
 # ---[ Installation

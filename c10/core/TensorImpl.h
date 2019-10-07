@@ -404,7 +404,8 @@ struct C10_API TensorImpl : public c10::intrusive_ptr_target {
     // corresponding tensor, but if this ever changes, we need to modify this.
     return type_set_.has(TensorTypeId::SparseCPUTensorId) ||
            type_set_.has(TensorTypeId::SparseCUDATensorId) ||
-           type_set_.has(TensorTypeId::SparseHIPTensorId);
+           type_set_.has(TensorTypeId::SparseHIPTensorId) ||
+           type_set_.has(TensorTypeId::SparseOpenCLTensorId);
   }
 
   bool is_quantized() const {
@@ -428,6 +429,14 @@ struct C10_API TensorImpl : public c10::intrusive_ptr_target {
     // corresponding tensor, but if this ever changes, we need to modify this.
     return type_set_.has(TensorTypeId::HIPTensorId) ||
            type_set_.has(TensorTypeId::SparseHIPTensorId);
+  }
+
+  bool is_opencl() const {
+    // NB: This method is not virtual and avoid dispatches for performance reasons.
+    // NB: At the moment, variables have the same TensorTypeId as their
+    // corresponding tensor, but if this ever changes, we need to modify this.
+    return type_set_.has(TensorTypeId::OpenCLTensorId) ||
+           type_set_.has(TensorTypeId::SparseOpenCLTensorId);
   }
 
   bool is_mkldnn() const {
@@ -920,12 +929,14 @@ struct C10_API TensorImpl : public c10::intrusive_ptr_target {
     auto is_dense = [](TensorTypeSet ts) {
       return ts.has(TensorTypeId::CPUTensorId) ||
              ts.has(TensorTypeId::CUDATensorId) ||
-             ts.has(TensorTypeId::HIPTensorId);
+             ts.has(TensorTypeId::HIPTensorId) ||
+             ts.has(TensorTypeId::OpenCLTensorId);
     };
     auto is_sparse = [](TensorTypeSet ts) {
       return ts.has(TensorTypeId::SparseCPUTensorId) ||
              ts.has(TensorTypeId::SparseCUDATensorId) ||
-             ts.has(TensorTypeId::SparseHIPTensorId);
+             ts.has(TensorTypeId::SparseHIPTensorId) ||
+             ts.has(TensorTypeId::SparseOpenCLTensorId);
     };
     // TODO: This is going to be wrong when we introduce Variable; need to
     // factor this to be agnostic to Variable.  Maybe the correct fix

@@ -356,6 +356,7 @@
   dispatch:
     CPU: as_strided_tensorimpl
     CUDA: as_strided_tensorimpl
+    OpenCL: as_strided_tensorimpl
     QuantizedCPU: as_strided_qtensorimpl
   device_guard: False
   supports_named_tensor: True
@@ -2314,7 +2315,7 @@
   dispatch:
     CPU: _sigmoid__cpu
     CUDA: _sigmoid__cuda
-    OpenCL: _sigmoid__opencl
+    OpenCL: _sigmoid__cpu
     MkldnnCPU: mkldnn_sigmoid_
 
 - func: sigmoid.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
@@ -4388,6 +4389,7 @@
   dispatch:
     CPU: legacy::cpu::_th_eq
     CUDA: legacy::cuda::_th_eq
+    OpenCL: _eq_opencl
     QuantizedCPU: eq_quantized_cpu
 
 - func: eq.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4402,6 +4404,7 @@
   dispatch:
     CPU: legacy::cpu::_th_eq
     CUDA: legacy::cuda::_th_eq
+    OpenCL: _eq_opencl
     QuantizedCPU: eq_quantized_cpu
 
 - func: ge.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
