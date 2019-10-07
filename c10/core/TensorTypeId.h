@@ -41,6 +41,7 @@ enum class TensorTypeId : uint8_t {
   // Sparse has multi-dispatch with dense; handle it first
   SparseCPUTensorId, // PyTorch only
   SparseCUDATensorId, // PyTorch only
+  SparseOpenCLTensorId,
 
   // WARNING! If you add more "wrapper" style tensor ids (tensor
   // ids which don't get kernels directly defined in native_functions.yaml;

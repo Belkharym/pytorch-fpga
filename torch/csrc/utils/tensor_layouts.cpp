@@ -21,6 +21,7 @@ void initializeLayouts() {
   // for now, let's look these up by Backend; we could create our own enum in the future.
   registerLayoutObject((THPLayout*)strided_layout, at::Backend::CPU);
   registerLayoutObject((THPLayout*)strided_layout, at::Backend::CUDA);
+  registerLayoutObject((THPLayout*)strided_layout, at::Backend::OpenCL);
   registerLayoutObject((THPLayout*)strided_layout, at::Backend::MSNPU);
   registerLayoutObject((THPLayout*)strided_layout, at::Backend::XLA);
   registerLayoutObject((THPLayout*)strided_layout, at::Backend::QuantizedCPU);
@@ -32,6 +33,7 @@ void initializeLayouts() {
   }
   registerLayoutObject((THPLayout*)sparse_coo_layout, at::Backend::SparseCPU);
   registerLayoutObject((THPLayout*)sparse_coo_layout, at::Backend::SparseCUDA);
+  registerLayoutObject((THPLayout*)sparse_coo_layout, at::Backend::SparseOpenCL);
 
   PyObject *mkldnn_layout = THPLayout_New(at::Layout::Mkldnn, "torch._mkldnn");
   Py_INCREF(mkldnn_layout);

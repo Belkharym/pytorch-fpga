@@ -75,7 +75,7 @@ void OpenCLContext::CopyBytesSameDevice(
         nbytes,
         NULL,
         NULL);
-    TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : cannot copy bytes from OpenCL device to OpenCL device.");
+    TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : cannot copy bytes from OpenCL device to OpenCL device.");
 }
 
 void OpenCLContext::CopyBytesFromCPU(size_t nbytes, const void* src, void* dst) {
@@ -87,7 +87,7 @@ void OpenCLContext::CopyBytesFromCPU(size_t nbytes, const void* src, void* dst) 
         src,
         NULL,
         NULL);
-    TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : cannot copy bytes from CPU to OpenCL device.");
+    TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : cannot copy bytes from CPU to OpenCL device.");
 }
 
 void OpenCLContext::CopyBytesToCPU(size_t nbytes, const void* src, void* dst) {
@@ -99,7 +99,7 @@ void OpenCLContext::CopyBytesToCPU(size_t nbytes, const void* src, void* dst) {
         dst,
         NULL,
         NULL);
-    TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : cannot copy bytes from OpenCL device to CPU.");
+    TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : cannot copy bytes from OpenCL device to CPU.");
 }
 
 void OpenCLContext::CopyBytesAsync(
@@ -137,7 +137,7 @@ void OpenCLContext::CopyBytesAsync(
             break;
         }
     }
-    TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : cannot copy bytes from device ",
+    TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : cannot copy bytes from device ",
         DeviceTypeName(src_device.type()),
         " to device ",
         DeviceTypeName(src_device.type()));
@@ -180,7 +180,7 @@ void OpenCLContext::CopyBytesSync(
             break;
         }
     }
-    TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : cannot copy bytes from device ",
+    TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : cannot copy bytes from device ",
         DeviceTypeName(src_device.type()),
         " to device ",
         DeviceTypeName(src_device.type()));
@@ -199,7 +199,7 @@ struct DefaultOpenCLAllocator final : public at::Allocator {
         if (nbytes != 0) {
             cl_int err;
             ptr = new cl::Buffer{c10::opencl::opencl_context(), CL_MEM_READ_WRITE, nbytes, NULL, &err};
-            TORCH_CHECK(err != CL_SUCCESS, "OpenCL Error : Cannot allocate buffer of ", nbytes, " byte(s). (", err, ")");
+            TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : Cannot allocate buffer of ", nbytes, " byte(s). (", err, ")");
         }
         return {ptr, ptr, &Delete, at::Device(OPENCL, c10::opencl::current_device())};
     }

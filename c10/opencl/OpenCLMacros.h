@@ -1,5 +1,6 @@
 #pragma once
 
+#include <c10/opencl/impl/opencl_cmake_macros.h>
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.hpp>
 #else

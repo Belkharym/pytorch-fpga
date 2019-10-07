@@ -377,6 +377,8 @@ struct C10_API TensorOptions {
             return TensorTypeId::SparseCUDATensorId;
           case DeviceType::HIP:
             return TensorTypeId::SparseHIPTensorId;
+          case DeviceType::OPENCL:
+            return TensorTypeId::SparseOpenCLTensorId;
           default:
             AT_ERROR("Unsupported device type for sparse layout: ", device().type());
         }
@@ -578,6 +580,8 @@ inline DeviceType computeDeviceType(TensorTypeId tid) {
     return DeviceType::CUDA;
   } else if (tid == TensorTypeId::SparseHIPTensorId) {
     return DeviceType::HIP;
+  } else if (tid == TensorTypeId::SparseOpenCLTensorId) {
+    return DeviceType::OPENCL;
   } else if (tid == TensorTypeId::MkldnnCPUTensorId) {
     return DeviceType::CPU;
   } else if (tid == TensorTypeId::ComplexCPUTensorId) {

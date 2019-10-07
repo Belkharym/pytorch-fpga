@@ -84,6 +84,7 @@ FILE(GLOB native_quantized_hip_cpp "native/quantized/hip/*.cpp")
 
 FILE(GLOB native_opencl_cl "native/opencl/*.cl")
 FILE(GLOB native_opencl_cpp "native/opencl/*.cpp")
+FILE(GLOB native_opencl_h "native/opencl/*.h")
 
 add_subdirectory(quantized)
 set(all_cpu_cpp ${base_cpp} ${ATen_CORE_SRCS} ${native_cpp} ${native_sparse_cpp} ${native_quantized_cpp} ${native_mkl_cpp} ${native_mkldnn_cpp} ${generated_cpp} ${core_generated_cpp} ${ATen_CPU_SRCS} ${ATen_QUANTIZED_SRCS} ${cpu_kernel_cpp})
@@ -119,6 +120,8 @@ endif()
 IF(USE_OPENCL)
   set(ATen_OPENCL_SRCS ${ATen_OPENCL_SRCS} ${native_opencl_cl})
   set(all_opencl_cpp ${native_opencl_cpp} ${ATen_OPENCL_SRCS})
+  set(ATen_OPENCL_KERNEL_SRCS ${ATen_OPENCL_KERNEL_SRCS} ${native_opencl_cl})
+  install(FILES ${ATen_OPENCL_KERNEL_SRCS} DESTINATION ${_OPENCL_KERNEL_DIR})
 endif()
 
 filter_list(generated_h generated_cpp "\\.h$")
@@ -411,6 +414,10 @@ message("AT_INSTALL_INCLUDE_DIR ${AT_INSTALL_INCLUDE_DIR}/ATen/core")
 FOREACH(HEADER ${core_generated_h})
   message("core header install: ${HEADER}")
   INSTALL(FILES ${HEADER} DESTINATION ${AT_INSTALL_INCLUDE_DIR}/ATen/core)
+ENDFOREACH()
+
+FOREACH(HEADER ${native_opencl_h})
+  INSTALL(FILES ${HEADER} DESTINATION ${AT_INSTALL_INCLUDE_DIR}aten/src/ATen/native/opencl)
 ENDFOREACH()
 
 INSTALL(FILES ${CMAKE_BINARY_DIR}/aten/src/ATen/Declarations.yaml

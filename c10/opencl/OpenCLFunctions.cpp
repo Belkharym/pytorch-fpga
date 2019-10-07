@@ -1,8 +1,31 @@
 #include "OpenCLFunctions.h"
 
 #include <vector>
+#include <algorithm>
 #include <mutex>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <experimental/filesystem>
 
+
+#ifdef __cpp_lib_experimental_filesystem
+namespace fs {
+using namespace std::experimental::filesystem::v1;
+} // namespace fs
+#endif // __cpp_lib_experimental_filesystem
+
+#ifndef _STRINGIFY
+// Defined in GNU header file cdefs.h
+#ifndef __STRING
+#define __STRING(str) #str
+#endif
+#define _STRINGIFY(str) __STRING(str)
+#endif
+
+#ifndef _OPENCL_KERNEL_DIR
+#define _OPENCL_KERNEL_DIR .
+#endif // !_OPENCL_KERNEL_DIR
 
 namespace c10 {
 namespace opencl {
@@ -12,8 +35,58 @@ static cl::Platform platform;
 static cl::Context context;
 static std::vector<cl::Device> devices;
 static DeviceIndex current_device_ = 0;
+static cl::Program program;
+static std::vector<std::pair<std::string,cl::Kernel>> kernels;
 
 static std::once_flag init_flag;
+
+static void initOpenCLKernels(cl_int* cl_err) {
+    static const std::string kernels_dir{_STRINGIFY(_OPENCL_KERNEL_DIR)};
+    
+    // TODO Fetch files and put them all in a cl::Program::Sources object
+    // to then build them (if on FPGA, fetch the binaries and put them
+    // in a cl::Program::Binaries) and fetch all the kernel names using
+    // cl::Program::createKernels . Then use getInfo on the cl::Kernel to
+    // get the name:
+    //   cl_int cl_err = kernel.getInfo<char*>(
+    //                       CL_KERNEL_FUNCTION_NAME, &kernel_name);
+    fs::path kernel_dir_path{kernels_dir};
+    if (!fs::exists(kernel_dir_path)) {
+        TORCH_WARN_ONCE("OpenCL Error : the kernel directory path \"", kernels_dir,"\" is not a valide path.");
+        if (cl_err) {
+            *cl_err = CL_INVALID_KERNEL_NAME;
+        }
+        return;
+    }
+    std::vector<fs::path> files;
+    fs::directory_iterator start(kernel_dir_path);
+    fs::directory_iterator end;
+    std::transform(start, end, std::back_inserter(files), [](const fs::directory_entry& entry) {return entry.path();});
+    cl::Program::Sources sources;
+    std::transform(files.cbegin(), files.cend(), std::back_inserter(sources), [] (const fs::path& path) {
+        std::ifstream stream{path};
+        std::string content{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
+        char *c_str = (char*)malloc(content.size() + 1);
+        strncpy(c_str, content.c_str(), content.size() + 1);
+        return std::make_pair(c_str, content.size());
+    });
+
+    program = cl::Program{context, sources, cl_err};
+    if (*cl_err != CL_SUCCESS) {
+        TORCH_WARN_ONCE("OpenCL Error : cannot create OpenCL Program (code=", *cl_err, ")");
+        return;
+    }
+
+    *cl_err = program.build(devices);
+    if (*cl_err != CL_SUCCESS) {
+        TORCH_WARN_ONCE("OpenCL Error : cannot build OpenCL Program (code=", *cl_err, ")");
+        if (*cl_err == CL_BUILD_PROGRAM_FAILURE) {
+            auto build_log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[0], cl_err);
+            TORCH_WARN_ONCE("Build log: \n", build_log, "\n");
+        }
+        return;
+    }
+}
 
 static void initOpenCLContext(cl_int* cl_err) {
     const auto platform_id = 0;
@@ -42,16 +115,27 @@ static void initOpenCLContext(cl_int* cl_err) {
     current_device_ = device_id;
 
     context = cl::Context(devices, NULL, NULL, NULL, cl_err);
+    if (*cl_err != CL_SUCCESS) {
+        TORCH_WARN_ONCE("Cannot initialize OpenCL context.");
+        return;
+    }
+
+    initOpenCLKernels(cl_err);
+    if (*cl_err != CL_SUCCESS) {
+        TORCH_WARN_ONCE("Cannot initialize OpenCL kernels.");
+        return;
+    }
 }
 
 } // namespace ::<unnamed>
 
 DeviceIndex device_count() noexcept {
     int count;
-    cl_int cl_err;
+    cl_int cl_err = CL_SUCCESS;
     // Lazy initialization of the global OpenCL context.
     std::call_once(init_flag, initOpenCLContext, &cl_err);
     if (cl_err != CL_SUCCESS) {
+        TORCH_WARN("OpenCL Error : Could not init the OpenCL Context (code=", cl_err, ")");
         return static_cast<DeviceIndex>(0);
     }
 
