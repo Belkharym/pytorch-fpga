@@ -1,6 +1,7 @@
 #include "OpenCLFunctions.h"
 
 #include <vector>
+#include <unordered_map>
 #include <algorithm>
 #include <mutex>
 #include <string>
@@ -36,7 +37,7 @@ static cl::Context context;
 static std::vector<cl::Device> devices;
 static DeviceIndex current_device_ = 0;
 static cl::Program program;
-static std::vector<std::pair<std::string,cl::Kernel>> kernels;
+static std::unordered_map<std::string, cl::Kernel> kernels;
 
 static std::once_flag init_flag;
 
@@ -81,11 +82,32 @@ static void initOpenCLKernels(cl_int* cl_err) {
     if (*cl_err != CL_SUCCESS) {
         TORCH_WARN_ONCE("OpenCL Error : cannot build OpenCL Program (code=", *cl_err, ")");
         if (*cl_err == CL_BUILD_PROGRAM_FAILURE) {
-            auto build_log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[0], cl_err);
-            TORCH_WARN_ONCE("Build log: \n", build_log, "\n");
+            for (auto& device : devices) {
+                auto build_status = program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device);
+                if (build_status != CL_BUILD_SUCCESS) {
+                    auto device_name = device.getInfo<CL_DEVICE_NAME>();
+                    auto build_log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
+                    TORCH_WARN("- Device ", device_name);
+                    TORCH_WARN("Build logs: \n", build_log, "\n");
+                }
+            }
         }
         return;
     }
+
+    std::vector<cl::Kernel> kernels_;
+    *cl_err = program.createKernels(&kernels_);
+    if (*cl_err != CL_SUCCESS) {
+        TORCH_WARN_ONCE("OpenCL Error : cannot fetch OpenCL kernels (code=", *cl_err, ")");
+        return;
+    }
+
+    std::transform(kernels_.cbegin(), kernels_.cend(), std::inserter(kernels, kernels.end()),
+        [](const cl::Kernel& kernel) -> std::pair<std::string,cl::Kernel> {
+            auto name = kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
+            return std::make_pair(name, kernel);
+        }
+    );
 }
 
 static void initOpenCLContext(cl_int* cl_err) {
@@ -162,6 +184,20 @@ cl::Device opencl_device(DeviceIndex device_id) {
         device_id = current_device_;
     }
     return devices[device_id];
+}
+
+c10::optional<cl::Kernel> opencl_kernel(const std::string& kernel_func_name, cl_int *err) {
+    const auto& it = kernels.find(kernel_func_name);
+    if (err) {
+        *err = CL_SUCCESS;
+    }
+    if (it == kernels.cend()) {
+        if (err) {
+            *err = CL_INVALID_KERNEL_NAME;
+        }
+        return {};
+    }
+    return {it->second};
 }
 
 }} // namespace c10::opencl

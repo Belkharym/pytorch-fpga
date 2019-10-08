@@ -85,6 +85,7 @@ torch/lib/site-packages/
 torch/lib/python*
 torch/lib64
 torch/include/
+torch/opencl/
 torch/share/
 torch/test/
 torch/version.py

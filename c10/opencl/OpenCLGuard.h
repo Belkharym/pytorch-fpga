@@ -2,6 +2,7 @@
 
 #include <c10/opencl/impl/OpenCLGuardImpl.h>
 #include <c10/opencl/OpenCLMacros.h>
+#include <c10/opencl/OpenCLStream.h>
 #include <c10/core/DeviceType.h>
 #include <c10/core/impl/InlineDeviceGuard.h>
 #include <c10/core/impl/InlineStreamGuard.h>

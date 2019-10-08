@@ -8,12 +8,16 @@ namespace opencl {
 #endif
 
 enum OpenCLOperations {
+    // Comparisons
     EQ, // EQuals
     NE, // Not Equals
     GT, // Greater Than
     LT, // Less Than
     GE, // Greater than or Equal
     LE, // Less than or Equal
+
+    // Unary pointwise
+    ABS, // ABSolute value
 };
 
 #ifdef __cplusplus
