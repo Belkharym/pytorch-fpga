@@ -4362,6 +4362,7 @@
   dispatch:
     CPU: legacy::cpu::_th_ne
     CUDA: legacy::cuda::_th_ne
+    OpenCL: _ne_opencl
     QuantizedCPU: ne_quantized_cpu
 
 - func: ne.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4376,6 +4377,7 @@
   dispatch:
     CPU: legacy::cpu::_th_ne
     CUDA: legacy::cuda::_th_ne
+    OpenCL: _ne_opencl
     QuantizedCPU: ne_quantized_cpu
 
 - func: eq.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
