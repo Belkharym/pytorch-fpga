@@ -7,7 +7,7 @@ namespace native {
 namespace opencl {
 #endif
 
-enum OpenCLOperations {
+enum OpenCLOperationsPointwise3 {
     // Comparisons
     EQ, // EQuals
     NE, // Not Equals
@@ -15,7 +15,9 @@ enum OpenCLOperations {
     LT, // Less Than
     GE, // Greater than or Equal
     LE, // Less than or Equal
+};
 
+enum OpenCLOperationsPointwise {
     // Unary pointwise
     ABS, // ABSolute value
 };
