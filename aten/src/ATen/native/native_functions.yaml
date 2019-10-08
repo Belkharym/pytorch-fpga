@@ -193,6 +193,7 @@
   dispatch:
     CPU: _abs_out_cpu
     CUDA: _abs_out_cuda
+    OpenCL: _abs_out_opencl
 
 - func: acos(Tensor self) -> Tensor
   use_c10_dispatcher: full
