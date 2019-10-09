@@ -1,4 +1,4 @@
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+// #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #include "aten/src/ATen/native/opencl/OpenCLOperations.h"
 
 /// Macro definitions
@@ -35,7 +35,6 @@
     DECLARE_MACRO_(type##16, type2##16)
 
 #define DEFINE_KERNEL_FOR_FLOATS(KERNEL_MACRO_) \
-KERNEL_MACRO_(h, half)     \
 KERNEL_MACRO_(f, float)    \
 KERNEL_MACRO_(d, double)
 
@@ -49,7 +48,6 @@ KERNEL_MACRO_(l, long)
 DEFINE_KERNEL_FOR_INTS(KERNEL_MACRO_) \
 DEFINE_KERNEL_FOR_FLOATS(KERNEL_MACRO_)
 
-
 /// Code Declatation
 
 __kernel void test() {
@@ -57,7 +55,7 @@ __kernel void test() {
 }
 
 #define DECLARE_INT_COMP(type, rettype, suffix) \
-INLINE_OVERLOADABLE rettype comp##suffix(CONST type a, CONST type b, enum OpenCLOperationsPointwise3 op) { \
+inline __attribute__((overloadable,always_inline)) rettype comp##suffix(const type a, const type b, enum OpenCLOperationsPointwise3 op) { \
     switch(op) {            \
         case EQ:            \
             return a == b;  \
@@ -80,7 +78,7 @@ INLINE_OVERLOADABLE rettype comp##suffix(CONST type a, CONST type b, enum OpenCL
     }                       \
 }
 
-DECLARE_INT_COMP(half, int, h)
+// DECLARE_INT_COMP(half, int, h)
 DECLARE_INT_COMP(float, int, f)
 DECLARE_INT_COMP(double, long, d)
 DECLARE_INT_COMP(char, char, c)
