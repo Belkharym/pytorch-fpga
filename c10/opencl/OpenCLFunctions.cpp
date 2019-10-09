@@ -1,7 +1,7 @@
 #include "OpenCLFunctions.h"
 
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include <algorithm>
 #include <mutex>
 #include <string>
@@ -37,7 +37,7 @@ static cl::Context context;
 static std::vector<cl::Device> devices;
 static DeviceIndex current_device_ = 0;
 static cl::Program program;
-static std::unordered_map<std::string, cl::Kernel> kernels;
+static std::map<std::string, cl::Kernel> kernels;
 
 static std::once_flag init_flag;
 
@@ -105,6 +105,8 @@ static void initOpenCLKernels(cl_int* cl_err) {
     std::transform(kernels_.cbegin(), kernels_.cend(), std::inserter(kernels, kernels.end()),
         [](const cl::Kernel& kernel) -> std::pair<std::string,cl::Kernel> {
             auto name = kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
+            // There can be a null character left at the end of the string, which mess with the comparison in the map.
+            name.resize(name.size() - 1);
             return std::make_pair(name, kernel);
         }
     );

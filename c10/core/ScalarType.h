@@ -74,17 +74,15 @@ namespace impl {
 template <c10::ScalarType N>
 struct ScalarTypeToCPPType;
 
-template<>
-struct ScalarTypeToCPPType<c10::ScalarType::Half> {
-  using type = c10::Half;
-
-  // This is a workaround for the CUDA bug which prevents ::detail::ScalarTypeToCType<T>::type being used directly
-  // due to ambiguous reference which can't to be resolved. For some reason it cant pick between at::detail and at::cuda::detail.
-  // For repro example, please see: https://gist.github.com/izdeby/952ae7cf256ddb740a73776d39a7e7ba
-  // TODO: remove once the bug is fixed.
-  static type t;
+#define DEFINE_SCALAR_TYPE_TO_CPP_TYPE(type_, name) \
+template<> \
+struct ScalarTypeToCPPType<c10::ScalarType::name> { \
+  using type = type_; \
+  static type t; \
 };
-
+AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(DEFINE_SCALAR_TYPE_TO_CPP_TYPE)
+#undef DEFINE_SCALAR_TYPE_TO_CPP_TYPE
+/*
 template<>
 struct ScalarTypeToCPPType<c10::ScalarType::BFloat16> {
   using type = c10::BFloat16;
@@ -116,7 +114,7 @@ struct ScalarTypeToCPPType<c10::ScalarType::Long> {
   // For repro example, please see: https://gist.github.com/izdeby/952ae7cf256ddb740a73776d39a7e7ba
   // TODO: remove once the bug is fixed.
   static type t;
-};
+};*/
 }
 
 #define AT_FORALL_SCALAR_TYPES(_) \
