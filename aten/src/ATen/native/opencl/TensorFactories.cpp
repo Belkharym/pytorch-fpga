@@ -152,9 +152,9 @@ static void logical_tensor(TensorImpl *self_, const TensorImpl *t1, const Scalar
   auto scalar_type = typeMetaToScalarType(t1->dtype());
   switch (scalar_type)
   {
-#define DEFINE_OPENCL_LOGICAL_TENSOR_CASE(_1, name) \
+#define DEFINE_OPENCL_LOGICAL_TENSOR_CASE(type, name) \
   case ScalarType::name: \
-    pointwise_op2_s<ScalarType::name>(self_->storage().unsafeGetStorageImpl(), t1->storage().unsafeGetStorageImpl(), t2, op); \
+    pointwise_op2_s<ScalarType::name, type>(self_->storage().unsafeGetStorageImpl(), t1->storage().unsafeGetStorageImpl(), t2, op); \
     break;
   AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(DEFINE_OPENCL_LOGICAL_TENSOR_CASE)
 #undef DEFINE_OPENCL_LOGICAL_TENSOR_CASE

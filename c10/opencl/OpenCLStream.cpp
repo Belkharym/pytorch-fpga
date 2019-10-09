@@ -25,7 +25,7 @@ struct LeakyStreamInternals {
     // to a crash. It's likely an issue in CUDA, but to be safe - let's just
     // "forget" the destruction.
 
-    // if (stream) cudaStreamDestroy(stream);
+    if (stream) delete stream;
   }
 
   c10::DeviceIndex device_index = -1;
@@ -170,6 +170,8 @@ static void initGlobalStreamState() {
   // Initializes default streams
   for (auto i = decltype(num_devices){0}; i < num_devices; ++i) {
     default_streams[i].device_index = i;
+    default_streams[i].stream_id = 0;
+    default_streams[i].stream = new cl::CommandQueue(opencl_context(), opencl_device(i));
     pool_counters[i] = 0;
   }
 }
