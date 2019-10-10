@@ -213,11 +213,19 @@ Tensor _ne_opencl(const Tensor &self, Scalar other) {
 Tensor & _abs_out_opencl(Tensor &result, const Tensor &self) {
   auto result_ = checked_tensor_unwrap(result, "result", 1, "_abs_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   auto self_ = checked_tensor_unwrap(self, "self", 2, "_abs_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-
   opencl_resize(result_, self_->sizes(), {});
   pointwise_op(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise::ABS, self.scalar_type());
 
   return result;
+}
+
+Tensor & _ceil_out_opencl(Tensor &out, const Tensor &self) {
+  auto result_ = checked_tensor_unwrap(out, "out", 1, "_ceil_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
+  auto self_ = checked_tensor_unwrap(self, "self", 2, "_ceil_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
+  opencl_resize(result_, self_->sizes(), {});
+  pointwise_op(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise::CEIL, self.scalar_type());
+
+  return out;
 }
 
 }} // namespace at::native
