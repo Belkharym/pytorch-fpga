@@ -20,6 +20,11 @@ enum OpenCLOperationsPointwise3 {
 enum OpenCLOperationsPointwise {
     // Unary pointwise
     ABS, // ABSolute value
+    CEIL, // Rounds x upward
+    ADD, // addition
+    SUB, // subtract
+    DIV, // divide
+    MUL, // multiply
 };
 
 #ifdef __cplusplus
