@@ -15,6 +15,7 @@ DeviceIndex current_device();
 void set_device(DeviceIndex device_id);
 
 // Returns the global OpenCL context.
+cl::Platform opencl_platform();
 cl::Context opencl_context();
 cl::Device opencl_device(DeviceIndex device_id = -1);
 c10::optional<cl::Kernel> opencl_kernel(const std::string& kernel_func_name, cl_int *err = NULL);
