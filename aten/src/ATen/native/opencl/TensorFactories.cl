@@ -94,6 +94,7 @@ __kernel void pointwise_op_##suffix(__global const type* a, __global type* b, en
         } \
         case CEIL: { \
             b[get_global_id(0)] = a[get_global_id(0)]; \
+            break; \
         } \
     } \
 }
@@ -106,11 +107,13 @@ __kernel void pointwise_op_##suffix(__global const type* a, __global type* b, en
             break; \
         } \
         case CEIL: { \
-            b[get_global_id(0)] = ceil(a[get_global_id(0)]); \
+            b[get_global_id(0)] = ceil((type)a[get_global_id(0)]); \
+            break; \
         } \
     } \
 }
 
 DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_INT)
-DEFINE_KERNEL_FOR_FLOATS(POINTWISE_OP_FLOAT)
+POINTWISE_OP_FLOAT(f, float)
+POINTWISE_OP_FLOAT(d, float)
 //DEFINE_KERNEL_FOR_ALL_TYPES(POINTWISE_OP)

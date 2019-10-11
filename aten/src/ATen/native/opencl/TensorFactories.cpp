@@ -166,8 +166,7 @@ Tensor _eq_opencl(const Tensor &self, const Tensor& other) {
   auto other_ = checked_tensor_unwrap(other, "other", 2, "_eq_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   logical_tensor(result_, self_, other_, at::native::opencl::OpenCLOperationsPointwise3::EQ);
   result_->maybe_zero_dim(self_->dim() == 0 && other_->dim() == 0);
-  result.to(getIntEquivalentOfFloat(result.scalar_type()));
-  return result;
+  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool);
 }
 
 Tensor _eq_opencl(const Tensor &self, Scalar other) {
@@ -177,8 +176,7 @@ Tensor _eq_opencl(const Tensor &self, Scalar other) {
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_eq_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   logical_tensor(result_, self_, other, at::native::opencl::OpenCLOperationsPointwise3::EQ);
   result_->maybe_zero_dim(self_->dim() == 0);
-  result.to(getIntEquivalentOfFloat(result.scalar_type()));
-  return result;
+  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool);
 }
 
 Tensor _ne_opencl(const Tensor &self, const Tensor& other) {
@@ -189,8 +187,7 @@ Tensor _ne_opencl(const Tensor &self, const Tensor& other) {
   auto other_ = checked_tensor_unwrap(other, "other", 2, "_ne_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   logical_tensor(result_, self_, other_, at::native::opencl::OpenCLOperationsPointwise3::NE);
   result_->maybe_zero_dim(self_->dim() == 0 && other_->dim() == 0);
-  result.to(getIntEquivalentOfFloat(result.scalar_type()));
-  return result;
+  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool);
 }
 
 Tensor _ne_opencl(const Tensor &self, Scalar other) {
@@ -201,8 +198,7 @@ Tensor _ne_opencl(const Tensor &self, Scalar other) {
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_ne_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   logical_tensor(result_, self_, other, at::native::opencl::OpenCLOperationsPointwise3::NE);
   result_->maybe_zero_dim(self_->dim() == 0);
-  result.to(getIntEquivalentOfFloat(result.scalar_type()));
-  return result;
+  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool);
 }
 
 Tensor & _abs_out_opencl(Tensor &result, const Tensor &self) {
@@ -231,8 +227,7 @@ Tensor _and_opencl(const Tensor & self, const Tensor & other) {
   auto other_ = checked_tensor_unwrap(other, "other", 2, "_and_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   logical_tensor(result_, self_, other_, at::native::opencl::OpenCLOperationsPointwise3::BAND);
   result_->maybe_zero_dim(self_->dim() == 0 && other_->dim() == 0);
-  result.to(getIntEquivalentOfFloat(result.scalar_type()));
-  return result;
+  return result.to(getIntEquivalentOfFloat(result.scalar_type()));
 }
 
 Tensor _and_opencl(const Tensor & self, Scalar other) {
