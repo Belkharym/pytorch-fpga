@@ -575,6 +575,7 @@
   dispatch:
     CPU: ceil_out
     CUDA: ceil_out
+    OpenCL: _ceil_out_opencl
 
 - func: chain_matmul(Tensor[] matrices) -> Tensor
   use_c10_dispatcher: unboxed_only

@@ -22,6 +22,7 @@ enum OpenCLOperationsPointwise3 {
 enum OpenCLOperationsPointwise {
     // Unary pointwise
     ABS, // ABSolute value
+    CEIL, // Rounds x upward
 };
 
 #ifdef __cplusplus
