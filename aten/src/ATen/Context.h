@@ -9,6 +9,7 @@
 #include <ATen/core/LegacyTypeDispatch.h>
 #include <ATen/detail/CUDAHooksInterface.h>
 #include <ATen/detail/HIPHooksInterface.h>
+#include <ATen/detail/OpenCLHooksInterface.h>
 #include <c10/util/Exception.h>
 #include <c10/core/impl/DeviceGuardImplInterface.h>
 #include <c10/core/QEngine.h>
@@ -29,10 +30,13 @@ class CAFFE2_API Context {
     DeviceType device_type = device.type();
     initCUDAIfNeeded(device_type);
     initHIPIfNeeded(device_type);
+    initOpenCLIfNeeded(device_type);
     if (device_type == at::kCPU) {
       return *at::detail::getDefaultCPUGenerator();
     } else if (device_type == at::kCUDA) {
       return *at::detail::getCUDAHooks().getDefaultCUDAGenerator(device.index());
+    } else if (device_type == at::kOPENCL) {
+      return *at::detail::getOpenCLHooks().getDefaultOpenCLGenerator(device.index());
     } else {
       AT_ERROR(DeviceTypeName(device_type), " device type not enabled.");
     }
@@ -40,10 +44,13 @@ class CAFFE2_API Context {
   Device getDeviceFromPtr(void* data, DeviceType device_type) {
     initCUDAIfNeeded(device_type);
     initHIPIfNeeded(device_type);
+    initOpenCLIfNeeded(device_type);
     if (device_type == at::kCPU) {
       return DeviceType::CPU;
     } else if (device_type == at::kCUDA) {
       return at::detail::getCUDAHooks().getDeviceFromPtr(data);
+    } else if (device_type == at::kOPENCL) {
+      return at::detail::getOpenCLHooks().getDeviceFromPtr(data);
     } else {
       AT_ERROR(DeviceTypeName(device_type), " device type not enabled.");
     }
@@ -64,6 +71,9 @@ class CAFFE2_API Context {
   bool hasHIP() const {
     return detail::getHIPHooks().hasHIP();
   }
+  bool hasOpenCL() const {
+    return detail::getOpenCLHooks().hasOpenCL();
+  }
   bool hasXLA() const {
     return c10::impl::hasDeviceGuardImpl(at::DeviceType::XLA);
   }
@@ -81,6 +91,12 @@ class CAFFE2_API Context {
     });
     return thh_state.get();
   }
+  THOState* lazyInitOpenCL() {
+    std::call_once(tho_init,[&] {
+      tho_state = detail::getOpenCLHooks().initOpenCL();
+    });
+    return tho_state.get();
+  }
   const at::cuda::NVRTC& getNVRTC() {
     return detail::getCUDAHooks().nvrtc();
   }
@@ -90,6 +106,9 @@ class CAFFE2_API Context {
   }
   THHState* getTHHState() {
     return thh_state.get();
+  }
+  THOState* getTHOState() {
+    return tho_state.get();
   }
 
   bool setFlushDenormal(bool on);
@@ -121,8 +140,14 @@ class CAFFE2_API Context {
       lazyInitHIP();
     }
   }
+  void initOpenCLIfNeeded(DeviceType p) {
+    if (p == DeviceType::OPENCL) {
+      lazyInitOpenCL();
+    }
+  }
   std::once_flag thc_init;
   std::once_flag thh_init;
+  std::once_flag tho_init;
   bool enabled_cudnn = true;
   bool deterministic_cudnn = false;
   bool benchmark_cudnn = false;
@@ -130,6 +155,7 @@ class CAFFE2_API Context {
   c10::optional<at::QEngine> quantized_engine = c10::nullopt;
   std::unique_ptr<THCState, void(*)(THCState*)> thc_state;
   std::unique_ptr<THHState, void(*)(THHState*)> thh_state;
+  std::unique_ptr<THOState, void(*)(THOState*)> tho_state;
 };
 
 CAFFE2_API Context& globalContext();
@@ -166,6 +192,10 @@ static inline bool hasCUDA() {
 
 static inline bool hasHIP() {
   return globalContext().hasHIP();
+}
+
+static inline bool hasOpenCL() {
+  return globalContext().hasOpenCL();
 }
 
 static inline bool hasXLA() {
@@ -229,6 +259,18 @@ static inline void manual_seed(uint64_t seed) {
         // See Note [Acquire lock when using random generators]
         std::lock_guard<std::mutex> lock(cuda_gen.mutex_);
         cuda_gen.set_current_seed(seed);
+      }
+    }
+  }
+  // TODO Do we need to seed OpenCL too?
+  int num_devices = detail::getOpenCLHooks().getNumDevices();
+  if (hasOpenCL() && num_devices > 0) {
+    for (int i = 0; i < num_devices; i++) {
+      auto& opencl_gen = globalContext().defaultGenerator(Device(at::kOPENCL, i));
+      {
+        // See Note [Acquire lock when using random generators]
+        std::lock_guard<std::mutex> lock(opencl_gen.mutex_);
+        opencl_gen.set_current_seed(seed);
       }
     }
   }

@@ -3,6 +3,7 @@
 #include <c10/core/DeviceGuard.h>
 #include <c10/macros/Macros.h>
 #include <c10/opencl/OpenCLMacros.h>
+#include <c10/opencl/OpenCLException.h>
 #include <c10/util/Exception.h>
 #include <c10/core/Stream.h>
 
@@ -53,7 +54,7 @@ public:
 
   void synchronize() const {
     DeviceGuard guard{stream_.device()};
-    TORCH_CHECK(clFinish((*stream())()));
+    C10_OPENCL_CHECK(clFinish((*stream())()));
   }
 
   /// Reversibly pack a OpenCLStream into a uint64_t representation.  This may

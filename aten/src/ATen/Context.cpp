@@ -23,7 +23,8 @@ namespace at {
 
 Context::Context()
     : thc_state(nullptr, [](THCState* p) { /* no-op */ }),
-      thh_state(nullptr, [](THHState* p) { /* no-op */ }) {}
+      thh_state(nullptr, [](THHState* p) { /* no-op */ }),
+      tho_state(nullptr, [](THOState* p) { /* no-op */ }) {}
 
 // TODO: This could be bad juju if someone calls globalContext() in the
 // destructor of an object with static lifetime.
@@ -159,6 +160,9 @@ struct LegacyDeviceTypeInit : public LegacyDeviceTypeInitInterface {
   }
   void initHIP() const override {
     globalContext().lazyInitHIP();
+  }
+  void initOpenCL() const override {
+    globalContext();
   }
 };
 REGISTER_LEGACY_TYPE_INIT(LegacyDeviceTypeInit);

@@ -1,4 +1,5 @@
 #include "OpenCLFunctions.h"
+#include "OpenCLException.h"
 
 #include <vector>
 #include <map>
@@ -53,7 +54,7 @@ static void initOpenCLKernels(cl_int* cl_err) {
     //                       CL_KERNEL_FUNCTION_NAME, &kernel_name);
     fs::path kernel_dir_path{kernels_dir};
     if (!fs::exists(kernel_dir_path)) {
-        TORCH_WARN_ONCE("OpenCL Error : the kernel directory path \"", kernels_dir,"\" is not a valide path.");
+        TORCH_WARN_ONCE("OpenCL Error : the kernel directory path \"", kernels_dir, "\" is not a valide path.");
         if (cl_err) {
             *cl_err = CL_INVALID_KERNEL_NAME;
         }
@@ -74,13 +75,13 @@ static void initOpenCLKernels(cl_int* cl_err) {
 
     program = cl::Program{context, sources, cl_err};
     if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN_ONCE("OpenCL Error : cannot create OpenCL Program (code=", *cl_err, ")");
+        TORCH_WARN_ONCE("OpenCL Error : cannot create OpenCL Program (", clErrorString(*cl_err), ")");
         return;
     }
 
     *cl_err = program.build(devices);
     if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN_ONCE("OpenCL Error : cannot build OpenCL Program (code=", *cl_err, ")");
+        TORCH_WARN_ONCE("OpenCL Error : cannot build OpenCL Program (", clErrorString(*cl_err), ")");
         if (*cl_err == CL_BUILD_PROGRAM_FAILURE) {
             for (auto& device : devices) {
                 auto build_status = program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device);
@@ -98,7 +99,7 @@ static void initOpenCLKernels(cl_int* cl_err) {
     std::vector<cl::Kernel> kernels_;
     *cl_err = program.createKernels(&kernels_);
     if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN_ONCE("OpenCL Error : cannot fetch OpenCL kernels (code=", *cl_err, ")");
+        TORCH_WARN_ONCE("OpenCL Error : cannot fetch OpenCL kernels (", clErrorString(*cl_err), ")");
         return;
     }
 
@@ -122,7 +123,7 @@ static void initOpenCLContext(cl_int* cl_err) {
         *cl_err = CL_INVALID_PLATFORM;
     }
     if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN_ONCE("Cannot find platform for OpenCL.");
+        TORCH_WARN_ONCE("Cannot find platform for OpenCL. (", clErrorString(*cl_err), ")");
         return;
     }
     platform = platforms[platform_id];
@@ -133,22 +134,19 @@ static void initOpenCLContext(cl_int* cl_err) {
         *cl_err = CL_DEVICE_NOT_FOUND;
     }
     if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN_ONCE("Cannot find OpenCL compatible device.");
+        TORCH_WARN_ONCE("Cannot find OpenCL compatible device. (", clErrorString(*cl_err),")");
         return;
     }
     current_device_ = device_id;
 
     context = cl::Context(devices, NULL, NULL, NULL, cl_err);
     if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN_ONCE("Cannot initialize OpenCL context.");
+        C10_OPENCL_CHECK_WARN(*cl_err);
         return;
     }
 
     initOpenCLKernels(cl_err);
-    if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN_ONCE("Cannot initialize OpenCL kernels.");
-        return;
-    }
+    C10_OPENCL_CHECK_WARN(*cl_err);
 }
 
 } // namespace ::<unnamed>
@@ -159,7 +157,7 @@ DeviceIndex device_count() noexcept {
     // Lazy initialization of the global OpenCL context.
     std::call_once(init_flag, initOpenCLContext, &cl_err);
     if (cl_err != CL_SUCCESS) {
-        TORCH_WARN("OpenCL Error : Could not init the OpenCL Context (code=", cl_err, ")");
+        TORCH_WARN("OpenCL Error : Could not init the OpenCL Context (", clErrorString(cl_err), ")");
         return static_cast<DeviceIndex>(0);
     }
 
@@ -175,6 +173,10 @@ DeviceIndex current_device() {
 void set_device(DeviceIndex device_id) {
     // TODO Check if the device id is valid
     current_device_ = device_id;
+}
+
+cl::Platform opencl_platform() {
+    return platform;
 }
 
 cl::Context opencl_context() {

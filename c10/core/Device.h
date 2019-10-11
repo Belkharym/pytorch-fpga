@@ -89,6 +89,11 @@ struct C10_API Device final {
   /// Same string as returned from operator<<.
   std::string str() const;
 
+  /// Return true if the device is of CPU type.
+  bool is_opencl() const noexcept {
+    return type_ == DeviceType::OPENCL;
+  }
+
  private:
   DeviceType type_;
   DeviceIndex index_ = -1;

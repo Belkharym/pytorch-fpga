@@ -21,6 +21,9 @@ struct CAFFE2_API LegacyDeviceTypeInitInterface {
   virtual void initHIP() const {
     AT_ERROR("cannot use HIP without ATen HIP library");
   }
+  virtual void initOpenCL() const {
+    AT_ERROR("cannot use OpenCL without ATen OpenCL library");
+  }
 };
 
 struct CAFFE2_API LegacyDeviceTypeInitArgs {};

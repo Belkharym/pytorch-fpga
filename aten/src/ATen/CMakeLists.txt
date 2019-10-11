@@ -83,6 +83,7 @@ FILE(GLOB native_quantized_hip_hip "native/quantized/hip/*.hip")
 FILE(GLOB native_quantized_hip_cpp "native/quantized/hip/*.cpp")
 
 FILE(GLOB native_opencl_cl "native/opencl/*.cl")
+FILE(GLOB native_opencl_clh "native/opencl/*.clh")
 FILE(GLOB native_opencl_cpp "native/opencl/*.cpp")
 FILE(GLOB native_opencl_h "native/opencl/*.h")
 
@@ -120,7 +121,7 @@ endif()
 IF(USE_OPENCL)
   set(ATen_OPENCL_SRCS ${ATen_OPENCL_SRCS} ${native_opencl_cl})
   set(all_opencl_cpp ${native_opencl_cpp} ${ATen_OPENCL_SRCS})
-  set(ATen_OPENCL_KERNEL_SRCS ${ATen_OPENCL_KERNEL_SRCS} ${native_opencl_cl})
+  set(ATen_OPENCL_KERNEL_SRCS ${ATen_OPENCL_KERNEL_SRCS} ${native_opencl_cl} ${native_opencl_clh})
   install(FILES ${ATen_OPENCL_KERNEL_SRCS} DESTINATION ${_OPENCL_KERNEL_DIR})
 endif()
 
@@ -417,7 +418,7 @@ FOREACH(HEADER ${core_generated_h})
 ENDFOREACH()
 
 FOREACH(HEADER ${native_opencl_h})
-  INSTALL(FILES ${HEADER} DESTINATION ${AT_INSTALL_INCLUDE_DIR}aten/src/ATen/native/opencl)
+  INSTALL(FILES ${HEADER} DESTINATION ${AT_INSTALL_INCLUDE_DIR}/aten/src/ATen/native/opencl)
 ENDFOREACH()
 
 INSTALL(FILES ${CMAKE_BINARY_DIR}/aten/src/ATen/Declarations.yaml
