@@ -1,4 +1,4 @@
-#include <aten/src/ATen/native/opencl/MacroOpenCL.h>
+#include "aten/src/ATen/native/opencl/OpenCLKernelMacros.clh"
 #include "aten/src/ATen/native/opencl/OpenCLOperations.h"
 
 

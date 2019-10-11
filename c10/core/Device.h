@@ -86,6 +86,11 @@ struct C10_API Device final {
     return type_ == DeviceType::CPU;
   }
 
+  /// Return true if the device is of CPU type.
+  bool is_opencl() const noexcept {
+    return type_ == DeviceType::OPENCL;
+  }
+
  private:
   DeviceType type_;
   DeviceIndex index_ = -1;

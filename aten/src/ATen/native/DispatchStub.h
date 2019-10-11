@@ -193,7 +193,7 @@ struct RegisterOpenCLDispatch {
 // is HIP in the PyTorch HIPify build.
 #define REGISTER_DISPATCH(name, fn) REGISTER_CUDA_DISPATCH(name, fn)
 // #define REGISTER_DISPATCH(name, fn) REGISTER_HIP_DISPATCH(name, fn)
-#elif defined(__OPENCL_VERSION__)
+#elif defined(CL_VERSION_1_2)
 #define REGISTER_DISPATCH(name, fn) REGISTER_OPENCL_DISPATCH(name, fn)
 #elif defined(CPU_CAPABILITY)
 #define REGISTER_DISPATCH(name, fn) REGISTER_ARCH_DISPATCH(name, CPU_CAPABILITY, fn)

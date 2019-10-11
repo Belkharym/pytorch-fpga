@@ -1,5 +1,4 @@
-#ifndef MacroOpenCL_H
-#define MacroOpenCL_H
+/// Macro definitions
 
 #define DECLARE_FOR_ALL_SUBTYPES_EXCEPT_1(type, DECLARE_MACRO_) \
     DECLARE_MACRO_(type##2) \
@@ -45,4 +44,3 @@ KERNEL_MACRO_(l, long)
 DEFINE_KERNEL_FOR_INTS(KERNEL_MACRO_) \
 DEFINE_KERNEL_FOR_FLOATS(KERNEL_MACRO_)
 
-#endif

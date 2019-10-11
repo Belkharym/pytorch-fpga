@@ -3976,6 +3976,7 @@
   dispatch:
     CPU: legacy::cpu::_th_and
     CUDA: legacy::cuda::_th_and
+    OpenCL: _and_opencl
 
 - func: __and__.Tensor(Tensor self, Tensor other) -> Tensor
   use_c10_dispatcher: full
@@ -3983,6 +3984,7 @@
   dispatch:
     CPU: legacy::cpu::_th_and
     CUDA: legacy::cuda::_th_and
+    OpenCL: _and_opencl
 
 - func: __iand__.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
   use_c10_dispatcher: unboxed_only
@@ -4562,6 +4564,7 @@
   dispatch:
     CPU: masked_select_cpu
     CUDA: masked_select_cuda
+    OpenCL: masked_select_opencl
   supports_named_tensor: True
 
 - func: nonzero.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
