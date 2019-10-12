@@ -111,6 +111,9 @@ __kernel void pointwise_op_##suffix(__global const type* a, __global type* b, en
             b[get_global_id(0)] = ceil((type)a[get_global_id(0)]); \
             break; \
         } \
+        default:{
+            break;
+        }
     } \
 }
 
