@@ -31,7 +31,7 @@ Tensor empty_opencl(IntArrayRef size, const TensorOptions& options, c10::optiona
     allocator,
     /*resizeable=*/true);
 
-  auto tensor = at::detail::make_tensor<TensorImpl>(storage_impl, TensorTypeId::OpenCLTensorId).zero_();
+  auto tensor = at::detail::make_tensor<TensorImpl>(storage_impl, TensorTypeId::OpenCLTensorId);
   // Default TensorImpl has size [0]
   if (size.size() != 1 || size[0] != 0) {
     tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
