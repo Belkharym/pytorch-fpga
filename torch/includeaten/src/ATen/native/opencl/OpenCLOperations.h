@@ -15,8 +15,6 @@ enum OpenCLOperationsPointwise3 {
     LT, // Less Than
     GE, // Greater than or Equal
     LE, // Less than or Equal
-    // Bitwise operations
-    BAND,
 };
 
 enum OpenCLOperationsPointwise {
