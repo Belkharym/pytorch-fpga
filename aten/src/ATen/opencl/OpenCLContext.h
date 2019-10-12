@@ -32,7 +32,7 @@ It is expected that the modules whose functions compose this interface will
 manage their own state. There is only a single OpenCL context/state.
 */
 
-class __attribute__((packed)) openclDeviceProp {
+struct openclDeviceProp {
 public:
     cl_uint addressBits;
     cl_bool available;
