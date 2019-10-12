@@ -12,6 +12,23 @@ __kernel void cast_##suffix1##_##suffix2(__global const type1 *a, __global type2
     CAST_KERNEL(suffix, type, i, int) \
     CAST_KERNEL(suffix, type, l, long) \
     CAST_KERNEL(suffix, type, f, float) \
-    CAST_KERNEL(suffix, type, d, double) \
+    CAST_KERNEL(suffix, type, d, double)
 
 DEFINE_KERNEL_FOR_ALL_TYPES(CAST_TO_ALL_TYPES)
+
+// Scalar version
+#define CAST_KERNEL_S(suffix1, type1, suffix2, type2)\
+__kernel void cast_##suffix1##_##suffix2##_s(const type1 a, __global type2 *b) { \
+  b[get_global_id(0)] = (type2)a; \
+}
+
+#define CAST_TO_ALL_TYPES_S(suffix, type) \
+    CAST_KERNEL_S(suffix, type, b, bool) \
+    CAST_KERNEL_S(suffix, type, c, char) \
+    CAST_KERNEL_S(suffix, type, s, short) \
+    CAST_KERNEL_S(suffix, type, i, int) \
+    CAST_KERNEL_S(suffix, type, l, long) \
+    CAST_KERNEL_S(suffix, type, f, float) \
+    CAST_KERNEL_S(suffix, type, d, double)
+
+DEFINE_KERNEL_FOR_ALL_TYPES(CAST_TO_ALL_TYPES_S)

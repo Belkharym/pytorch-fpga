@@ -31,7 +31,7 @@ Tensor empty_opencl(IntArrayRef size, const TensorOptions& options, c10::optiona
     allocator,
     /*resizeable=*/true);
 
-  auto tensor = at::detail::make_tensor<TensorImpl>(storage_impl, TensorTypeId::OpenCLTensorId);
+  auto tensor = at::detail::make_tensor<TensorImpl>(storage_impl, TensorTypeId::OpenCLTensorId).zero_();
   // Default TensorImpl has size [0]
   if (size.size() != 1 || size[0] != 0) {
     tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
@@ -78,10 +78,7 @@ static void pointwise_op3(StorageImpl* c, const StorageImpl* a, const StorageImp
   // DONE Call OpenCL kernel.
   auto kernel_name = "pointwise_op_3" + getOpenCLKernelTypeSuffix(scalar_type);
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
-  if (!opt_kernel) {
-    TORCH_WARN("No value for kernel \"", kernel_name, "\"");
-    return;
-  }
+  TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
   pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())());
   pointwise_op.setArg<cl_mem>(1, (*(cl::Buffer*)b->data_ptr().get())());
@@ -97,10 +94,7 @@ static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b
   // DONE Call OpenCL kernel.
   auto kernel_name = "pointwise_op_2" + getOpenCLKernelTypeSuffix(T) + "_s";
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
-  if (!opt_kernel) {
-    TORCH_WARN("No value for kernel \"", kernel_name, "\"");
-    return;
-  }
+  TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
   pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())());
   pointwise_op.setArg<S>(1, b.to<S>());
@@ -115,10 +109,7 @@ static void pointwise_op(StorageImpl* b, const StorageImpl* a, at::native::openc
   // DONE Call OpenCL kernel.
   auto kernel_name = "pointwise_op_" + getOpenCLKernelTypeSuffix(scalar_type);
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
-  if (!opt_kernel) {
-    TORCH_WARN("No value for kernel \"", kernel_name, "\"");
-    return;
-  }
+  TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
   pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())());
   pointwise_op.setArg<cl_mem>(1, (*(cl::Buffer*)b->data_ptr().get())());
@@ -247,6 +238,24 @@ Tensor masked_select_opencl(const Tensor & self, const Tensor & mask) {
   auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 0, allocator, true),TensorTypeId::CPUTensorId).release();
   auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
   masked_select_cpu(self.toBackend(Backend::CPU), mask.toBackend(Backend::CPU));
+}
+
+Tensor & _zero_opencl(Tensor & self) {
+  TensorImpl* self_ = checked_tensor_unwrap(self, "self", 2, "_zero_opencl", false, c10::Backend::OpenCL, self.scalar_type());
+  if (self_->is_contiguous()) {
+    auto stream = caffe2::opencl::getCurrentOpenCLStream(self_->device().index());
+    (stream.stream()->enqueueFillBuffer(*(cl::Buffer*)self_->data(), /*pattern=*/0, /*offset=*/0, self_->numel() * self_->itemsize()));
+  } else {
+    auto kernel_name = "cast_" + getOpenCLKernelTypeSuffix(typeMetaToScalarType(self_->dtype())) + "_i_s";
+    auto kernel_opt = c10::opencl::opencl_kernel(kernel_name);
+    TORCH_INTERNAL_ASSERT(kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
+    auto stream = caffe2::opencl::getCurrentOpenCLStream(self_->device().index());
+    auto kernel = kernel_opt.value();
+    kernel.setArg<int>(0, 0);
+    kernel.setArg<cl_mem>(1, (*(cl::Buffer*)self_->data())());
+    stream.stream()->enqueueNDRangeKernel(kernel, /*offset=*/0, self_->numel(), 1);
+  }
+  return self;
 }
 
 }} // namespace at::native

@@ -3008,6 +3008,7 @@
   dispatch:
     CPU: zero_
     CUDA: zero_
+    OpenCL: zero_
     SparseCPU: zero_sparse_
     SparseCUDA: zero_sparse_
     MkldnnCPU: mkldnn_zero_
