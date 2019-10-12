@@ -3050,6 +3050,7 @@
   dispatch:
     CPU: legacy::cpu::_th_zero_
     CUDA: legacy::cuda::_th_zero_
+    OpenCL: _zero_opencl
     SparseCPU: zero_sparse_
     SparseCUDA: zero_sparse_
     MkldnnCPU: mkldnn_zero_
