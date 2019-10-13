@@ -253,7 +253,7 @@
     SparseCPU: add_out_sparse_cpu
     SparseCUDA: add_out_sparse_cuda
     MkldnnCPU: mkldnn_add_out
-    OpenCL: add_out
+    OpenCL: opencl_add_out
   supports_named_tensor: True
 
 # For C++ only, until we have conversion from C++ numbers to Tensor

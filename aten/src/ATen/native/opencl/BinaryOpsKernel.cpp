@@ -45,7 +45,7 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
   stream.stream()->finish();
 }
 
-Tensor & add_out(Tensor &out, Scalar alpha, const Tensor& other, const Tensor &self){
+Tensor & opencl_add_out(Tensor &out, const Tensor &self, const Tensor& other , Scalar alpha){
     auto other_ = checked_tensor_unwrap(out, "out", 1, "add_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
     auto self_ = checked_tensor_unwrap(self, "self", 2, "add_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
     auto out_ = checked_tensor_unwrap(out, "out", 3, "add_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
@@ -121,7 +121,7 @@ Tensor & add_out(Tensor &out, Scalar alpha, const Tensor& other, const Tensor &s
 //   });
 // }
 
-// REGISTER_OPENCL_DISPATCH(add_stub, &add_kernel_cuda);
+//REGISTER_OPENCL_DISPATCH(add_stub, &add_out);
 // REGISTER_OPENCL_DISPATCH(sub_stub, &sub_kernel_cuda);
 // REGISTER_OPENCL_DISPATCH(div_stub, &div_kernel_cuda);
 // REGISTER_OPENCL_DISPATCH(mul_stub, &mul_kernel_cuda);
