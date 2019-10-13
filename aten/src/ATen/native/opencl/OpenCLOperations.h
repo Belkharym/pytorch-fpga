@@ -7,7 +7,8 @@ namespace native {
 namespace opencl {
 #endif
 
-enum OpenCLOperationsPointwise3 {
+// Logical operation
+enum OpenCLOperationsComp3 {
     // Comparisons
     EQ, // EQuals
     NE, // Not Equals
@@ -15,18 +16,28 @@ enum OpenCLOperationsPointwise3 {
     LT, // Less Than
     GE, // Greater than or Equal
     LE, // Less than or Equal
-    // Bitwise operations
-    BAND,
 };
 
-enum OpenCLOperationsPointwise {
+// Operations that have 1 output and 2 inputs, all tensors of the same type
+enum OpenCLOperationsPointwise3 {
+    // Bitwise operations
+    BAND, // Bitwise AND
+};
+
+// Operations that have 1 output and 1 input, all tensors of the same type
+enum OpenCLOperationsPointwise2 {
     // Unary pointwise
     ABS, // ABSolute value
     CEIL, // Rounds x upward
+};
+
+// Operations that have 1 output tensor, 2 input tensors and 1 input scalar, all of the same type
+enum OpenCLOperationsPointwise3s {
+    // Algebraic operations
     ADD, // addition
     SUB, // subtract
-    DIV, // divide
     MUL, // multiply
+    DIV, // divide
 };
 
 #ifdef __cplusplus
