@@ -65,7 +65,7 @@ static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImp
 }
 
 Tensor & opencl_add_out(Tensor &out, const Tensor &self, const Tensor& other , Scalar alpha){
-    auto other_ = checked_tensor_unwrap(out, "out", 1, "add_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
+    auto other_ = checked_tensor_unwrap(other, "other", 1, "add_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
     auto self_ = checked_tensor_unwrap(self, "self", 2, "add_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
     auto out_ = checked_tensor_unwrap(out, "out", 3, "add_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
     
@@ -86,9 +86,14 @@ Tensor & opencl_add_out(Tensor &out, const Tensor &self, const Tensor& other , S
     return out;
 }
 
+Tensor & opencl_add_(Tensor &self, const Tensor& other , Scalar alpha){
+    return opencl_add_out(self, self, other, alpha);
+}
+
+
 
 Tensor & opencl_sub_out(Tensor &out, const Tensor &self, const Tensor& other , Scalar alpha){
-    auto other_ = checked_tensor_unwrap(out, "out", 1, "opencl_sub_out", false, c10::Backend::OpenCL, self.scalar_type());
+    auto other_ = checked_tensor_unwrap(other, "other", 1, "opencl_sub_out", false, c10::Backend::OpenCL, self.scalar_type());
     auto self_ = checked_tensor_unwrap(self, "self", 2, "opencl_sub_out", false, c10::Backend::OpenCL, self.scalar_type());
     auto out_ = checked_tensor_unwrap(out, "out", 3, "opencl_sub_out", false, c10::Backend::OpenCL, self.scalar_type());
     
@@ -109,8 +114,12 @@ Tensor & opencl_sub_out(Tensor &out, const Tensor &self, const Tensor& other , S
     return out;
 }
 
+Tensor & opencl_sub_(Tensor &self, const Tensor& other , Scalar alpha){
+    return opencl_sub_out(self, self, other, alpha);
+}
+
 Tensor & opencl_mul_out(Tensor &out, const Tensor &self, const Tensor& other){
-    auto other_ = checked_tensor_unwrap(out, "out", 1, "opencl_mul_out", false, c10::Backend::OpenCL, self.scalar_type());
+    auto other_ = checked_tensor_unwrap(other, "other", 1, "opencl_mul_out", false, c10::Backend::OpenCL, self.scalar_type());
     auto self_ = checked_tensor_unwrap(self, "self", 2, "opencl_mul_out", false, c10::Backend::OpenCL, self.scalar_type());
     auto out_ = checked_tensor_unwrap(out, "out", 3, "opencl_mul_out", false, c10::Backend::OpenCL, self.scalar_type());
     
@@ -118,13 +127,21 @@ Tensor & opencl_mul_out(Tensor &out, const Tensor &self, const Tensor& other){
     return out;
 }
 
+Tensor & opencl_mul_(Tensor &self, const Tensor& other){
+    return opencl_mul_out(self, self, other);
+}
+
 Tensor & opencl_div_out(Tensor &out, const Tensor &self, const Tensor& other){
-    auto other_ = checked_tensor_unwrap(out, "out", 1, "opencl_mul_out", false, c10::Backend::OpenCL, self.scalar_type());
+    auto other_ = checked_tensor_unwrap(other, "other", 1, "opencl_mul_out", false, c10::Backend::OpenCL, self.scalar_type());
     auto self_ = checked_tensor_unwrap(self, "self", 2, "opencl_mul_out", false, c10::Backend::OpenCL, self.scalar_type());
     auto out_ = checked_tensor_unwrap(out, "out", 3, "opencl_mul_out", false, c10::Backend::OpenCL, self.scalar_type());
     
     pointwise_op3(self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::DIV, self.scalar_type());
     return out;
+}
+
+Tensor & opencl_div_(Tensor &self, const Tensor& other){
+    return opencl_div_out(self, self, other);
 }
 
 }} // namespace at::native
