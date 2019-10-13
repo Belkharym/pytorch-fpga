@@ -75,7 +75,7 @@ static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b
 
 static void pointwise_op2(StorageImpl* b, const StorageImpl* a, at::native::opencl::OpenCLOperationsPointwise2 op, const ScalarType scalar_type) {
   // DONE Call OpenCL kernel.
-  auto kernel_name = "pointwise_op2_" + getOpenCLKernelTypeSuffix(scalar_type);
+  auto kernel_name = "pointwise_op_2" + getOpenCLKernelTypeSuffix(scalar_type);
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
