@@ -895,6 +895,7 @@
     CUDA: div_out
     SparseCPU: div_out_sparse_zerodim
     SparseCUDA: div_out_sparse_zerodim
+    OpenCL: opencl_div_out
   supports_named_tensor: True
 
 # For C++ only, until we have conversion from C++ numbers to Tensor
@@ -1844,6 +1845,7 @@
     SparseCPU: mul_out_sparse_cpu
     SparseCUDA: mul_out_sparse_cuda
     MkldnnCPU: mkldnn_mul_out
+    OpenCL: opencl_mul_out
   supports_named_tensor: True
 
   # For C++ only, until we have conversion from C++ numbers to Tensor
@@ -3062,6 +3064,7 @@
     CUDA: sub_out
     SparseCPU: sub_out_sparse
     SparseCUDA: sub_out_sparse
+    OpenCL: opencl_sub_out
   supports_named_tensor: True
 
 - func: sub.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
