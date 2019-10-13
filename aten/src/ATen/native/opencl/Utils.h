@@ -5,6 +5,38 @@
 namespace at {
 namespace native {
 
+inline ScalarType getIntEquivalentOfFloat(const ScalarType type) {
+  switch (type)
+  {
+  case ScalarType::Float:  // passthrough
+  case ScalarType::QInt32: // passthrough
+  case ScalarType::Int:
+    return ScalarType::Int;
+    break;
+  case ScalarType::Double: // passthrough
+  case ScalarType::Long:
+    return ScalarType::Long;
+    break;
+  case ScalarType::Half:   // passthrough
+  case ScalarType::BFloat16: // passthrough
+  case ScalarType::Short:
+    return ScalarType::Short;
+    break;
+  case ScalarType::QInt8:  // passthrough
+  case ScalarType::QUInt8: // passthrough
+  case ScalarType::Byte:
+    return ScalarType::Byte;
+    break;
+  case ScalarType::Bool:
+    return ScalarType::Bool;
+    break;
+  
+  default:
+    return ScalarType::Undefined;
+    break;
+  }
+}
+
 inline std::string getOpenCLKernelTypeSuffix(const ScalarType type) {
   switch (type)
   {
