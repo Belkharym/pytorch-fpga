@@ -177,4 +177,80 @@ Tensor opencl_div(const Tensor &self, const Tensor& other){
     return out;
 }
 
+
+
+
+// STUB
+
+
+void add_kernel_opencl(TensorIterator& iter, Scalar alpha) {
+    auto scalar_type = iter.tensor(1).scalar_type();
+    auto other_ = checked_tensor_unwrap(iter.tensor(2), "other", 1, "add_kernel_opencl", false, c10::Backend::OpenCL, iter.tensor(1).scalar_type());
+    auto self_ = checked_tensor_unwrap(iter.tensor(1), "self", 2, "add_kernel_opencl", false, c10::Backend::OpenCL, iter.tensor(1).scalar_type());
+    auto out_ = checked_tensor_unwrap(iter.tensor(0), "out", 3, "add_kernel_opencl", false, c10::Backend::OpenCL, iter.tensor(1).scalar_type());
+    
+    switch (scalar_type)
+    {
+#define DEFINE_OPENCL_ADD_CASE(type, name) \
+        case ScalarType::name: \
+            pointwise_op3s<ScalarType::name, type>(self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), out_->storage().unsafeGetStorageImpl(), alpha, at::native::opencl::OpenCLOperationsPointwise3s::ADD); \
+            break;
+        AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(DEFINE_OPENCL_ADD_CASE)
+#undef DEFINE_OPENCL_ADD_CASE
+
+    default:
+      TORCH_CHECK(false, "logical_tensor not supported on OpenCLType for ", scalar_type);
+      break;
+    }
+}
+
+void sub_kernel_opencl(TensorIterator& iter, Scalar alpha) {
+    auto scalar_type = iter.tensor(1).scalar_type();
+    auto other_ = checked_tensor_unwrap(iter.tensor(2), "other", 1, "sub_kernel_opencl", false, c10::Backend::OpenCL, iter.tensor(1).scalar_type());
+    auto self_ = checked_tensor_unwrap(iter.tensor(1), "self", 2, "sub_kernel_opencl", false, c10::Backend::OpenCL, iter.tensor(1).scalar_type());
+    auto out_ = checked_tensor_unwrap(iter.tensor(0), "out", 3, "sub_kernel_opencl", false, c10::Backend::OpenCL, iter.tensor(1).scalar_type());
+    
+    switch (scalar_type)
+    {
+#define DEFINE_OPENCL_ADD_CASE(type, name) \
+        case ScalarType::name: \
+            pointwise_op3s<ScalarType::name, type>(self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), out_->storage().unsafeGetStorageImpl(), alpha, at::native::opencl::OpenCLOperationsPointwise3s::SUB); \
+            break;
+        AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(DEFINE_OPENCL_ADD_CASE)
+#undef DEFINE_OPENCL_ADD_CASE
+
+    default:
+      TORCH_CHECK(false, "logical_tensor not supported on OpenCLType for ", scalar_type);
+      break;
+    }
+}
+
+void mul_kernel_opencl(TensorIterator& iter) {
+    auto scalar_type = iter.tensor(1).scalar_type();
+    auto other_ = checked_tensor_unwrap(iter.tensor(2), "other", 1, "mul_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
+    auto self_ = checked_tensor_unwrap(iter.tensor(1), "self", 2, "mul_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
+    auto out_ = checked_tensor_unwrap(iter.tensor(0), "out", 3, "mul_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
+    
+    pointwise_op3(self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::MUL, scalar_type);
+
+}
+
+void div_kernel_opencl(TensorIterator& iter) {
+    auto scalar_type = iter.tensor(1).scalar_type();
+    auto other_ = checked_tensor_unwrap(iter.tensor(2), "other", 1, "div_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
+    auto self_ = checked_tensor_unwrap(iter.tensor(1), "self", 2, "div_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
+    auto out_ = checked_tensor_unwrap(iter.tensor(0), "out", 3, "div_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
+    
+    pointwise_op3(self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::DIV, scalar_type);
+
+}
+
+
+REGISTER_OPENCL_DISPATCH(add_stub, &add_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(sub_stub, &sub_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(div_stub, &div_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(mul_stub, &mul_kernel_opencl);
+// REGISTER_DISPATCH(atan2_stub, &atan2_kernel_cuda);
+// REGISTER_DISPATCH(logical_xor_stub, &logical_xor_kernel_cuda);
+
 }} // namespace at::native

@@ -280,7 +280,7 @@
     SparseCPU: add_sparse
     SparseCUDA: add_sparse
     MkldnnCPU: mkldnn_add
-    OpenCL: opencl_add
+    OpenCL: add
   supports_named_tensor: True
 
 - func: add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
@@ -291,7 +291,7 @@
     SparseCPU: add_sparse_
     SparseCUDA: add_sparse_
     MkldnnCPU: mkldnn_add_
-    OpenCL: opencl_add_
+    OpenCL: add_
   supports_named_tensor: True
 
 - func: add.out(Tensor self, Tensor other, *, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)
@@ -301,7 +301,7 @@
     SparseCPU: add_out_sparse_cpu
     SparseCUDA: add_out_sparse_cuda
     MkldnnCPU: mkldnn_add_out
-    OpenCL: opencl_add_out
+    OpenCL: add_out
   supports_named_tensor: True
 
 # For C++ only, until we have conversion from C++ numbers to Tensor
