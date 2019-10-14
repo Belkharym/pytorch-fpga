@@ -14,18 +14,18 @@
 const char* clErrorString(cl_int error);
 
 // For OpenCL Runtime API
-#define C10_OPENCL_CHECK(EXPR)                                       \
+#define C10_OPENCL_CHECK(EXPR, ...)                                  \
   do {                                                               \
     cl_int __err = EXPR;                                             \
     if (__err != CL_SUCCESS) {                                       \
-      TORCH_CHECK(false, "CUDA error: ", clErrorString(__err));      \
+      TORCH_CHECK(false, __FILE__, ":", __LINE__, " : OpenCL error : ", clErrorString(__err), " ", ##__VA_ARGS__); \
     }                                                                \
   } while (0)
 
-#define C10_OPENCL_CHECK_WARN(EXPR)                            \
+#define C10_OPENCL_CHECK_WARN(EXPR, ...)                       \
   do {                                                         \
     cl_int __err = EXPR;                                       \
     if (__err != CL_SUCCESS) {                                 \
-      TORCH_WARN("OpenCL warning: ", clErrorString(__err));    \
+      TORCH_WARN(__FILE__, ":", __LINE__, " : OpenCL warning: ", clErrorString(__err), " ", ##__VA_ARGS__);\
     }                                                          \
   } while (0)

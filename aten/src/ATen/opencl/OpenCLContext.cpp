@@ -133,7 +133,7 @@ void initDeviceProperty(DeviceIndex device_index) {
 
 std::string clRemoveNullChars(const std::string &str) {
   std::string ret;
-  std::copy_if(str.begin(), str.end(), std::back_inserter(ret), [](const auto& c) {return !!c;});
+  std::copy_if(str.begin(), str.end(), std::back_inserter(ret), [](const char& c) {return !!c;});
   return ret;
 }
 

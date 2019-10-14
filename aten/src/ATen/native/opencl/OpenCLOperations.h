@@ -22,6 +22,8 @@ enum OpenCLOperationsComp3 {
 enum OpenCLOperationsPointwise3 {
     // Bitwise operations
     BAND, // Bitwise AND
+    MIN,  // MINimum between 2 values
+    MAX,  // MAXimum between 2 values
 };
 
 // Operations that have 1 output and 1 input, all tensors of the same type

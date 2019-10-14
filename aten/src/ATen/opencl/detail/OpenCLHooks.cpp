@@ -28,6 +28,10 @@ std::unique_ptr<THOState, void (*)(THOState*)> OpenCLHooks::initOpenCL() const {
   C10_LOG_API_USAGE_ONCE("aten.init.opencl");
   // Calling device_count() launchs the caffe2 initialization of OpenCL.
   c10::opencl::device_count();
+  return std::unique_ptr<THOState, void (*)(THOState*)>(
+      nullptr, [](THOState* p) {
+        // no-op
+      });
 }
 
 Generator* OpenCLHooks::getDefaultOpenCLGenerator(DeviceIndex device_index) const {
@@ -39,8 +43,13 @@ Device OpenCLHooks::getDeviceFromPtr(void* data) const {
 }
 
 bool OpenCLHooks::isPinnedPtr(void* data) const {
-  // OpenCL buffers are always allocated on devices (not pinned on host).
-  return false;
+  // First check if driver is broken/missing, in which case PyTorch CPU
+  // functionalities should still work, we should report `false` here.
+  if (!OpenCLHooks::hasOpenCL()) {
+    return false;
+  }
+
+  return OpenCLCachingHostAllocator_isPinnedPtr(data);
 }
 
 bool OpenCLHooks::hasOpenCL() const {
@@ -76,7 +85,7 @@ int OpenCLHooks::getNumDevices() const {
 using at::OpenCLHooksRegistry;
 using at::RegistererOpenCLHooksRegistry;
 
-REGISTER_CUDA_HOOKS(OpenCLHooks);
+REGISTER_OPENCL_HOOKS(OpenCLHooks);
 
 } // namespace detail
 } // namespace opencl

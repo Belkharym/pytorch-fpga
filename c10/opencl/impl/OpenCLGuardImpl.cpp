@@ -66,7 +66,7 @@ void OpenCLGuardImpl::record(
     const auto orig_device = getDevice();
     setDevice(stream.device());
 
-    opencl_stream.stream()->enqueueMarkerWithWaitList(NULL, opencl_event);
+    C10_OPENCL_CHECK(opencl_stream.stream()->enqueueMarkerWithWaitList(NULL, opencl_event));
     // Makes the void* point to the (possibly just allocated) CUDA event
     *event = opencl_event;
 

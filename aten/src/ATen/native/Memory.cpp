@@ -3,6 +3,7 @@
 #include <ATen/NativeFunctions.h>
 #include <ATen/TensorUtils.h>
 #include <ATen/detail/CUDAHooksInterface.h>
+#include <ATen/detail/OpenCLHooksInterface.h>
 #include <c10/util/Exception.h>
 #include <c10/core/Storage.h>
 
@@ -10,7 +11,11 @@ namespace at {
 namespace native {
 
 bool is_pinned(const Tensor& self) {
-  return detail::getCUDAHooks().isPinnedPtr(self.storage().data());
+  if (self.type().backend() == Backend::CUDA) {
+    return detail::getCUDAHooks().isPinnedPtr(self.storage().data());
+  } else {
+    return detail::getOpenCLHooks().isPinnedPtr(self.storage().data());
+  }
 }
 
 Tensor pin_memory(const Tensor& self) {
@@ -20,7 +25,12 @@ Tensor pin_memory(const Tensor& self) {
   if (self.is_pinned()) {
     return self;
   }
-  auto* allocator = detail::getCUDAHooks().getPinnedMemoryAllocator();
+  at::Allocator* allocator;
+  if (self.type().backend() == Backend::CUDA) {
+    allocator = detail::getCUDAHooks().getPinnedMemoryAllocator();
+  } else {
+    allocator = detail::getOpenCLHooks().getPinnedMemoryAllocator();
+  }
   auto storage = Storage(
       self.dtype(),
       detail::computeStorageSize(self.sizes(), self.strides()),

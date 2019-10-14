@@ -10,6 +10,7 @@
 #include <fstream>
 #include <experimental/filesystem>
 
+#include <c10/util/typeid.h>
 
 #ifdef __cpp_lib_experimental_filesystem
 namespace fs {
@@ -28,6 +29,11 @@ using namespace std::experimental::filesystem::v1;
 #ifndef _OPENCL_KERNEL_DIR
 #define _OPENCL_KERNEL_DIR .
 #endif // !_OPENCL_KERNEL_DIR
+
+namespace caffe2 {
+// This is required to allow Storage class to handle cl::Buffers in its data pointer.
+CAFFE_KNOWN_TYPE(cl::Buffer);
+} // namespace caffe2
 
 namespace c10 {
 namespace opencl {
