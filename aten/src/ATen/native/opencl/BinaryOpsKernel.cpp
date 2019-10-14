@@ -28,7 +28,7 @@ namespace native {
 template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
 static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageImpl* out, const Scalar alpha, at::native::opencl::OpenCLOperationsPointwise3s op) {
   // DONE Call OpenCL kernel.
-  auto kernel_name = "pointwise_op3" + getOpenCLKernelTypeSuffix(T) + "_s";
+  auto kernel_name = "operation_3" + getOpenCLKernelTypeSuffix(T) + "_s";
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   if (!opt_kernel) {
     TORCH_WARN("No value for kernel \"", kernel_name, "\"");
@@ -48,7 +48,7 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
 
 static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImpl* out, at::native::opencl::OpenCLOperationsPointwise3 op, const ScalarType scalar_type) {
   // DONE Call OpenCL kernel.
-  auto kernel_name = "pointwise_op3" + getOpenCLKernelTypeSuffix(scalar_type);
+  auto kernel_name = "operation_3" + getOpenCLKernelTypeSuffix(scalar_type);
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   if (!opt_kernel) {
     TORCH_WARN("No value for kernel \"", kernel_name, "\"");
