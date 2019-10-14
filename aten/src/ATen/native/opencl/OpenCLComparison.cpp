@@ -75,48 +75,39 @@ static void logical_tensor(TensorImpl *self_, const TensorImpl *t1, const Scalar
   }
 }
 
-Tensor _eq_opencl(const Tensor &self, const Tensor& other) {
-  // TODO Implement this function for every scalar_type
-  auto allocator = c10::GetAllocator(DeviceType::OPENCL);
-  auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 0, allocator, true),TensorTypeId::OpenCLTensorId).release();
-  auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
-  auto self_ = checked_tensor_unwrap(self, "self", 1, "_eq_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  auto other_ = checked_tensor_unwrap(other, "other", 2, "_eq_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  logical_tensor(result_, self_, other_, at::native::opencl::OpenCLOperationsComp3::EQ);
-  result_->maybe_zero_dim(self_->dim() == 0 && other_->dim() == 0);
-  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool);
+#define DEFINE_FOR_ALL_COMP(_) \
+_(eq, EQ) \
+_(ne, NE) \
+_(gt, GT) \
+_(lt, LT) \
+_(ge, GE) \
+_(le, LE)
+
+#define DEFINE_LOGICAL_OP(label, OP) \
+Tensor _##label##_opencl(const Tensor &self, const Tensor& other) { \
+  auto allocator = c10::GetAllocator(DeviceType::OPENCL); \
+  auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 0, allocator, true),TensorTypeId::OpenCLTensorId).release(); \
+  auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_)); \
+  auto self_ = checked_tensor_unwrap(self, "self", 1, "_" #label "_opencl", false, c10::Backend::OpenCL, self.scalar_type()); \
+  auto other_ = checked_tensor_unwrap(other, "other", 2, "_" #label "_opencl", false, c10::Backend::OpenCL, self.scalar_type()); \
+  logical_tensor(result_, self_, other_, at::native::opencl::OpenCLOperationsComp3::OP); \
+  result_->maybe_zero_dim(self_->dim() == 0 && other_->dim() == 0); \
+  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool); \
 }
 
-Tensor _eq_opencl(const Tensor &self, Scalar other) {
-  auto allocator = c10::GetAllocator(DeviceType::OPENCL);
-  auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 0, allocator, true),TensorTypeId::OpenCLTensorId).release();
-  auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
-  auto self_ = checked_tensor_unwrap(self, "self", 1, "_eq_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  logical_tensor(result_, self_, other, at::native::opencl::OpenCLOperationsComp3::EQ);
-  result_->maybe_zero_dim(self_->dim() == 0);
-  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool);
+DEFINE_FOR_ALL_COMP(DEFINE_LOGICAL_OP)
+
+#define DEFINE_LOGICAL_OP_SCALAR(label, OP) \
+Tensor _##label##_opencl(const Tensor &self, Scalar other) { \
+  auto allocator = c10::GetAllocator(DeviceType::OPENCL); \
+  auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 0, allocator, true),TensorTypeId::OpenCLTensorId).release(); \
+  auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_)); \
+  auto self_ = checked_tensor_unwrap(self, "self", 1, "_" #label "_opencl", false, c10::Backend::OpenCL, self.scalar_type()); \
+  logical_tensor(result_, self_, other, at::native::opencl::OpenCLOperationsComp3::OP); \
+  result_->maybe_zero_dim(self_->dim() == 0); \
+  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool); \
 }
 
-Tensor _ne_opencl(const Tensor &self, const Tensor& other) {
-  auto allocator = c10::GetAllocator(DeviceType::OPENCL);
-  auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 0, allocator, true),TensorTypeId::OpenCLTensorId).release();
-  auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
-  auto self_ = checked_tensor_unwrap(self, "self", 1, "_ne_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  auto other_ = checked_tensor_unwrap(other, "other", 2, "_ne_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  logical_tensor(result_, self_, other_, at::native::opencl::OpenCLOperationsComp3::NE);
-  result_->maybe_zero_dim(self_->dim() == 0 && other_->dim() == 0);
-  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool);
-}
-
-Tensor _ne_opencl(const Tensor &self, Scalar other) {
-  // TODO Implement this function for every scalar_type
-  auto allocator = c10::GetAllocator(DeviceType::OPENCL);
-  auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 0, allocator, true),TensorTypeId::OpenCLTensorId).release();
-  auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
-  auto self_ = checked_tensor_unwrap(self, "self", 1, "_ne_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  logical_tensor(result_, self_, other, at::native::opencl::OpenCLOperationsComp3::NE);
-  result_->maybe_zero_dim(self_->dim() == 0);
-  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool);
-}
+DEFINE_FOR_ALL_COMP(DEFINE_LOGICAL_OP_SCALAR)
 
 }} // namespace at::native

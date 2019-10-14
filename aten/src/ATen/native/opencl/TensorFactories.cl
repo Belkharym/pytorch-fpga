@@ -84,6 +84,14 @@ __kernel void pointwise_op_3##suffix(__global const type* a, __global const type
             out[get_global_id(0)] = a[get_global_id(0)] > b[get_global_id(0)] ? a[get_global_id(0)] : b[get_global_id(0)];  \
             break;                                                                                                          \
         }                                                                                                                   \
+        case MUL: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] * b[get_global_id(0)];                                              \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case DIV: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] / b[get_global_id(0)];                                              \
+            break;                                                                                                          \
+        }                                                                                                                   \
     }                                                                                                                       \
 }
 DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_3_INT)
@@ -104,8 +112,17 @@ __kernel void pointwise_op_3##suffix(__global const type* a, __global const type
             out[get_global_id(0)] = a[get_global_id(0)] > b[get_global_id(0)] ? a[get_global_id(0)] : b[get_global_id(0)];  \
             break;                                                                                                          \
         }                                                                                                                   \
+        case MUL: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] * b[get_global_id(0)];                                              \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case DIV: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] / b[get_global_id(0)];                                              \
+            break;                                                                                                          \
+        }                                                                                                                   \
     }                                                                                                                       \
 }
+
 DEFINE_KERNEL_FOR_FLOATS(POINTWISE_OP_3_FP)
 #undef POINTWISE_OP_3_FP
 
@@ -132,6 +149,14 @@ __kernel void pointwise_op_2##suffix##_s(__global const type* a, const type b, _
             out[get_global_id(0)] = a[get_global_id(0)] > b ? a[get_global_id(0)] : b;  \
             break;                                                                      \
         }                                                                               \
+        case MUL: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] * b;                            \
+            break;                                                                      \
+        }                                                                               \
+        case DIV: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] / b;                            \
+            break;                                                                      \
+        }                                                                               \
     }                                                                                   \
 }
 DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_2S_INT)
@@ -150,6 +175,14 @@ __kernel void pointwise_op_2##suffix##_s(__global const type* a, const type b, _
         }                                                                               \
         case MAX: {                                                                     \
             out[get_global_id(0)] = a[get_global_id(0)] > b ? a[get_global_id(0)] : b;  \
+            break;                                                                      \
+        }                                                                               \
+        case MUL: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] * b;                            \
+            break;                                                                      \
+        }                                                                               \
+        case DIV: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] / b;                            \
             break;                                                                      \
         }                                                                               \
     }                                                                                   \
@@ -171,6 +204,12 @@ __kernel void pointwise_op_2##suffix(__global const type* a, __global type* out,
     } \
 }
 
+
+DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_2_INT)
+
+#undef POINTWISE_OP_2_INT
+
+
 #define POINTWISE_OP_2_FLOAT(suffix, type) \
 __kernel void pointwise_op_2##suffix(__global const type* a, __global type* out, const enum OpenCLOperationsPointwise2 op) { \
     switch(op) { \
@@ -185,7 +224,8 @@ __kernel void pointwise_op_2##suffix(__global const type* a, __global type* out,
     } \
 }
 
-DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_2_INT)
 POINTWISE_OP_2_FLOAT(f, float)
 POINTWISE_OP_2_FLOAT(d, float)
 //DEFINE_KERNEL_FOR_ALL_TYPES(POINTWISE_OP_2)
+#undef POINTWISE_OP_2_FLOAT
+

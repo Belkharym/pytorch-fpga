@@ -67,7 +67,8 @@ static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
   AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<S>(1, b.to<S>()));
+  auto scalar = b.to<S>();
+  AT_OPENCL_CHECK(pointwise_op.setArg<S>(1, scalar));
   AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*(cl::Buffer*)c->data_ptr().get())()));
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3>(3, op));
   auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
@@ -160,14 +161,30 @@ Tensor & _zero_opencl(Tensor & self) {
   TensorImpl* self_ = checked_tensor_unwrap(self, "self", 2, "_zero_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   if (self_->is_contiguous()) {
     auto stream = caffe2::opencl::getCurrentOpenCLStream(self_->device().index());
-    AT_OPENCL_CHECK(stream.stream()->enqueueFillBuffer(*(cl::Buffer*)self_->data(), /*pattern=*/0, /*offset=*/0, self_->numel() * self_->itemsize()));
+
+    auto scalar_type = self.scalar_type();
+    switch (scalar_type)
+    {
+#define DEFINE_OPENCL_AND_CASE(type, name) \
+      case ScalarType::name: { \
+        type pattern{0}; \
+        AT_OPENCL_CHECK(stream.stream()->enqueueFillBuffer(*self_->unsafe_data<cl::Buffer>(), /*pattern=*/pattern, /*offset=*/0, self_->numel() * self_->itemsize())); \
+        break; \
+      }
+      AT_FORALL_SCALAR_TYPES_AND2(Half, Bool, DEFINE_OPENCL_AND_CASE)
+#undef DEFINE_OPENCL_AND_CASE
+    default:
+      TORCH_CHECK(false, "logical_tensor not supported on OpenCLType for ", scalar_type);
+      break;
+    }
   } else {
     auto kernel_name = "cast_" + getOpenCLKernelTypeSuffix(typeMetaToScalarType(self_->dtype())) + "_i_s";
     auto kernel_opt = c10::opencl::opencl_kernel(kernel_name);
     TORCH_INTERNAL_ASSERT(kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
     auto stream = caffe2::opencl::getCurrentOpenCLStream(self_->device().index());
     auto kernel = kernel_opt.value();
-    AT_OPENCL_CHECK(kernel.setArg<int>(0, 0));
+    int scalar_0 = 0;
+    AT_OPENCL_CHECK(kernel.setArg<int>(0, scalar_0));
     AT_OPENCL_CHECK(kernel.setArg<cl_mem>(1, (*(cl::Buffer*)self_->data())()));
     AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(kernel, /*offset=*/0, self_->numel(), 1));
   }
@@ -241,5 +258,11 @@ Tensor _opencl_max(const Tensor &self, const Tensor &other) {
 Tensor _opencl_max(const Tensor &self) {
   return at::native::legacy::cpu::_th_max(self.toBackend(Backend::CPU)).toBackend(Backend::OpenCL);
 }
+Tensor empty_strided_opencl(IntArrayRef size, IntArrayRef stride, const TensorOptions& options) {
+  auto t = at::native::empty_opencl({0}, options);
+  at::native::resize_impl_opencl_(t.unsafeGetTensorImpl(), size, stride);
+  return t;
+}
+
 
 }} // namespace at::native

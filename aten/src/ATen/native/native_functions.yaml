@@ -233,6 +233,7 @@
     SparseCPU: add_sparse
     SparseCUDA: add_sparse
     MkldnnCPU: mkldnn_add
+    OpenCL: add
   supports_named_tensor: True
 
 - func: add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
@@ -244,6 +245,7 @@
     SparseCPU: add_sparse_
     SparseCUDA: add_sparse_
     MkldnnCPU: mkldnn_add_
+    OpenCL: add_
   supports_named_tensor: True
 
 - func: add.out(Tensor self, Tensor other, *, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)
@@ -877,6 +879,7 @@
     CUDA: div
     SparseCPU: div_sparse
     SparseCUDA: div_sparse
+    OpenCL: div
   supports_named_tensor: True
 
 - func: div_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
@@ -887,6 +890,8 @@
     CUDA: div_
     SparseCPU: div_sparse_
     SparseCUDA: div_sparse_
+    OpenCL: div_
+
   supports_named_tensor: True
 
 - func: div.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -895,6 +900,7 @@
     CUDA: div_out
     SparseCPU: div_out_sparse_zerodim
     SparseCUDA: div_out_sparse_zerodim
+    OpenCL: div_out
   supports_named_tensor: True
 
 # For C++ only, until we have conversion from C++ numbers to Tensor
@@ -1025,7 +1031,8 @@
   dispatch:
     CPU: empty_strided_cpu
     CUDA: empty_strided_cuda
-
+    OpenCL: empty_strided_opencl
+    
 - func: erf(Tensor self) -> Tensor
   use_c10_dispatcher: full
   supports_named_tensor: True
@@ -1824,6 +1831,7 @@
     SparseCPU: mul_sparse
     SparseCUDA: mul_sparse
     MkldnnCPU: mkldnn_mul
+    OpenCL: mul
   supports_named_tensor: True
 
 - func: mul_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
@@ -1835,6 +1843,8 @@
     SparseCPU: mul_sparse_
     SparseCUDA: mul_sparse_
     MkldnnCPU: mkldnn_mul_
+    OpenCL: mul_
+
   supports_named_tensor: True
 
 - func: mul.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -1844,6 +1854,7 @@
     SparseCPU: mul_out_sparse_cpu
     SparseCUDA: mul_out_sparse_cuda
     MkldnnCPU: mkldnn_mul_out
+    OpenCL: mul_out
   supports_named_tensor: True
 
   # For C++ only, until we have conversion from C++ numbers to Tensor
@@ -3062,6 +3073,7 @@
     CUDA: sub_out
     SparseCPU: sub_out_sparse
     SparseCUDA: sub_out_sparse
+    OpenCL: sub_out
   supports_named_tensor: True
 
 - func: sub.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
@@ -3072,6 +3084,7 @@
     CUDA: sub
     SparseCPU: sub_sparse
     SparseCUDA: sub_sparse
+    OpenCL: sub
   supports_named_tensor: True
 
 - func: sub_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
@@ -3082,6 +3095,8 @@
     CUDA: sub_
     SparseCPU: sub_sparse_
     SparseCUDA: sub_sparse_
+    OpenCL: sub_
+
   supports_named_tensor: True
 
 # For C++ only, until we have conversion from C++ numbers to Tensor
@@ -4428,6 +4443,7 @@
   dispatch:
     CPU: legacy::cpu::_th_ge
     CUDA: legacy::cuda::_th_ge
+    OpenCL: _ge_opencl
     QuantizedCPU: ge_quantized_cpu
 
 - func: ge.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4442,6 +4458,7 @@
   dispatch:
     CPU: legacy::cpu::_th_ge
     CUDA: legacy::cuda::_th_ge
+    OpenCL: _ge_opencl
     QuantizedCPU: ge_quantized_cpu
 
 - func: le.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4456,6 +4473,7 @@
   dispatch:
     CPU: legacy::cpu::_th_le
     CUDA: legacy::cuda::_th_le
+    OpenCL: _le_opencl
     QuantizedCPU: le_quantized_cpu
 
 - func: le.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4470,6 +4488,7 @@
   dispatch:
     CPU: legacy::cpu::_th_le
     CUDA: legacy::cuda::_th_le
+    OpenCL: _le_opencl
     QuantizedCPU: le_quantized_cpu
 
 - func: gt.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4484,6 +4503,7 @@
   dispatch:
     CPU: legacy::cpu::_th_gt
     CUDA: legacy::cuda::_th_gt
+    OpenCL: _gt_opencl
     QuantizedCPU: gt_quantized_cpu
 
 - func: gt.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4498,6 +4518,7 @@
   dispatch:
     CPU: legacy::cpu::_th_gt
     CUDA: legacy::cuda::_th_gt
+    OpenCL: _gt_opencl
     QuantizedCPU: gt_quantized_cpu
 
 - func: lt.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4512,6 +4533,7 @@
   dispatch:
     CPU: legacy::cpu::_th_lt
     CUDA: legacy::cuda::_th_lt
+    OpenCL: _lt_opencl
     QuantizedCPU: lt_quantized_cpu
 
 - func: lt.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4526,6 +4548,7 @@
   dispatch:
     CPU: legacy::cpu::_th_lt
     CUDA: legacy::cuda::_th_lt
+    OpenCL: _lt_opencl
     QuantizedCPU: lt_quantized_cpu
 
 - func: take.out(Tensor self, Tensor index, *, Tensor(a!) out) -> Tensor(a!)

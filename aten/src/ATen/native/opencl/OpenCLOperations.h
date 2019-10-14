@@ -24,6 +24,8 @@ enum OpenCLOperationsPointwise3 {
     BAND, // Bitwise AND
     MIN,  // MINimum between 2 values
     MAX,  // MAXimum between 2 values
+    MUL, // multiply
+    DIV, // divide
 };
 
 // Operations that have 1 output and 1 input, all tensors of the same type
@@ -38,8 +40,6 @@ enum OpenCLOperationsPointwise3s {
     // Algebraic operations
     ADD, // addition
     SUB, // subtract
-    MUL, // multiply
-    DIV, // divide
 };
 
 #ifdef __cplusplus
