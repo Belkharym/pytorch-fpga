@@ -53,6 +53,11 @@ FILE(GLOB hip_nvrtc_stub_cpp "hip/nvrtc_stub/*.cpp")
 FILE(GLOB miopen_h "miopen/*.h")
 FILE(GLOB miopen_cpp "miopen/*.cpp")
 
+FILE(GLOB opencl_h "opencl/*.h" "opencl/detail/*.h")
+FILE(GLOB opencl_cpp "opencl/*.cpp" "opencl/detail/*.cpp")
+FILE(GLOB opencl_clh "opencl/*.clh")
+FILE(GLOB opencl_cl "opencl/*.cl")
+
 FILE(GLOB mkl_cpp "mkl/*.cpp")
 FILE(GLOB mkldnn_cpp "mkldnn/*.cpp")
 
@@ -119,9 +124,9 @@ IF(USE_ROCM)
 endif()
 
 IF(USE_OPENCL)
-  set(ATen_OPENCL_SRCS ${ATen_OPENCL_SRCS} ${native_opencl_cl})
-  set(all_opencl_cpp ${native_opencl_cpp} ${ATen_OPENCL_SRCS})
-  set(ATen_OPENCL_KERNEL_SRCS ${ATen_OPENCL_KERNEL_SRCS} ${native_opencl_cl} ${native_opencl_clh})
+  set(ATen_OPENCL_SRCS ${ATen_OPENCL_SRCS} ${opencl_cl} ${native_opencl_cl})
+  set(all_opencl_cpp ${opencl_cpp} ${native_opencl_cpp} ${ATen_OPENCL_SRCS})
+  set(ATen_OPENCL_KERNEL_SRCS ${ATen_OPENCL_KERNEL_SRCS} ${opencl_cl} ${opencl_clh} ${native_opencl_cl} ${native_opencl_clh})
   install(FILES ${ATen_OPENCL_KERNEL_SRCS} DESTINATION ${_OPENCL_KERNEL_DIR})
 endif()
 

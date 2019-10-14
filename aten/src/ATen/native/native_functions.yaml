@@ -3604,6 +3604,7 @@
   dispatch:
     CPU: _local_scalar_dense_cpu
     CUDA: _local_scalar_dense_cuda
+    OpenCL: _local_scalar_dense_opencl
   variants: function
   supports_named_tensor: True
 
@@ -4928,6 +4929,7 @@
   dispatch:
     CPU: legacy::cpu::_th_min_out
     CUDA: legacy::cuda::_th_min_out
+    OpenCL: _opencl_min_out
 
 - func: min.other(Tensor self, Tensor other) -> Tensor
   use_c10_dispatcher: full
@@ -4935,6 +4937,7 @@
   dispatch:
     CPU: legacy::cpu::_th_min
     CUDA: legacy::cuda::_th_min
+    OpenCL: _opencl_min
 
 - func: min(Tensor self) -> Tensor
   use_c10_dispatcher: full
@@ -4942,6 +4945,7 @@
   dispatch:
     CPU: legacy::cpu::_th_min
     CUDA: legacy::cuda::_th_min
+    OpenCL: _opencl_min
     QuantizedCPU: min_quant
   supports_named_tensor: True
 
@@ -4949,6 +4953,7 @@
   dispatch:
     CPU: legacy::cpu::_th_max_out
     CUDA: legacy::cuda::_th_max_out
+    OpenCL: _opencl_max_out
 
 - func: max.other(Tensor self, Tensor other) -> Tensor
   use_c10_dispatcher: full
@@ -4956,6 +4961,7 @@
   dispatch:
     CPU: legacy::cpu::_th_max
     CUDA: legacy::cuda::_th_max
+    OpenCL: _opencl_max
 
 - func: max(Tensor self) -> Tensor
   use_c10_dispatcher: full
@@ -4963,6 +4969,7 @@
   dispatch:
     CPU: legacy::cpu::_th_max
     CUDA: legacy::cuda::_th_max
+    OpenCL: _opencl_max
     QuantizedCPU: max_quant
   supports_named_tensor: True
 

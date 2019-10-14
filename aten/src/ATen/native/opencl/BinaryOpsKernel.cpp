@@ -19,6 +19,7 @@
 #include <c10/opencl/OpenCLFunctions.h>
 #include <aten/src/ATen/native/opencl/OpenCLOperations.h>
 #include <c10/opencl/OpenCLFunctions.h>
+#include <aten/src/ATen/opencl/Exceptions.h>
 #include <aten/src/ATen/native/opencl/OpenCLOperations.h>
 #include <aten/src/ATen/native/opencl/Utils.h>
 
@@ -35,14 +36,14 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
     return;
   }
   cl::Kernel pointwise_op = opt_kernel.value();
-  pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())());
-  pointwise_op.setArg<cl_mem>(1, (*(cl::Buffer*)b->data_ptr().get())());
-  pointwise_op.setArg<S>(2, alpha.to<S>());
-  pointwise_op.setArg<cl_mem>(3, (*(cl::Buffer*)out->data_ptr().get())());
-  pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3s>(4, op);
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*(cl::Buffer*)b->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<S>(2, alpha.to<S>()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(3, (*(cl::Buffer*)out->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3s>(4, op));
   auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
-  stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1);
-  stream.stream()->finish();
+  AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1));
+  AT_OPENCL_CHECK(stream.stream()->finish());
 }
 
 

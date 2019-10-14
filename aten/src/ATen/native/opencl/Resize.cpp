@@ -63,4 +63,24 @@ void opencl_resize(c10::StorageImpl *self, ptrdiff_t size)
   }
 }
 
+void opencl_resizeAs(c10::TensorImpl *self, c10::TensorImpl *src) {
+  int isSame = 0;
+  int d;
+  if(self->dim() == src->dim())
+  {
+    isSame = 1;
+    for(d = 0; d < self->dim(); d++)
+    {
+      if(self->size(d) != src->size(d))
+      {
+        isSame = 0;
+        break;
+      }
+    }
+  }
+
+  if(!isSame)
+    opencl_resizeNd(self, src->dim(), opencl_getSizePtr(src), NULL);
+}
+
 }} // namespace at::native

@@ -10,10 +10,15 @@ namespace at { namespace native {
 void opencl_resizeNd(c10::TensorImpl *self, int nDimension, const int64_t *size, const int64_t *stride);
 void opencl_resize(c10::TensorImpl *self, at::IntArrayRef size, at::IntArrayRef stride);
 void opencl_resize(c10::StorageImpl *self, ptrdiff_t size);
+void opencl_resizeAs(c10::TensorImpl *self, c10::TensorImpl *src);
 
 // These functions are called by native::resize_ as well as (legacy) THC resize.
 // They are not in THC/THCTensor.cpp because the at namespace is easier
 // to benchmark than THC; I can't get gbenchmark to call fns from THTensor.cpp
+
+inline const int64_t* opencl_getSizePtr(c10::TensorImpl* tensor) {
+  return tensor->sizes().data();
+}
 
 inline void maybe_resize_storage_opencl(TensorImpl* self, int64_t new_size) {
   // It does not make sense to try to resize a storage

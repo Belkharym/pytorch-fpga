@@ -72,30 +72,40 @@ DEFINE_KERNEL_FOR_ALL_TYPES(POINTWISE_OP_COMP_3)
 
 #define POINTWISE_OP_3_INT(suffix, type) \
 __kernel void pointwise_op_3##suffix(__global const type* a, __global const type* b, __global type* out, const enum OpenCLOperationsPointwise3 op) { \
-    switch(op) {                                                                \
-        case BAND: {                                                            \
-            out[get_global_id(0)] = a[get_global_id(0)] & b[get_global_id(0)];  \
-            break;                                                              \
-        }                                                                       \
-        default: {                                                              \
-            break;                                                              \
-        }                                                                       \
-    }                                                                           \
+    switch(op) {                                                                                                            \
+        case BAND: {                                                                                                        \
+            out[get_global_id(0)] = a[get_global_id(0)] & b[get_global_id(0)];                                              \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case MIN: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] < b[get_global_id(0)] ? a[get_global_id(0)] : b[get_global_id(0)];  \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case MAX: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] > b[get_global_id(0)] ? a[get_global_id(0)] : b[get_global_id(0)];  \
+            break;                                                                                                          \
+        }                                                                                                                   \
+    }                                                                                                                       \
 }
 DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_3_INT)
 #undef POINTWISE_OP_3_INT
 
 #define POINTWISE_OP_3_FP(suffix, type) \
 __kernel void pointwise_op_3##suffix(__global const type* a, __global const type* b, __global type* out, const enum OpenCLOperationsPointwise3 op) { \
-    switch(op) {                                                                \
-        case BAND: {                                                            \
-            out[get_global_id(0)] = a[get_global_id(0)] && b[get_global_id(0)]; \
-            break;                                                              \
-        }                                                                       \
-        default: {                                                              \
-            break;                                                              \
-        }                                                                       \
-    }                                                                           \
+    switch(op) {                                                                                                            \
+        case BAND: {                                                                                                        \
+            out[get_global_id(0)] = a[get_global_id(0)] && b[get_global_id(0)];                                             \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case MIN: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] < b[get_global_id(0)] ? a[get_global_id(0)] : b[get_global_id(0)];  \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case MAX: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] > b[get_global_id(0)] ? a[get_global_id(0)] : b[get_global_id(0)];  \
+            break;                                                                                                          \
+        }                                                                                                                   \
+    }                                                                                                                       \
 }
 
 DEFINE_KERNEL_FOR_FLOATS(POINTWISE_OP_3_FP)
@@ -111,30 +121,40 @@ DEFINE_KERNEL_FOR_ALL_TYPES(POINTWISE_OP_COMP_2S)
 
 #define POINTWISE_OP_2S_INT(suffix, type) \
 __kernel void pointwise_op_2##suffix##_s(__global const type* a, const type b, __global type* out, const enum OpenCLOperationsPointwise3 op) { \
-    switch(op) {                                                \
-        case BAND: {                                            \
-            out[get_global_id(0)] = a[get_global_id(0)] & b;    \
-            break;                                              \
-        }                                                       \
-        default: {                                              \
-            break;                                              \
-        }                                                       \
-    }                                                           \
+    switch(op) {                                                                        \
+        case BAND: {                                                                    \
+            out[get_global_id(0)] = a[get_global_id(0)] & b;                            \
+            break;                                                                      \
+        }                                                                               \
+        case MIN: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] < b ? a[get_global_id(0)] : b;  \
+            break;                                                                      \
+        }                                                                               \
+        case MAX: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] > b ? a[get_global_id(0)] : b;  \
+            break;                                                                      \
+        }                                                                               \
+    }                                                                                   \
 }
 DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_2S_INT)
 #undef POINTWISE_OP_2S_INT
 
 #define POINTWISE_OP_2S_FP(suffix, type) \
-__kernel void pointwise_op_2##suffix##_s(__global const type* a, __global const type* b, __global type* out, const enum OpenCLOperationsPointwise3 op) { \
-    switch(op) {                                                \
-        case BAND: {                                            \
-            out[get_global_id(0)] = a[get_global_id(0)] && b;   \
-            break;                                              \
-        }                                                       \
-        default: {                                              \
-            break;                                              \
-        }                                                       \
-    }                                                           \
+__kernel void pointwise_op_2##suffix##_s(__global const type* a, const type b, __global type* out, const enum OpenCLOperationsPointwise3 op) { \
+    switch(op) {                                                                        \
+        case BAND: {                                                                    \
+            out[get_global_id(0)] = a[get_global_id(0)] && b;                           \
+            break;                                                                      \
+        }                                                                               \
+        case MIN: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] < b ? a[get_global_id(0)] : b;  \
+            break;                                                                      \
+        }                                                                               \
+        case MAX: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] > b ? a[get_global_id(0)] : b;  \
+            break;                                                                      \
+        }                                                                               \
+    }                                                                                   \
 }
 DEFINE_KERNEL_FOR_FLOATS(POINTWISE_OP_2S_FP)
 #undef POINTWISE_OP_2S_FP

@@ -7,6 +7,7 @@
 #include <ATen/NamedTensorUtils.h>
 
 #include <c10/opencl/OpenCLFunctions.h>
+#include <aten/src/ATen/opencl/Exceptions.h>
 #include <aten/src/ATen/native/opencl/OpenCLOperations.h>
 #include <aten/src/ATen/native/opencl/Utils.h>
 
@@ -19,29 +20,30 @@ static void pointwise_op_comp3(StorageImpl* c, const StorageImpl* a, const Stora
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
-  pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())());
-  pointwise_op.setArg<cl_mem>(1, (*(cl::Buffer*)b->data_ptr().get())());
-  pointwise_op.setArg<cl_mem>(2, (*(cl::Buffer*)c->data_ptr().get())());
-  pointwise_op.setArg<at::native::opencl::OpenCLOperationsComp3>(3, op);
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*(cl::Buffer*)b->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*(cl::Buffer*)c->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsComp3>(3, op));
   auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
-  stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1);
-  stream.stream()->finish();
+  AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1));
+  AT_OPENCL_CHECK(stream.stream()->finish());
 }
 
 template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
 static void pointwise_op_comp2_s(StorageImpl* c, const StorageImpl* a, const Scalar b, at::native::opencl::OpenCLOperationsComp3 op) {
   // DONE Call OpenCL kernel.
-  auto kernel_name = "pointwise_op_2" + getOpenCLKernelTypeSuffix(T) + "_s";
+  auto kernel_name = "pointwise_op_comp_2" + getOpenCLKernelTypeSuffix(T) + "_s";
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
-  pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())());
-  pointwise_op.setArg<S>(1, b.to<S>());
-  pointwise_op.setArg<cl_mem>(2, (*(cl::Buffer*)c->data_ptr().get())());
-  pointwise_op.setArg<at::native::opencl::OpenCLOperationsComp3>(3, op);
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())()));
+  S b_tmp = b.to<S>();
+  AT_OPENCL_CHECK(pointwise_op.setArg<S>(1, b_tmp), typeid(T).name());
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*(cl::Buffer*)c->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsComp3>(3, op));
   auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
-  stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1);
-  stream.stream()->finish();
+  AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1));
+  AT_OPENCL_CHECK(stream.stream()->finish());
 }
 
 // See THC_logicalTensor in aten/src/THC/THCTensorMathCompareT.cuh for implementation details

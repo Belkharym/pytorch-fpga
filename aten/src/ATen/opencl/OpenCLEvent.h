@@ -97,7 +97,7 @@ struct AT_OPENCL_API OpenCLEvent {
     if (is_created_) {
       OpenCLGuard guard(stream.device_index());
       std::vector<cl::Event> waitList;
-      waitList.push_back(*this);
+      waitList.push_back(this->event_);
       AT_OPENCL_CHECK(stream.stream()->enqueueMarkerWithWaitList(&waitList));
     }
   }

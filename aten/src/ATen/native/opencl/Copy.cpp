@@ -5,6 +5,7 @@
 #include <ATen/opencl/OpenCLEvent.h>
 #include <c10/opencl/OpenCLStream.h>
 #include <c10/opencl/OpenCLGuard.h>
+#include <ATen/opencl/PinnedMemoryAllocator.h>
 #include <ATen/native/Copy.h>
 #include <ATen/native/TensorIterator.h>
 #include <ATen/native/opencl/Utils.h>
@@ -62,9 +63,9 @@ static void copy_device_to_device(TensorIterator& iter, bool non_blocking) {
     auto cast_kernel_opt = opencl_kernel(kernel_name);
     TORCH_CHECK(cast_kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
     auto cast_kernel = cast_kernel_opt.value();
-    cast_kernel.setArg<cl_mem>(0, (*(cl::Buffer*)iter.data_ptr(1))());
-    cast_kernel.setArg<cl_mem>(1, (*(cl::Buffer*)iter.data_ptr(0))());
-    copy_stream.stream()->enqueueNDRangeKernel(cast_kernel, /*offset=*/0, numel, 1);
+    AT_OPENCL_CHECK(cast_kernel.setArg<cl_mem>(0, (*(cl::Buffer*)iter.data_ptr(1))()));
+    AT_OPENCL_CHECK(cast_kernel.setArg<cl_mem>(1, (*(cl::Buffer*)iter.data_ptr(0))()));
+    AT_OPENCL_CHECK(copy_stream.stream()->enqueueNDRangeKernel(cast_kernel, /*offset=*/0, numel, 1));
   }
 
   if (src_device != dst_device) {
@@ -77,6 +78,9 @@ static void copy_device_to_device(TensorIterator& iter, bool non_blocking) {
 
     device_guard.set_device(dst_device);
     src_ready.block(getCurrentOpenCLStream(dst_device.index()));
+  }
+  if (!non_blocking) {
+    copy_stream.synchronize();
   }
 }
 
@@ -163,7 +167,9 @@ static void copy_kernel_opencl(TensorIterator& iter, bool non_blocking) {
 
   if (non_blocking) {
     void* ptr = (dst_device == kCPU ? dst : src);
-    //AT_OPENCL_CHECK();
+    // TODO find a way to ensure that, when we try to access to the host pointer (when dst is host),
+    // we block until the read is done.
+    AT_OPENCL_CHECK(OpenCLCachingHostAllocator_recordEvent(ptr, stream));
   } else {
     stream.synchronize();
   }
