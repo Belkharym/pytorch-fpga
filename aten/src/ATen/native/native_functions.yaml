@@ -1057,6 +1057,7 @@
   dispatch:
     CPU: resize_cpu_
     CUDA: resize_cuda_
+    OpenCL: resize_opencl_
     QuantizedCPU: quantized_resize_cpu_
 
 - func: empty.out(int[] size, *, MemoryFormat? memory_format=None, Tensor(a!) out) -> Tensor(a!)
