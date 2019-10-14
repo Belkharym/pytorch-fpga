@@ -1073,7 +1073,8 @@
   dispatch:
     CPU: empty_strided_cpu
     CUDA: empty_strided_cuda
-
+    OpenCL: empty_strided_opencl
+    
 - func: erf(Tensor self) -> Tensor
   use_c10_dispatcher: full
   supports_named_tensor: True

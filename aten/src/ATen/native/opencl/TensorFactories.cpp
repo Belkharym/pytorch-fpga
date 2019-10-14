@@ -185,4 +185,11 @@ Tensor & _zero_opencl(Tensor & self) {
   return self;
 }
 
+Tensor empty_strided_opencl(IntArrayRef size, IntArrayRef stride, const TensorOptions& options) {
+  auto t = at::native::empty_opencl({0}, options);
+  at::native::resize_impl_opencl_(t.unsafeGetTensorImpl(), size, stride);
+  return t;
+}
+
+
 }} // namespace at::native
