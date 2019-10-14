@@ -24,8 +24,10 @@ enum OpenCLOperationsPointwise3 {
     BAND, // Bitwise AND
     MIN,  // MINimum between 2 values
     MAX,  // MAXimum between 2 values
+    BXOR, // Bitwise XOR
     MUL, // multiply
     DIV, // divide
+    ATAN2, // arc tangent of y / x.
 };
 
 // Operations that have 1 output and 1 input, all tensors of the same type

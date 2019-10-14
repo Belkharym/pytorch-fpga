@@ -525,6 +525,7 @@
   dispatch:
     CPU: logical_xor_out
     CUDA: logical_xor_out
+    OpenCL: logical_xor_out
   supports_named_tensor: True
 
 - func: blackman_window(int window_length, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
@@ -1014,6 +1015,7 @@
   dispatch:
     CPU: resize_cpu_
     CUDA: resize_cuda_
+    OpenCL: resize_opencl_
 
 - func: empty.out(int[] size, *, MemoryFormat? memory_format=None, Tensor(a!) out) -> Tensor(a!)
   device_guard: False

@@ -247,12 +247,30 @@ void div_kernel_opencl(TensorIterator& iter) {
 
 }
 
+void logical_xor_kernel_opencl(TensorIterator& iter) {
+    auto scalar_type = iter.tensor(1).scalar_type();
+    auto other_ = checked_tensor_unwrap(iter.tensor(2), "other", 1, "logical_xor_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
+    auto self_ = checked_tensor_unwrap(iter.tensor(1), "self", 2, "logical_xor_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
+    auto out_ = checked_tensor_unwrap(iter.tensor(0), "out", 3, "logical_xor_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
+    
+    pointwise_op3(self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::BXOR, scalar_type);
+}
+
+void atan2_kernel_opencl(TensorIterator& iter) {
+    auto scalar_type = iter.tensor(1).scalar_type();
+    auto other_ = checked_tensor_unwrap(iter.tensor(2), "other", 1, "atan2_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
+    auto self_ = checked_tensor_unwrap(iter.tensor(1), "self", 2, "atan2_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
+    auto out_ = checked_tensor_unwrap(iter.tensor(0), "out", 3, "atan2_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
+    
+    pointwise_op3(self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::ATAN2, scalar_type);
+}
+
 
 REGISTER_OPENCL_DISPATCH(add_stub, &add_kernel_opencl);
 REGISTER_OPENCL_DISPATCH(sub_stub, &sub_kernel_opencl);
 REGISTER_OPENCL_DISPATCH(div_stub, &div_kernel_opencl);
 REGISTER_OPENCL_DISPATCH(mul_stub, &mul_kernel_opencl);
-// REGISTER_DISPATCH(atan2_stub, &atan2_kernel_cuda);
-// REGISTER_DISPATCH(logical_xor_stub, &logical_xor_kernel_cuda);
+REGISTER_OPENCL_DISPATCH(atan2_stub, &atan2_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(logical_xor_stub, &logical_xor_kernel_opencl);
 
 }} // namespace at::native

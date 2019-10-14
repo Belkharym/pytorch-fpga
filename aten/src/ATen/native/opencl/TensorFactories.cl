@@ -92,6 +92,14 @@ __kernel void pointwise_op_3##suffix(__global const type* a, __global const type
             out[get_global_id(0)] = a[get_global_id(0)] / b[get_global_id(0)];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
+        case BXOR: {                                                                                                        \
+            out[get_global_id(0)] = a[get_global_id(0)] ^ b[get_global_id(0)];                                              \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case ATAN2: {                                                                                                       \
+            out[get_global_id(0)] = atan2((float)a[get_global_id(0)], (float)b[get_global_id(0)]);                          \
+            break;                                                                                                          \
+        }                                                                                                                   \
     }                                                                                                                       \
 }
 DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_3_INT)
@@ -118,6 +126,14 @@ __kernel void pointwise_op_3##suffix(__global const type* a, __global const type
         }                                                                                                                   \
         case DIV: {                                                                                                         \
             out[get_global_id(0)] = a[get_global_id(0)] / b[get_global_id(0)];                                              \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case BXOR: {                                                                                                        \
+            out[get_global_id(0)] = a[get_global_id(0)] != b[get_global_id(0)];                                             \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case ATAN2: {                                                                                                       \
+            out[get_global_id(0)] = atan2((float)a[get_global_id(0)], (float)b[get_global_id(0)]);                          \
             break;                                                                                                          \
         }                                                                                                                   \
     }                                                                                                                       \
@@ -157,6 +173,14 @@ __kernel void pointwise_op_2##suffix##_s(__global const type* a, const type b, _
             out[get_global_id(0)] = a[get_global_id(0)] / b;                            \
             break;                                                                      \
         }                                                                               \
+        case BXOR: {                                                                    \
+            out[get_global_id(0)] = a[get_global_id(0)] ^ b;                            \
+            break;                                                                      \
+        }                                                                               \
+        case ATAN2: {                                                                   \
+            out[get_global_id(0)] = atan2((float)a[get_global_id(0)], (float)b);        \
+            break;                                                                      \
+        }                                                                               \
     }                                                                                   \
 }
 DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_2S_INT)
@@ -183,6 +207,14 @@ __kernel void pointwise_op_2##suffix##_s(__global const type* a, const type b, _
         }                                                                               \
         case DIV: {                                                                     \
             out[get_global_id(0)] = a[get_global_id(0)] / b;                            \
+            break;                                                                      \
+        }                                                                               \
+        case BXOR: {                                                                    \
+            out[get_global_id(0)] = a[get_global_id(0)] != b;                           \
+            break;                                                                      \
+        }                                                                               \
+        case ATAN2: {                                                                   \
+            out[get_global_id(0)] = atan2((float)a[get_global_id(0)], (float)b);        \
             break;                                                                      \
         }                                                                               \
     }                                                                                   \
