@@ -1015,6 +1015,7 @@
   dispatch:
     CPU: resize_cpu_
     CUDA: resize_cuda_
+    OpenCL: resize_opencl_
 
 - func: empty.out(int[] size, *, MemoryFormat? memory_format=None, Tensor(a!) out) -> Tensor(a!)
   device_guard: False
