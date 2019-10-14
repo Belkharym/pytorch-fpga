@@ -31,6 +31,12 @@ __kernel void operation_3##suffix(__global const type* a, __global const type* o
             out[get_global_id(0)] = a[get_global_id(0)] / other[get_global_id(0)]; \
             break; \
         } \
+        case BXOR: { \
+            out[get_global_id(0)] = a[get_global_id(0)] != other[get_global_id(0)]; \
+        } \
+        case ATAN2: { \
+            out[get_global_id(0)] = atan2((float)a[get_global_id(0)], (float)other[get_global_id(0)]); \
+        } \
         default: { \
             break; \
         } \
