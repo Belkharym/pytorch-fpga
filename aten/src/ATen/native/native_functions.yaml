@@ -879,7 +879,7 @@
     CUDA: div
     SparseCPU: div_sparse
     SparseCUDA: div_sparse
-    OpenCL: opencl_div
+    OpenCL: div
   supports_named_tensor: True
 
 - func: div_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
@@ -890,7 +890,7 @@
     CUDA: div_
     SparseCPU: div_sparse_
     SparseCUDA: div_sparse_
-    OpenCL: opencl_div_
+    OpenCL: div_
 
   supports_named_tensor: True
 
@@ -900,7 +900,7 @@
     CUDA: div_out
     SparseCPU: div_out_sparse_zerodim
     SparseCUDA: div_out_sparse_zerodim
-    OpenCL: opencl_div_out
+    OpenCL: div_out
   supports_named_tensor: True
 
 # For C++ only, until we have conversion from C++ numbers to Tensor
@@ -1831,7 +1831,7 @@
     SparseCPU: mul_sparse
     SparseCUDA: mul_sparse
     MkldnnCPU: mkldnn_mul
-    OpenCL: opencl_mul
+    OpenCL: mul
   supports_named_tensor: True
 
 - func: mul_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
@@ -1843,7 +1843,7 @@
     SparseCPU: mul_sparse_
     SparseCUDA: mul_sparse_
     MkldnnCPU: mkldnn_mul_
-    OpenCL: opencl_mul_
+    OpenCL: mul_
 
   supports_named_tensor: True
 
@@ -1854,7 +1854,7 @@
     SparseCPU: mul_out_sparse_cpu
     SparseCUDA: mul_out_sparse_cuda
     MkldnnCPU: mkldnn_mul_out
-    OpenCL: opencl_mul_out
+    OpenCL: mul_out
   supports_named_tensor: True
 
   # For C++ only, until we have conversion from C++ numbers to Tensor
@@ -3073,7 +3073,7 @@
     CUDA: sub_out
     SparseCPU: sub_out_sparse
     SparseCUDA: sub_out_sparse
-    OpenCL: opencl_sub_out
+    OpenCL: sub_out
   supports_named_tensor: True
 
 - func: sub.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
@@ -3084,7 +3084,7 @@
     CUDA: sub
     SparseCPU: sub_sparse
     SparseCUDA: sub_sparse
-    OpenCL: opencl_sub
+    OpenCL: sub
   supports_named_tensor: True
 
 - func: sub_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
@@ -3095,7 +3095,7 @@
     CUDA: sub_
     SparseCPU: sub_sparse_
     SparseCUDA: sub_sparse_
-    OpenCL: opencl_sub_
+    OpenCL: sub_
 
   supports_named_tensor: True
 
