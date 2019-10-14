@@ -10,7 +10,6 @@
 #include <ATen/InitialTensorOptions.h>
 #include <ATen/ATen.h>
 #include <ATen/InitialTensorOptions.h>
-#include <ATen/NativeFunctions.h>
 #include <ATen/native/TensorFactories.h>
 #include <c10/util/Exception.h>
 #include <ATen/Backend.h>
@@ -23,7 +22,8 @@
 #include <aten/src/ATen/native/opencl/OpenCLOperations.h>
 #include <aten/src/ATen/native/opencl/Utils.h>
 
-namespace at { namespace native {
+namespace at {
+namespace native {
 
 template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
 static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageImpl* out, const Scalar alpha, at::native::opencl::OpenCLOperationsPointwise3s op) {
@@ -64,6 +64,9 @@ static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImp
   stream.stream()->finish();
 }
 
+
+// ADD FUNCTION
+
 Tensor & opencl_add_out(Tensor &out, const Tensor &self, const Tensor& other , Scalar alpha){
     auto other_ = checked_tensor_unwrap(other, "other", 1, "add_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
     auto self_ = checked_tensor_unwrap(self, "self", 2, "add_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
@@ -90,7 +93,13 @@ Tensor & opencl_add_(Tensor &self, const Tensor& other , Scalar alpha){
     return opencl_add_out(self, self, other, alpha);
 }
 
+Tensor opencl_add(const Tensor &self, const Tensor& other , Scalar alpha){
+    Tensor out =  at::native::empty_opencl(self.sizes(), self.options());
+    opencl_add_out(out, self, other, alpha);
+    return out;
+}
 
+// SUB FUNCTION
 
 Tensor & opencl_sub_out(Tensor &out, const Tensor &self, const Tensor& other , Scalar alpha){
     auto other_ = checked_tensor_unwrap(other, "other", 1, "opencl_sub_out", false, c10::Backend::OpenCL, self.scalar_type());
@@ -118,6 +127,15 @@ Tensor & opencl_sub_(Tensor &self, const Tensor& other , Scalar alpha){
     return opencl_sub_out(self, self, other, alpha);
 }
 
+Tensor opencl_sub(const Tensor &self, const Tensor& other , Scalar alpha){
+    Tensor out =  at::native::empty_opencl(self.sizes(), self.options());
+    opencl_sub_out(out, self, other, alpha);
+    return out;
+}
+
+// MUL FUNCTION
+
+
 Tensor & opencl_mul_out(Tensor &out, const Tensor &self, const Tensor& other){
     auto other_ = checked_tensor_unwrap(other, "other", 1, "opencl_mul_out", false, c10::Backend::OpenCL, self.scalar_type());
     auto self_ = checked_tensor_unwrap(self, "self", 2, "opencl_mul_out", false, c10::Backend::OpenCL, self.scalar_type());
@@ -131,6 +149,15 @@ Tensor & opencl_mul_(Tensor &self, const Tensor& other){
     return opencl_mul_out(self, self, other);
 }
 
+Tensor opencl_mul(const Tensor &self, const Tensor& other){
+    Tensor out =  at::native::empty_opencl(self.sizes(), self.options());
+    opencl_mul_out(out, self, other);
+    return out;
+}
+
+// DIV FUNCTION
+
+
 Tensor & opencl_div_out(Tensor &out, const Tensor &self, const Tensor& other){
     auto other_ = checked_tensor_unwrap(other, "other", 1, "opencl_mul_out", false, c10::Backend::OpenCL, self.scalar_type());
     auto self_ = checked_tensor_unwrap(self, "self", 2, "opencl_mul_out", false, c10::Backend::OpenCL, self.scalar_type());
@@ -142,6 +169,12 @@ Tensor & opencl_div_out(Tensor &out, const Tensor &self, const Tensor& other){
 
 Tensor & opencl_div_(Tensor &self, const Tensor& other){
     return opencl_div_out(self, self, other);
+}
+
+Tensor opencl_div(const Tensor &self, const Tensor& other){
+    Tensor out =  at::native::empty_opencl(self.sizes(), self.options());
+    opencl_div_out(out, self, other);
+    return out;
 }
 
 }} // namespace at::native

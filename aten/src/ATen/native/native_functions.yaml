@@ -280,6 +280,7 @@
     SparseCPU: add_sparse
     SparseCUDA: add_sparse
     MkldnnCPU: mkldnn_add
+    OpenCL: opencl_add
   supports_named_tensor: True
 
 - func: add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
@@ -916,6 +917,7 @@
     CUDA: div
     SparseCPU: div_sparse
     SparseCUDA: div_sparse
+    OpenCL: opencl_div
   supports_named_tensor: True
 
 - func: div_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
@@ -1857,6 +1859,7 @@
     SparseCPU: mul_sparse
     SparseCUDA: mul_sparse
     MkldnnCPU: mkldnn_mul
+    OpenCL: opencl_mul
   supports_named_tensor: True
 
 - func: mul_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
@@ -3037,6 +3040,7 @@
     CUDA: sub
     SparseCPU: sub_sparse
     SparseCUDA: sub_sparse
+    OpenCL: opencl_sub
   supports_named_tensor: True
 
 - func: sub_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
