@@ -172,34 +172,18 @@ Tensor & _ceil_out_opencl(Tensor &out, const Tensor &self) {
 
 Tensor & _zero_opencl(Tensor & self) {
   TensorImpl* self_ = checked_tensor_unwrap(self, "self", 2, "_zero_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  if (self_->is_contiguous()) {
-    auto stream = at::opencl::getCurrentOpenCLStream(self_->device().index());
-    auto scalar_type = self.scalar_type();
-    switch (scalar_type)
-    {
-#define DEFINE_OPENCL_AND_CASE(type, name) \
-      case ScalarType::name: { \
-        type pattern{0}; \
-        AT_OPENCL_CHECK(stream.stream()->enqueueFillBuffer(*toBuffer(self_->data()), /*pattern=*/pattern, /*offset=*/0, self_->numel() * self_->itemsize())); \
-        break; \
-      }
-      AT_FORALL_SCALAR_TYPES_AND2(Half, Bool, DEFINE_OPENCL_AND_CASE)
-#undef DEFINE_OPENCL_AND_CASE
-    default:
-      TORCH_CHECK(false, "logical_tensor not supported on OpenCLType for ", scalar_type);
-      break;
-    }
-  } else {
-    auto kernel_name = "cast_" + getOpenCLKernelTypeSuffix(typeMetaToScalarType(self_->dtype())) + "_i_s";
-    auto kernel_opt = c10::opencl::opencl_kernel(kernel_name);
-    TORCH_INTERNAL_ASSERT(kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
-    auto stream = at::opencl::getCurrentOpenCLStream(self_->device().index());
-    auto kernel = kernel_opt.value();
-    AT_OPENCL_CHECK(kernel.setArg<int>(0, 0));
-    AT_OPENCL_CHECK(kernel.setArg<cl_mem>(1, (*(cl::Buffer*)self_->data())()));
-    AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(kernel, /*offset=*/0, self_->numel(), 1));
-    AT_OPENCL_CHECK(syncOpenCLPointer(self_->data()));
-  }
+
+  auto kernel_name = "cast_i_" + getOpenCLKernelTypeSuffix(typeMetaToScalarType(self_->dtype())) + "_s";
+  auto kernel_opt = c10::opencl::opencl_kernel(kernel_name);
+  TORCH_INTERNAL_ASSERT(kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
+  auto stream = at::opencl::getCurrentOpenCLStream(self_->device().index());
+  auto kernel = kernel_opt.value();
+  int scalar_0 = 0;
+  AT_OPENCL_CHECK(kernel.setArg<int>(0, scalar_0));
+  AT_OPENCL_CHECK(kernel.setArg<cl_mem>(1, (*toBuffer(self_->data()))()));
+  AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(kernel, /*offset=*/0, self_->numel(), 1));
+  AT_OPENCL_CHECK(syncOpenCLPointer(self_->data()));
+
   return self;
 
 Tensor empty_strided_opencl(IntArrayRef size, IntArrayRef stride, const TensorOptions& options) {
