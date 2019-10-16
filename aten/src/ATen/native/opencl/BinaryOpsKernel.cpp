@@ -222,6 +222,8 @@ void add_kernel_opencl(TensorIterator& iter, Scalar alpha) {
                 AT_OPENCL_CHECK(syncOpenCLPointer(iter.tensor(2).data_ptr())); \
                 pointwise_op2s<ScalarType::name, type>(self_->storage().unsafeGetStorageImpl(), Scalar(iter.scalar_value<type>(2) * alpha.to<type>()), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::ADD); \
             } else { \
+                TORCH_CHECK(opencl_nElement(self_) == opencl_nElement(other_), "sizes don't match"); \
+                TORCH_CHECK(opencl_nElement(out_) == opencl_nElement(self_), "sizes don't match"); \
                 pointwise_op3s<ScalarType::name, type>(self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), out_->storage().unsafeGetStorageImpl(), alpha, at::native::opencl::OpenCLOperationsPointwise3s::ADDS); \
             } \
             break; \
@@ -242,12 +244,12 @@ void sub_kernel_opencl(TensorIterator& iter, Scalar alpha) {
 static void op_scalar_opencl(const StorageImpl* a, Scalar b, StorageImpl* out, at::native::opencl::OpenCLOperationsPointwise3 op, ScalarType scalar_type) {
     switch (scalar_type)
     {
-#define DEFINE_OPENCL_MUL(type, name) \
+#define DEFINE_OPENCL_ARITH_OP(type, name) \
     case ScalarType::name: \
         pointwise_op2s<ScalarType::name, type>(a, b, out, op); \
         break;
-        AT_FORALL_SCALAR_TYPES(DEFINE_OPENCL_MUL)
-#undef DEFINE_OPENCL_MUL
+        AT_FORALL_SCALAR_TYPES(DEFINE_OPENCL_ARITH_OP)
+#undef DEFINE_OPENCL_ARITH_OP
     default:
         TORCH_CHECK(false, op, " not supported on OpenCLType for ", scalar_type);
         break;
@@ -267,6 +269,8 @@ void mul_kernel_opencl(TensorIterator& iter) {
         AT_OPENCL_CHECK(syncOpenCLPointer(iter.tensor(2).data_ptr()));
         op_scalar_opencl(self_->storage().unsafeGetStorageImpl(), iter.tensor(2).item(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::MUL, scalar_type);
     } else {
+        TORCH_CHECK(opencl_nElement(self_) == opencl_nElement(other_), "sizes don't match");
+        TORCH_CHECK(opencl_nElement(out_) == opencl_nElement(self_), "sizes don't match");
         pointwise_op3(self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::MUL, scalar_type);
     }
 }
@@ -284,6 +288,8 @@ void div_kernel_opencl(TensorIterator& iter) {
         AT_OPENCL_CHECK(syncOpenCLPointer(iter.tensor(2).data_ptr()));
         op_scalar_opencl(self_->storage().unsafeGetStorageImpl(), iter.tensor(2).item(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::DIV, scalar_type);
     } else {
+        TORCH_CHECK(opencl_nElement(self_) == opencl_nElement(other_), "sizes don't match");
+        TORCH_CHECK(opencl_nElement(out_) == opencl_nElement(self_), "sizes don't match");
         pointwise_op3(self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::DIV, scalar_type);
     }
 }
@@ -301,6 +307,8 @@ void logical_xor_kernel_opencl(TensorIterator& iter) {
         AT_OPENCL_CHECK(syncOpenCLPointer(iter.tensor(2).data_ptr()));
         op_scalar_opencl(self_->storage().unsafeGetStorageImpl(), iter.tensor(2).item(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::BXOR, scalar_type);
     } else {
+        TORCH_CHECK(opencl_nElement(self_) == opencl_nElement(other_), "sizes don't match");
+        TORCH_CHECK(opencl_nElement(out_) == opencl_nElement(self_), "sizes don't match");
         pointwise_op3(self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::BXOR, scalar_type);
     }
 }
@@ -318,6 +326,8 @@ void atan2_kernel_opencl(TensorIterator& iter) {
         AT_OPENCL_CHECK(syncOpenCLPointer(iter.tensor(2).data_ptr()));
         op_scalar_opencl(self_->storage().unsafeGetStorageImpl(), iter.tensor(2).item(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::ATAN2, scalar_type);
     } else {
+        TORCH_CHECK(opencl_nElement(self_) == opencl_nElement(other_), "sizes don't match");
+        TORCH_CHECK(opencl_nElement(out_) == opencl_nElement(self_), "sizes don't match");
         pointwise_op3(self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), out_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::ATAN2, scalar_type);
     }
 }
