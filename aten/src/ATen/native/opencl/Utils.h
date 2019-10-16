@@ -114,17 +114,7 @@ inline cl_int syncOpenCLPointer(void *ptr) {
     return err;
   }
 
-  void* mappedPtr = stream.stream()->enqueueMapBuffer(*buffer, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, buffer_size, NULL, NULL, &err);
-  if (err != CL_SUCCESS) {
-    return err;
-  }
-  if (mappedPtr != ptr) {
-    memcpy(ptr, mappedPtr, buffer_size);
-  }
-  for (size_t i = 0; i < buffer_size; ++i) {
-    ((uint8_t*)ptr)[i] = ((uint8_t*)mappedPtr)[i];
-  }
-  err = stream.stream()->enqueueUnmapMemObject(*buffer, mappedPtr);
+  err = stream.stream()->enqueueReadBuffer(*buffer, CL_FALSE, /*offset=*/0, buffer_size, ptr, NULL, NULL);
   return err;
 }
 

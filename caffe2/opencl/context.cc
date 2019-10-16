@@ -7,6 +7,7 @@
 #include <c10/util/Exception.h>
 #include <c10/core/CopyBytes.h>
 #include <ATen/opencl/PinnedMemoryAllocator.h>
+#include <aten/src/ATen/native/opencl/Utils.h>
 
 #include <vector>
 #include <mutex>
@@ -86,6 +87,7 @@ void OpenCLContext::CopyBytesSameDevice(
         NULL,
         NULL);
     TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : cannot copy bytes from OpenCL device to OpenCL device.");
+    C10_OPENCL_CHECK(at::native::syncOpenCLPointer(dst));
 }
 
 void OpenCLContext::CopyBytesFromCPU(size_t nbytes, const void* src, void* dst) {
@@ -98,6 +100,7 @@ void OpenCLContext::CopyBytesFromCPU(size_t nbytes, const void* src, void* dst) 
         NULL,
         NULL);
     TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : cannot copy bytes from CPU to OpenCL device.");
+    C10_OPENCL_CHECK(at::native::syncOpenCLPointer(dst));
 }
 
 void OpenCLContext::CopyBytesToCPU(size_t nbytes, const void* src, void* dst) {
@@ -125,6 +128,7 @@ void OpenCLContext::CopyBytesAsync(
             c10::opencl::OpenCLStreamGuard guard{stream};
             if (dst_device.type() == OPENCL) {
                 err = stream.stream()->enqueueCopyBuffer(*toBuffer(const_cast<void*>(src)), *toBuffer(dst), 0, 0, nbytes, NULL, NULL);
+                C10_OPENCL_CHECK(at::native::syncOpenCLPointer(dst));
             }
             else {
                 err = stream.stream()->enqueueReadBuffer(*toBuffer(const_cast<void*>(src)), CL_FALSE, 0, nbytes, dst, NULL, NULL);
@@ -136,6 +140,7 @@ void OpenCLContext::CopyBytesAsync(
                 c10::opencl::OpenCLStream stream = c10::opencl::getStreamFromPool(dst_device.index());
                 c10::opencl::OpenCLStreamGuard guard{stream};
                 err = stream.stream()->enqueueWriteBuffer(*toBuffer(dst), CL_FALSE, 0, nbytes, src, NULL, NULL);
+                C10_OPENCL_CHECK(at::native::syncOpenCLPointer(dst));
             }
             else {
                 err = CL_INVALID_MEM_OBJECT;
@@ -167,6 +172,7 @@ void OpenCLContext::CopyBytesSync(
             if (dst_device.type() == OPENCL) {
                 cl::Event cl_ev;
                 err = stream.stream()->enqueueCopyBuffer(*toBuffer(const_cast<void*>(src)), *toBuffer(dst), 0, 0, nbytes, NULL, &cl_ev);
+                C10_OPENCL_CHECK(at::native::syncOpenCLPointer(dst));
                 cl_ev.wait();
             }
             else {
@@ -179,6 +185,7 @@ void OpenCLContext::CopyBytesSync(
                 c10::opencl::OpenCLStream stream = c10::opencl::getStreamFromPool(dst_device.index());
                 c10::opencl::OpenCLStreamGuard guard{stream};
                 err = stream.stream()->enqueueWriteBuffer(*toBuffer(dst), CL_TRUE, 0, nbytes, src, NULL, NULL);
+                C10_OPENCL_CHECK(at::native::syncOpenCLPointer(dst));
             }
             else {
                 err = CL_INVALID_MEM_OBJECT;

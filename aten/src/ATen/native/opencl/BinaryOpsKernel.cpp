@@ -45,6 +45,7 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3s>(4, op));
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1));
+  AT_OPENCL_CHECK(syncOpenCLPointer(out->data_ptr().get()));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
 
@@ -64,6 +65,7 @@ static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImp
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3>(3, op));
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1));
+  AT_OPENCL_CHECK(syncOpenCLPointer(out->data_ptr().get()));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
 

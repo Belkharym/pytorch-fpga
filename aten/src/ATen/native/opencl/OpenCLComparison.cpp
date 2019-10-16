@@ -26,6 +26,7 @@ static void pointwise_op_comp3(StorageImpl* c, const StorageImpl* a, const Stora
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsComp3>(3, op));
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1));
+  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get()));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
 
@@ -43,6 +44,7 @@ static void pointwise_op_comp2_s(StorageImpl* c, const StorageImpl* a, const Sca
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsComp3>(3, op));
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1));
+  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get()));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
 
