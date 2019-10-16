@@ -65,7 +65,7 @@ std::mutex& OpenCLContext::mutex() {
 }
 
 static inline cl::Buffer* toBuffer(void *ptr) {
-  cl::Buffer* ret = c10::opencl::OpenCLCachingAllocator::getBufferFromPtr(ptr);
+  cl::Buffer* ret = caffe2::opencl::getBufferFromPtr(ptr);
   if (ret == nullptr) {
     ret = at::opencl::OpenCLCachingHostAllocator_getBuffer(ptr);
   }
@@ -208,8 +208,11 @@ struct DefaultOpenCLAllocator final : public at::Allocator {
 
         if (nbytes != 0) {
             cl_int err;
-            ptr = new cl::Buffer{c10::opencl::opencl_context(), CL_MEM_READ_WRITE, nbytes, NULL, &err};
-            TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : Cannot allocate buffer of ", nbytes, " byte(s). (", err, ")");
+            ptr = aligned_alloc(alignof(max_align_t) * 16, nbytes);
+            TORCH_INTERNAL_ASSERT(ptr, "Cannot allocate ", nbytes, "byte(s) of memory for OpenCL buffer.");
+            cl::Buffer* buf = new cl::Buffer{c10::opencl::opencl_context(), CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, nbytes, ptr, &err};
+            TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : Cannot allocate buffer of ", nbytes, " byte(s). (", clErrorString(err), ")");
+            buffers.emplace(ptr, buf);
         }
         return {ptr, ptr, &Delete, at::Device(OPENCL, c10::opencl::current_device())};
     }
@@ -219,17 +222,36 @@ struct DefaultOpenCLAllocator final : public at::Allocator {
     }
 
 private:
+    static std::unordered_map<void*, cl::Buffer*> buffers;
     static void Delete(void* ptr) {
         // lock the mutex
         std::lock_guard<std::mutex> lock(opencl::OpenCLContext::mutex());
-
+        
+        auto it = buffers.find(ptr);
+        TORCH_CHECK(it != buffers.end());
         // If memory pool is not set up, use simple cudaFree.
-        delete reinterpret_cast<cl::Buffer*>(ptr);
+        ::free(it->first);
+        delete it->second;
+        buffers.erase(it);
     }
+    friend cl::Buffer* caffe2::opencl::getBufferFromPtr(void *ptr);
 };
 
+std::unordered_map<void*, cl::Buffer*> DefaultOpenCLAllocator::buffers;
 static DefaultOpenCLAllocator g_opencl_alloc;
 REGISTER_ALLOCATOR(OPENCL, &g_opencl_alloc);
+
+namespace opencl {
+
+cl::Buffer* getBufferFromPtr(void *ptr) {
+    auto it = DefaultOpenCLAllocator::buffers.find(ptr);
+    if (it == DefaultOpenCLAllocator::buffers.end()) {
+        return nullptr;
+    }
+    return it->second;
+}
+
+}
 
 } // namespace caffe2
 

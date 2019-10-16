@@ -171,6 +171,8 @@ public:
 
 };
 
+CAFFE2_API cl::Buffer* getBufferFromPtr(void *ptr);
+
 } // namespace opencl
 } // namespace caffe2
 

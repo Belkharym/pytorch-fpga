@@ -473,7 +473,7 @@ struct THOCachingAllocator
     // Try clCreateBuffer. If clCreateBuffer fails, frees all non-split cached blocks
     // and retries.
     cl_int err;
-    *devPtr = ::malloc(size);
+    *devPtr = ::aligned_alloc(alignof(max_align_t) * 16, size);
     if (*devPtr == nullptr) {
       C10_OPENCL_CHECK(false, "Cannot allocate ", size, " byte for OpenCL Buffer");
     }

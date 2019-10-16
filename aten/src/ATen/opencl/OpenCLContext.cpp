@@ -152,7 +152,7 @@ openclDeviceProp* getDeviceProperties(int64_t device) {
 }
 
 Allocator* getOpenCLDeviceAllocator() {
-  return c10::opencl::OpenCLCachingAllocator::get();
+  return at::GetAllocator(DeviceType::OPENCL);
 }
 
 } // namespace opencl
