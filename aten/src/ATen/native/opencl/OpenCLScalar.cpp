@@ -18,6 +18,7 @@ Scalar _local_scalar_dense_opencl(const Tensor& self) {
       stream.synchronize(); // Pointless syncronization, since we read blocking-ly.
       r = Scalar(value);
     });
+  AT_OPENCL_CHECK(syncOpenCLPointer(self.storage().data()));
   return r;
 }
 

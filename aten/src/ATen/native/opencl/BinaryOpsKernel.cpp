@@ -43,7 +43,7 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
   auto scalar = alpha.to<S>();
   AT_OPENCL_CHECK(pointwise_op.setArg<S>(3, scalar));
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3s>(4, op));
-  auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
+  auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
@@ -62,7 +62,7 @@ static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImp
   AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*toBuffer(b->data_ptr().get()))()));
   AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*toBuffer(out->data_ptr().get()))()));
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3>(3, op));
-  auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
+  auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }

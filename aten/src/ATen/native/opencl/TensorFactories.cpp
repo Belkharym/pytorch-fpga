@@ -55,7 +55,7 @@ static void pointwise_op3(StorageImpl* c, const StorageImpl* a, const StorageImp
   AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*toBuffer(b->data_ptr().get()))()));
   AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*toBuffer(c->data_ptr().get()))()));
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3>(3, op));
-  auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
+  auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
@@ -72,7 +72,7 @@ static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b
   AT_OPENCL_CHECK(pointwise_op.setArg<S>(1, scalar));
   AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*toBuffer(c->data_ptr().get()))()));
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3>(3, op));
-  auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
+  auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
@@ -86,7 +86,7 @@ static void pointwise_op2(StorageImpl* b, const StorageImpl* a, at::native::open
   AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*toBuffer(a->data_ptr().get()))()));
   AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*toBuffer(b->data_ptr().get()))()));
   AT_OPENCL_CHECK(pointwise_op.setArg<opencl::OpenCLOperationsPointwise2>(2, op));
-  auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
+  auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
@@ -161,7 +161,7 @@ Tensor & _ceil_out_opencl(Tensor &out, const Tensor &self) {
 Tensor & _zero_opencl(Tensor & self) {
   TensorImpl* self_ = checked_tensor_unwrap(self, "self", 2, "_zero_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   if (self_->is_contiguous()) {
-    auto stream = caffe2::opencl::getCurrentOpenCLStream(self_->device().index());
+    auto stream = at::opencl::getCurrentOpenCLStream(self_->device().index());
     auto scalar_type = self.scalar_type();
     switch (scalar_type)
     {
@@ -181,7 +181,7 @@ Tensor & _zero_opencl(Tensor & self) {
     auto kernel_name = "cast_" + getOpenCLKernelTypeSuffix(typeMetaToScalarType(self_->dtype())) + "_i_s";
     auto kernel_opt = c10::opencl::opencl_kernel(kernel_name);
     TORCH_INTERNAL_ASSERT(kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
-    auto stream = caffe2::opencl::getCurrentOpenCLStream(self_->device().index());
+    auto stream = at::opencl::getCurrentOpenCLStream(self_->device().index());
     auto kernel = kernel_opt.value();
     int scalar_0 = 0;
     AT_OPENCL_CHECK(kernel.setArg<int>(0, scalar_0));

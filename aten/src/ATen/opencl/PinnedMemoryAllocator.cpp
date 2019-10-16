@@ -96,20 +96,12 @@ struct HostAllocator
     // note that cudaHostAlloc may not touch pointer if size is 0
     *ptr = 0;
 
-    cl::Buffer buffer{at::opencl::opencl_context(), CL_MEM_ALLOC_HOST_PTR | CL_MEM_READ_WRITE, size, NULL, &err};
-    if (err != CL_SUCCESS) {
-      return err;
-    }
-    auto stream = at::opencl::getCurrentOpenCLStream();
-    *ptr = stream.stream()->enqueueMapBuffer(
-      buffer,
-      /*blocking=*/CL_TRUE,
-      /*flags=*/CL_MAP_READ | CL_MAP_WRITE,
-      /*offset=*/0,
-      size,
-      NULL,
-      NULL,
-      &err);
+    // We allign the memory to 16 * MAX_SIZE_COMPONENT to meet the requirement of OpenCL alignement rull.
+    // See https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
+    *ptr = aligned_alloc(alignof(max_align_t) * 16, size);
+    TORCH_INTERNAL_ASSERT(*ptr, "Could not allocate memory for Host pointer.");
+
+    cl::Buffer buffer{at::opencl::opencl_context(), CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE, size, *ptr, &err};
     if (err != CL_SUCCESS) {
       return err;
     }
@@ -228,7 +220,7 @@ struct HostAllocator
     for (auto it = blocks.begin(); it != blocks.end();) {
       Block& block = it->second;
       if (!block.allocated) {
-        C10_OPENCL_CHECK_WARN(stream.stream()->enqueueUnmapMemObject(block.buf, block.ptr));
+        ::free(block.ptr);
         it = blocks.erase(it);
       } else {
         ++it;

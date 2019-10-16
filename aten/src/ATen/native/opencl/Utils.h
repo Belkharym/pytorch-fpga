@@ -1,5 +1,5 @@
 #include <c10/core/ScalarType.h>
-#include <c10/opencl/OpenCLCachingAllocator.h>
+#include <caffe2/opencl/context.h>
 #include <ATen/opencl/PinnedMemoryAllocator.h>
 
 #include <string>
@@ -85,12 +85,47 @@ inline std::string getOpenCLKernelTypeSuffix(const ScalarType type) {
   }
 }
 
-inline cl::Buffer* toBuffer(void *ptr) {
-  cl::Buffer* ret = c10::opencl::OpenCLCachingAllocator::getBufferFromPtr(ptr);
+inline cl::Buffer* toBuffer(void *ptr, bool *is_host = nullptr) {
+  cl::Buffer* ret = caffe2::opencl::getBufferFromPtr(ptr);
+  if (is_host) {
+    *is_host = false;
+  }
   if (ret == nullptr) {
     ret = at::opencl::OpenCLCachingHostAllocator_getBuffer(ptr);
+    if (is_host) {
+      *is_host = ret != nullptr;
+    }
   }
   return ret;
+}
+
+inline cl_int syncOpenCLPointer(void *ptr) {
+  bool is_host;
+  cl::Buffer* buffer = toBuffer(ptr, &is_host);
+  if (buffer == nullptr) {
+    return CL_INVALID_ARG_VALUE;
+  }
+  cl_int err;
+  auto stream = c10::opencl::getCurrentOpenCLStream();
+
+  size_t buffer_size;
+  err = buffer->getInfo(CL_MEM_SIZE, &buffer_size);
+  if (err != CL_SUCCESS) {
+    return err;
+  }
+
+  void* mappedPtr = stream.stream()->enqueueMapBuffer(*buffer, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, buffer_size, NULL, NULL, &err);
+  if (err != CL_SUCCESS) {
+    return err;
+  }
+  if (mappedPtr != ptr) {
+    memcpy(ptr, mappedPtr, buffer_size);
+  }
+  for (size_t i = 0; i < buffer_size; ++i) {
+    ((uint8_t*)ptr)[i] = ((uint8_t*)mappedPtr)[i];
+  }
+  err = stream.stream()->enqueueUnmapMemObject(*buffer, mappedPtr);
+  return err;
 }
 
 }} // namespace at::native
