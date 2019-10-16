@@ -1,4 +1,6 @@
 #include <c10/core/ScalarType.h>
+#include <c10/opencl/OpenCLCachingAllocator.h>
+#include <ATen/opencl/PinnedMemoryAllocator.h>
 
 #include <string>
 
@@ -81,6 +83,14 @@ inline std::string getOpenCLKernelTypeSuffix(const ScalarType type) {
       return "u"; // For unknown
       break;
   }
+}
+
+inline cl::Buffer* toBuffer(void *ptr) {
+  cl::Buffer* ret = c10::opencl::OpenCLCachingAllocator::getBufferFromPtr(ptr);
+  if (ret == nullptr) {
+    ret = at::opencl::OpenCLCachingHostAllocator_getBuffer(ptr);
+  }
+  return ret;
 }
 
 }} // namespace at::native

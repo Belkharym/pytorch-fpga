@@ -40,6 +40,10 @@ inline Tensor Tensor::hip() const {
   return to(options().device(DeviceType::HIP), /*non_blocking*/ false, /*copy*/ false);
 }
 
+inline Tensor Tensor::opencl() const {
+  return to(options().device(DeviceType::OPENCL), /*non_blocking*/ false, /*copy*/ false);
+}
+
 inline Tensor Tensor::toType(ScalarType t) const {
   return to(options().dtype(t), /*non_blocking*/ false, /*copy*/ false);
 }
@@ -109,6 +113,15 @@ inline bool Tensor::is_hip() const {
 
 inline bool is_hip(Tensor self) {
   return self.is_hip();
+}
+
+inline bool Tensor::is_opencl() const {
+  // NB: this is not a native function to avoid dispatching overhead.
+  return impl_->is_opencl();
+}
+
+inline bool is_opencl(Tensor self) {
+  return self.is_opencl();
 }
 
 inline bool Tensor::is_sparse() const {

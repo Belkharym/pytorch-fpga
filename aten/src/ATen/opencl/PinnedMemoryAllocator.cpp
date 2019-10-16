@@ -299,4 +299,12 @@ at::Allocator* getPinnedMemoryAllocator() {
   return &opencl_caching_host_allocator;
 }
 
+cl::Buffer* OpenCLCachingHostAllocator_getBuffer(void *ptr) {
+    auto it = allocator.blocks.find(ptr);
+    if (it == allocator.blocks.end()) {
+      return nullptr;
+    }
+    return &it->second.buf;
+}
+
 }} // namespace at::opencl

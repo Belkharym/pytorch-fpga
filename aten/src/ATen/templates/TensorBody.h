@@ -284,6 +284,9 @@ class CAFFE2_API Tensor {
   /// Returns if a `Tensor` has HIP backend.
   bool is_hip() const;
 
+  /// Returns if a `Tensor` has OpenCL backend.
+  bool is_opencl() const;
+
   /// Returns if a `Tensor` has sparse backend.
   bool is_sparse() const;
 
@@ -393,6 +396,7 @@ class CAFFE2_API Tensor {
   Tensor cpu() const;
   Tensor cuda() const;
   Tensor hip() const;
+  Tensor opencl() const;
 
   // ~~~~~ Autograd API ~~~~~
 
