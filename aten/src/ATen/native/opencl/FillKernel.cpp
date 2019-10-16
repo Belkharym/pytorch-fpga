@@ -21,7 +21,6 @@ void fill_kernel_opencl(TensorIterator& iter, Scalar value) {
   TensorImpl* self_ = checked_tensor_unwrap(self, "self", 2, "fill_kernel_opencl", false, c10::Backend::OpenCL, iter.dtype());
   AT_DISPATCH_ALL_TYPES_AND3(at::ScalarType::Bool, at::ScalarType::Half, at::ScalarType::BFloat16, iter.dtype(), "fill_opencl", [&]() {
     auto value_converted = value.to<scalar_t>();
-    TORCH_WARN("dtype=", iter.dtype(), "; value=", value_converted);
     auto kernel_name = "cast_" + getOpenCLKernelTypeSuffix(typeMetaToScalarType(self_->dtype())) + "_" + getOpenCLKernelTypeSuffix(iter.dtype()) + "_s";
     auto kernel_opt = c10::opencl::opencl_kernel(kernel_name);
     TORCH_INTERNAL_ASSERT(kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");

@@ -25,6 +25,8 @@ enum OpenCLOperationsPointwise3 {
     MIN,  // MINimum between 2 values
     MAX,  // MAXimum between 2 values
     BXOR, // Bitwise XOR
+    ADD, // addition
+    SUB, // subtract
     MUL, // multiply
     DIV, // divide
     ATAN2, // arc tangent of y / x.
@@ -40,8 +42,8 @@ enum OpenCLOperationsPointwise2 {
 // Operations that have 1 output tensor, 2 input tensors and 1 input scalar, all of the same type
 enum OpenCLOperationsPointwise3s {
     // Algebraic operations
-    ADD, // addition
-    SUB, // subtract
+    ADDS, // addition with alpha factor
+    SUBS, // subtract with alpha factor
 };
 
 #ifdef __cplusplus

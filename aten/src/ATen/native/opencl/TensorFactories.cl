@@ -84,6 +84,14 @@ __kernel void pointwise_op_3##suffix(__global const type* a, __global const type
             out[get_global_id(0)] = a[get_global_id(0)] > b[get_global_id(0)] ? a[get_global_id(0)] : b[get_global_id(0)];  \
             break;                                                                                                          \
         }                                                                                                                   \
+        case ADD: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] + b[get_global_id(0)];                                              \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case SUB: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] - b[get_global_id(0)];                                              \
+            break;                                                                                                          \
+        }                                                                                                                   \
         case MUL: {                                                                                                         \
             out[get_global_id(0)] = a[get_global_id(0)] * b[get_global_id(0)];                                              \
             break;                                                                                                          \
@@ -118,6 +126,14 @@ __kernel void pointwise_op_3##suffix(__global const type* a, __global const type
         }                                                                                                                   \
         case MAX: {                                                                                                         \
             out[get_global_id(0)] = a[get_global_id(0)] > b[get_global_id(0)] ? a[get_global_id(0)] : b[get_global_id(0)];  \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case ADD: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] + b[get_global_id(0)];                                              \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case SUB: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] - b[get_global_id(0)];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
         case MUL: {                                                                                                         \
@@ -165,6 +181,14 @@ __kernel void pointwise_op_2##suffix##_s(__global const type* a, const type b, _
             out[get_global_id(0)] = a[get_global_id(0)] > b ? a[get_global_id(0)] : b;  \
             break;                                                                      \
         }                                                                               \
+        case ADD: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] + b;                            \
+            break;                                                                      \
+        }                                                                               \
+        case SUB: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] - b;                            \
+            break;                                                                      \
+        }                                                                               \
         case MUL: {                                                                     \
             out[get_global_id(0)] = a[get_global_id(0)] * b;                            \
             break;                                                                      \
@@ -199,6 +223,14 @@ __kernel void pointwise_op_2##suffix##_s(__global const type* a, const type b, _
         }                                                                               \
         case MAX: {                                                                     \
             out[get_global_id(0)] = a[get_global_id(0)] > b ? a[get_global_id(0)] : b;  \
+            break;                                                                      \
+        }                                                                               \
+        case ADD: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] + b;                            \
+            break;                                                                      \
+        }                                                                               \
+        case SUB: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] - b;                            \
             break;                                                                      \
         }                                                                               \
         case MUL: {                                                                     \
