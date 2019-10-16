@@ -67,6 +67,7 @@ static void copy_device_to_device(TensorIterator& iter, bool non_blocking) {
     AT_OPENCL_CHECK(cast_kernel.setArg<cl_mem>(1, (*toBuffer(iter.data_ptr(0)))()));
     AT_OPENCL_CHECK(copy_stream.stream()->enqueueNDRangeKernel(cast_kernel, /*offset=*/0, numel, 1));
   }
+  AT_OPENCL_CHECK(syncOpenCLPointer(iter.data_ptr(0)));
 
   if (src_device != dst_device) {
     // dst waits on src barrier (dst already waits on dst). We cannot

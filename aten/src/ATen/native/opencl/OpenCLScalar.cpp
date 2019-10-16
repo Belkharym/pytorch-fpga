@@ -14,11 +14,11 @@ Scalar _local_scalar_dense_opencl(const Tensor& self) {
     at::ScalarType::Half, at::ScalarType::Bool, at::ScalarType::BFloat16, self.scalar_type(), "_local_scalar_dense_opencl", [&] {
       scalar_t value;
       opencl::OpenCLStream stream = at::opencl::getCurrentOpenCLStream(self.device().index());
-      AT_OPENCL_CHECK(stream.stream()->enqueueReadBuffer(*toBuffer(self.storage().data()), CL_TRUE, 0, sizeof(scalar_t), &value));
+      AT_OPENCL_CHECK(syncOpenCLPointer(self.storage().data()));
       stream.synchronize(); // Pointless syncronization, since we read blocking-ly.
+      value = ((scalar_t*)self.storage().data())[0];
       r = Scalar(value);
     });
-  AT_OPENCL_CHECK(syncOpenCLPointer(self.storage().data()));
   return r;
 }
 
