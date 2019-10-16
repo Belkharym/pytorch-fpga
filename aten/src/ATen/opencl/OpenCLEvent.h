@@ -88,6 +88,7 @@ struct AT_OPENCL_API OpenCLEvent {
     device_index_ = stream.device_index();
     OpenCLGuard guard(device_index_);
     AT_OPENCL_CHECK(stream.stream()->enqueueMarkerWithWaitList(NULL, &event_));
+    is_created_ = true;
     was_recorded_ = true;
   }
 

@@ -11,6 +11,7 @@
 
 #include <c10/opencl/OpenCLFunctions.h>
 #include <aten/src/ATen/opencl/Exceptions.h>
+#include <aten/src/ATen/opencl/OpenCLContext.h>
 #include <aten/src/ATen/native/opencl/OpenCLOperations.h>
 #include <aten/src/ATen/native/opencl/Utils.h>
 
@@ -23,7 +24,7 @@ Tensor empty_opencl(IntArrayRef size, const TensorOptions& options, c10::optiona
   TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
 
-  auto* allocator = c10::GetAllocator(DeviceType::OPENCL);
+  auto* allocator = at::opencl::getOpenCLDeviceAllocator();
   int64_t nelements = prod_intlist(size);
   auto dtype = options.dtype();
   auto storage_impl = c10::make_intrusive<StorageImpl>(
@@ -50,9 +51,9 @@ static void pointwise_op3(StorageImpl* c, const StorageImpl* a, const StorageImp
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*(cl::Buffer*)b->data_ptr().get())()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*(cl::Buffer*)c->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*toBuffer(a->data_ptr().get()))()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*toBuffer(b->data_ptr().get()))()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*toBuffer(c->data_ptr().get()))()));
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3>(3, op));
   auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1));
@@ -66,10 +67,10 @@ static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*toBuffer(a->data_ptr().get()))()));
   auto scalar = b.to<S>();
   AT_OPENCL_CHECK(pointwise_op.setArg<S>(1, scalar));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*(cl::Buffer*)c->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*toBuffer(c->data_ptr().get()))()));
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3>(3, op));
   auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1));
@@ -82,8 +83,8 @@ static void pointwise_op2(StorageImpl* b, const StorageImpl* a, at::native::open
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*(cl::Buffer*)b->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*toBuffer(a->data_ptr().get()))()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*toBuffer(b->data_ptr().get()))()));
   AT_OPENCL_CHECK(pointwise_op.setArg<opencl::OpenCLOperationsPointwise2>(2, op));
   auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1));
@@ -161,14 +162,13 @@ Tensor & _zero_opencl(Tensor & self) {
   TensorImpl* self_ = checked_tensor_unwrap(self, "self", 2, "_zero_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   if (self_->is_contiguous()) {
     auto stream = caffe2::opencl::getCurrentOpenCLStream(self_->device().index());
-
     auto scalar_type = self.scalar_type();
     switch (scalar_type)
     {
 #define DEFINE_OPENCL_AND_CASE(type, name) \
       case ScalarType::name: { \
         type pattern{0}; \
-        AT_OPENCL_CHECK(stream.stream()->enqueueFillBuffer(*self_->unsafe_data<cl::Buffer>(), /*pattern=*/pattern, /*offset=*/0, self_->numel() * self_->itemsize())); \
+        AT_OPENCL_CHECK(stream.stream()->enqueueFillBuffer(*toBuffer(self_->data()), /*pattern=*/pattern, /*offset=*/0, self_->numel() * self_->itemsize())); \
         break; \
       }
       AT_FORALL_SCALAR_TYPES_AND2(Half, Bool, DEFINE_OPENCL_AND_CASE)
@@ -185,7 +185,7 @@ Tensor & _zero_opencl(Tensor & self) {
     auto kernel = kernel_opt.value();
     int scalar_0 = 0;
     AT_OPENCL_CHECK(kernel.setArg<int>(0, scalar_0));
-    AT_OPENCL_CHECK(kernel.setArg<cl_mem>(1, (*(cl::Buffer*)self_->data())()));
+    AT_OPENCL_CHECK(kernel.setArg<cl_mem>(1, (*toBuffer(self_->data()))()));
     AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(kernel, /*offset=*/0, self_->numel(), 1));
   }
   return self;

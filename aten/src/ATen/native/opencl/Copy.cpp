@@ -53,8 +53,8 @@ static void copy_device_to_device(TensorIterator& iter, bool non_blocking) {
   if (memcpy_eligible) {
     // Perform the copy
     AT_OPENCL_CHECK(copy_stream.stream()->enqueueCopyBuffer(
-        *(cl::Buffer*)iter.data_ptr(1),
-        *(cl::Buffer*)iter.data_ptr(0),
+        *toBuffer(iter.data_ptr(1)),
+        *toBuffer(iter.data_ptr(0)),
         0,
         0,
         numel));
@@ -63,8 +63,8 @@ static void copy_device_to_device(TensorIterator& iter, bool non_blocking) {
     auto cast_kernel_opt = opencl_kernel(kernel_name);
     TORCH_CHECK(cast_kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
     auto cast_kernel = cast_kernel_opt.value();
-    AT_OPENCL_CHECK(cast_kernel.setArg<cl_mem>(0, (*(cl::Buffer*)iter.data_ptr(1))()));
-    AT_OPENCL_CHECK(cast_kernel.setArg<cl_mem>(1, (*(cl::Buffer*)iter.data_ptr(0))()));
+    AT_OPENCL_CHECK(cast_kernel.setArg<cl_mem>(0, (*toBuffer(iter.data_ptr(1)))()));
+    AT_OPENCL_CHECK(cast_kernel.setArg<cl_mem>(1, (*toBuffer(iter.data_ptr(0)))()));
     AT_OPENCL_CHECK(copy_stream.stream()->enqueueNDRangeKernel(cast_kernel, /*offset=*/0, numel, 1));
   }
 
@@ -157,10 +157,10 @@ static void copy_kernel_opencl(TensorIterator& iter, bool non_blocking) {
   opencl::OptionalOpenCLGuard device_guard;
   if (dst_device.is_opencl() && src_device.is_cpu()) {
     device_guard.set_device(dst_device);
-    AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer((*(cl::Buffer*)dst), !non_blocking, 0, nbytes, src));
+    AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer((*toBuffer(dst)), !non_blocking, 0, nbytes, src));
   } else if (dst_device.is_cpu() && src_device.is_opencl()) {
     device_guard.set_device(src_device);
-    AT_OPENCL_CHECK(stream.stream()->enqueueReadBuffer((*(cl::Buffer*)src), !non_blocking, 0, nbytes, dst));
+    AT_OPENCL_CHECK(stream.stream()->enqueueReadBuffer((*toBuffer(src)), !non_blocking, 0, nbytes, dst));
   } else {
     TORCH_INTERNAL_ASSERT(false, "unsupported devices in OpenCL copy_()");
   }

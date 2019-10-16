@@ -1,4 +1,5 @@
 #include <ATen/opencl/OpenCLContext.h>
+#include <c10/opencl/OpenCLCachingAllocator.h>
 
 #include <mutex>
 #include <deque>
@@ -151,7 +152,7 @@ openclDeviceProp* getDeviceProperties(int64_t device) {
 }
 
 Allocator* getOpenCLDeviceAllocator() {
-  return GetAllocator(at::kOPENCL);
+  return c10::opencl::OpenCLCachingAllocator::get();
 }
 
 } // namespace opencl

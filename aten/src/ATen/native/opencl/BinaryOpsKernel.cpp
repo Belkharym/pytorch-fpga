@@ -36,11 +36,11 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
     return;
   }
   cl::Kernel pointwise_op = opt_kernel.value();
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*(cl::Buffer*)b->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*toBuffer(a->data_ptr().get()))()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*toBuffer(b->data_ptr().get()))()));
   auto scalar = alpha.to<S>();
   AT_OPENCL_CHECK(pointwise_op.setArg<S>(2, scalar));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(3, (*(cl::Buffer*)out->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(3, (*toBuffer(out->data_ptr().get()))()));
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3s>(4, op));
   auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1));
@@ -57,9 +57,9 @@ static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImp
     return;
   }
   cl::Kernel pointwise_op = opt_kernel.value();
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*(cl::Buffer*)a->data_ptr().get())()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*(cl::Buffer*)b->data_ptr().get())()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*(cl::Buffer*)out->data_ptr().get())()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*toBuffer(a->data_ptr().get()))()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*toBuffer(b->data_ptr().get()))()));
+  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*toBuffer(out->data_ptr().get()))()));
   AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3>(3, op));
   auto stream = caffe2::opencl::getCurrentOpenCLStream(a->device().index());
   AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1));
