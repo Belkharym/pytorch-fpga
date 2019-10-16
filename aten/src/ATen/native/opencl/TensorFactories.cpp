@@ -195,10 +195,8 @@ Tensor & _zero_opencl(Tensor & self) {
     TORCH_INTERNAL_ASSERT(kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
     auto stream = at::opencl::getCurrentOpenCLStream(self_->device().index());
     auto kernel = kernel_opt.value();
-<<<<<<< HEAD
     AT_OPENCL_CHECK(kernel.setArg<int>(0, 0));
     AT_OPENCL_CHECK(kernel.setArg<cl_mem>(1, (*(cl::Buffer*)self_->data())()));
-=======
     AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(kernel, /*offset=*/0, self_->numel(), 1));
     AT_OPENCL_CHECK(syncOpenCLPointer(self_->data()));
   }
@@ -276,6 +274,59 @@ Tensor _opencl_max(const Tensor &self, const Tensor &other) {
 
 Tensor _opencl_max(const Tensor &self) {
   return at::native::legacy::cpu::_th_max(self.toBackend(Backend::CPU)).toBackend(Backend::OpenCL);
+}
+
+Tensor empty_strided_opencl(IntArrayRef size, IntArrayRef stride, const TensorOptions& options) {
+  auto t = at::native::empty_opencl({0}, options);
+  at::native::resize_impl_opencl_(t.unsafeGetTensorImpl(), size, stride);
+  return t;
+}
+
+Tensor & _opencl_set_(Tensor & self, Storage source) {
+  auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_set_", false, Backend::OpenCL, self.scalar_type());
+  auto source_ = checked_storage(source, "source", 2, DeviceType::OPENCL, at::scalarTypeToTypeMeta(self.scalar_type()));
+  at::IntArrayRef size_{static_cast<int64_t>(source.size())};
+  at::IntArrayRef stride_{};
+  opencl_setStorageNd(self_, source_.unsafeGetStorageImpl(), 0, size_.size(), size_.data(), stride_.data());
+  self_->maybe_zero_dim(false);
+  return self;
+}
+
+Tensor & _opencl_set_(Tensor & self, Storage source, int64_t storage_offset, IntArrayRef size, IntArrayRef stride) {
+  auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_set_", false, Backend::OpenCL, self.scalar_type());
+  auto source_ = checked_storage(source, "source", 2, DeviceType::OPENCL, at::scalarTypeToTypeMeta(self.scalar_type()));
+  opencl_setStorageNd(self_, source_.unsafeGetStorageImpl(), 0, size.size(), size.data(), stride.data());
+  self_->maybe_zero_dim(false);
+  return self;
+}
+
+Tensor & _opencl_set_(Tensor &self) {
+  at::IntArrayRef size_{0};
+  at::IntArrayRef stride_{};
+  auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_set_", false, c10::Backend::OpenCL, self.scalar_type());
+  opencl_setStorageNd(self_,
+                         NULL,
+                         0,
+                         size_.size(),
+                         size_.data(),
+                         stride_.data());
+  self_->maybe_zero_dim(false);
+  return self;
+}
+
+Tensor & _opencl_set_(Tensor &self, Tensor &src) {
+  auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_set_", false, c10::Backend::OpenCL, self.scalar_type());
+  auto src_ = checked_tensor_unwrap(src, "src", 2, "_opencl_set_", false, c10::Backend::OpenCL, self.scalar_type());
+  if(self_ != src_) {
+    opencl_setStorageNd(self_,
+                           src_->storage().unsafeGetStorageImpl(),
+                           src_->storage_offset(),
+                           src_->dim(),
+                           src_->sizes().data(),
+                           src_->strides().data());
+  }
+  self_->maybe_zero_dim(src_->dim() == 0);
+  return self;
 }
 
 }} // namespace at::native

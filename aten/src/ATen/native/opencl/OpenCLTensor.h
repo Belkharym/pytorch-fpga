@@ -4,6 +4,8 @@
 #include <ATen/core/TensorBody.h>
 
 
+namespace at { namespace native {
+
 inline int opencl_nDimensionLegacyAll(const c10::TensorImpl* tensor) {
   if (tensor->is_empty()) {
     return 0;
@@ -39,3 +41,6 @@ inline void opencl_maybe_zero_dim(c10::TensorImpl *tensor, bool condition_when_z
   }
 }
 
+void opencl_setStorageNd(c10::TensorImpl *self, c10::StorageImpl *storage, ptrdiff_t storageOffset, int nDimension, const int64_t *size, const int64_t *stride);
+
+}} // namespace at::native

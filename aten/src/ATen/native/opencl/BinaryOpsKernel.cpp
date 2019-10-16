@@ -210,8 +210,6 @@ void add_kernel_opencl(TensorIterator& iter, Scalar alpha) {
     auto self_ = checked_tensor_unwrap(iter.tensor(1), "self", 2, "add_kernel_opencl", false, c10::Backend::OpenCL, iter.tensor(1).scalar_type());
     auto out_ = checked_tensor_unwrap(iter.tensor(0), "out", 3, "add_kernel_opencl", false, c10::Backend::OpenCL, iter.tensor(1).scalar_type());
 
-    TORCH_WARN("Is 2 scalar: ", iter.is_scalar(2), "; is 2 cpu: ", iter.device(2).type());
-
     switch (scalar_type)
     {
 #define DEFINE_OPENCL_ADD_CASE(type, name) \

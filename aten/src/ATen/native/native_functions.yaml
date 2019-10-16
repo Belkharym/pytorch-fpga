@@ -3694,6 +3694,7 @@
   dispatch:
     CPU: set_
     CUDA: set_
+    OpenCL: set_
 
 - func: set_.source_Storage_storage_offset(Tensor(a!) self, Storage source, int storage_offset, int[] size, int[] stride=[]) -> Tensor(a!)
   variants: method
@@ -3701,6 +3702,7 @@
   dispatch:
     CPU: legacy::cpu::_th_set_
     CUDA: legacy::cuda::_th_set_
+    OpenCL: _opencl_set_
     QuantizedCPU: set_storage
 
 - func: set_.source_Tensor(Tensor(a!) self, Tensor source) -> Tensor(a!)
@@ -3715,6 +3717,7 @@
   dispatch:
     CPU: set_cpu_
     CUDA: set_cuda_
+    OpenCL: _opencl_set_
 
 - func: set_quantizer_(Tensor(a!) self, ConstQuantizerPtr quantizer) -> Tensor(a!)
   variants: method
@@ -3769,6 +3772,7 @@
   dispatch:
     CPU: view
     CUDA: view
+    OpenCL: view
     MkldnnCPU: mkldnn_view
     QuantizedCPU: view
 
