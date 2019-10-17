@@ -70,21 +70,35 @@ static void initOpenCLKernels(cl_int* cl_err) {
     fs::directory_iterator start(kernel_dir_path);
     fs::directory_iterator end;
     std::transform(start, end, std::back_inserter(files), [](const fs::directory_entry& entry) {return entry.path();});
-    cl::Program::Sources sources;
-    std::transform(files.cbegin(), files.cend(), std::back_inserter(sources), [] (const fs::path& path) {
+#ifdef C10_USE_FPGA
+    cl::Program::Binaries contents;
+    using fileContentPtr_t = void*;
+#else
+    cl::Program::Sources contents;
+    using fileContentPtr_t = char*;
+#endif // C10_USE_FPGA
+    std::transform(files.cbegin(), files.cend(), std::back_inserter(contents), [] (const fs::path& path) {
         std::ifstream stream{path};
         std::string content{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
-        char *c_str = (char*)malloc(content.size() + 1);
+        fileContentPtr_t c_str = (fileContentPtr_t)malloc(content.size() + 1);
         strncpy(c_str, content.c_str(), content.size() + 1);
         return std::make_pair(c_str, content.size());
     });
 
-    program = cl::Program{context, sources, cl_err};
+#ifdef C10_USE_FPGA
+    // Only get the first binary, and apply it to all devices
+    cl::Program::Binaries binaries(devices.size(), contents[0]);
+    std::vector<cl_int> binaryStatus;
+    program = cl::Program{context, devices, binaries, &binaryStatus, cl_err};
+#else
+    program = cl::Program{context, contents, cl_err};
+#endif // C10_USE_FPGA
     if (*cl_err != CL_SUCCESS) {
         TORCH_WARN_ONCE("OpenCL Error : cannot create OpenCL Program (", clErrorString(*cl_err), ")");
         return;
     }
 
+#ifndef C10_USE_FPGA
     *cl_err = program.build(devices);
     if (*cl_err != CL_SUCCESS) {
         TORCH_WARN_ONCE("OpenCL Error : cannot build OpenCL Program (", clErrorString(*cl_err), ")");
@@ -101,6 +115,7 @@ static void initOpenCLKernels(cl_int* cl_err) {
         }
         return;
     }
+#endif // !C10_USE_FPGA
 
     std::vector<cl::Kernel> kernels_;
     *cl_err = program.createKernels(&kernels_);
