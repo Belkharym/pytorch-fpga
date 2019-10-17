@@ -64,6 +64,12 @@
 #   USE_IBVERBS
 #     toggle features related to distributed support
 #
+#   USE_OPENCL
+#     enables OpenCL build
+#
+#   USE_FPGA
+#     enables FPGA build of OpenCL
+#
 #   USE_OPENCV
 #     enables use of OpenCV for additional operators
 #
@@ -384,6 +390,10 @@ class build_ext(setuptools.command.build_ext.build_ext):
             report('-- Detected CUDA at ' + CUDA_HOME)
         else:
             report('-- Not using CUDA')
+        if cmake_cache_vars['USE_OPENCL']:
+            report('-- Using OpenCL')
+        else:
+            report('-- Not using OpenCL')
         if cmake_cache_vars['USE_MKLDNN']:
             report('-- Using MKLDNN')
             if cmake_cache_vars['USE_MKLDNN_CBLAS']:
