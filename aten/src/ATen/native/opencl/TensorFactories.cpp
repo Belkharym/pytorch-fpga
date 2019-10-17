@@ -45,18 +45,22 @@ Tensor empty_opencl(IntArrayRef size, const TensorOptions& options, c10::optiona
   return tensor;
 }
 
+static cl_mem &toBuffer(const StorageImpl* s) {
+  return (*toBuffer(s->data_ptr().get()))();
+}
+
 static void pointwise_op3(StorageImpl* c, const StorageImpl* a, const StorageImpl* b, at::native::opencl::OpenCLOperationsPointwise3 op, const ScalarType scalar_type) {
   // DONE Call OpenCL kernel.
   auto kernel_name = "pointwise_op_3" + getOpenCLKernelTypeSuffix(scalar_type);
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*toBuffer(a->data_ptr().get()))()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*toBuffer(b->data_ptr().get()))()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*toBuffer(c->data_ptr().get()))()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3>(3, op));
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1));
+  AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), pointwise_op, {a->numel()},
+      toBuffer(a),
+      toBuffer(b),
+      toBuffer(c),
+      op));
   AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get()));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
@@ -68,13 +72,12 @@ static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*toBuffer(a->data_ptr().get()))()));
-  auto scalar = b.to<S>();
-  AT_OPENCL_CHECK(pointwise_op.setArg<S>(1, scalar));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*toBuffer(c->data_ptr().get()))()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3>(3, op));
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1));
+  AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), pointwise_op, {a->numel()},
+      toBuffer(a),
+      b.to<S>(),
+      toBuffer(c),
+      op));
   AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get()));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
@@ -85,11 +88,11 @@ static void pointwise_op2(StorageImpl* b, const StorageImpl* a, at::native::open
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*toBuffer(a->data_ptr().get()))()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*toBuffer(b->data_ptr().get()))()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<opencl::OpenCLOperationsPointwise2>(2, op));
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1));
+  AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), pointwise_op, {a->numel()},
+      toBuffer(a),
+      toBuffer(b),
+      op));
   AT_OPENCL_CHECK(syncOpenCLPointer(b->data_ptr().get()));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
@@ -296,6 +299,26 @@ Tensor & _opencl_set_(Tensor &self, Tensor &src) {
   }
   self_->maybe_zero_dim(src_->dim() == 0);
   return self;
+}
+
+template <typename T, typename IndexType>
+struct CatArrInputTensor {
+  T* input;
+  IndexType offset;
+  IndexType dimSize;
+  IndexType nElements;
+};
+
+template<typename IndexType, unsigned int MaxDims>
+struct OutputTensorSizeStride {
+  IndexType outputSize[MaxDims];
+  IndexType outputStride[MaxDims];
+};
+
+Tensor _opencl_cat(TensorList tensors, int64_t dim) {
+  std::vector<Tensor> cpuTensors;
+  std::transform(tensors.begin(), tensors.end(), std::back_inserter(cpuTensors), [](const Tensor& t) -> Tensor {return t.toBackend(Backend::CPU);});
+  return at::native::legacy::cpu::_th_cat(cpuTensors, dim).toBackend(Backend::OpenCL);
 }
 
 }} // namespace at::native
