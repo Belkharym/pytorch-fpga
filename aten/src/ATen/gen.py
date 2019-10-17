@@ -135,6 +135,7 @@ NATIVE_FUNCTIONS_H = CodeTemplate.from_file(TEMPLATE_PATH + "/NativeFunctions.h"
 core_file_manager = FileManager(core_install_dir)
 file_manager = FileManager()
 cuda_file_manager = FileManager()
+opencl_file_manager = FileManager()
 
 def backend_to_devicetype(backend):
     if backend == 'QuantizedCPU':
@@ -289,6 +290,8 @@ def generate_storage_type_and_tensor(backend, density, declarations):
     fm = file_manager
     if env['DeviceType'] == 'CUDA':
         fm = cuda_file_manager
+    elif env['DeviceType'] == 'OpenCL':
+        fm = opencl_file_manager
 
     if env['Backend'] == 'CPU' or env['Backend'] == 'CUDA':
         env['namespace'] = env['Backend'].lower()
@@ -346,6 +349,8 @@ def declare_outputs():
         fm = file_manager
         if backend == 'CUDA':
             fm = cuda_file_manager
+        elif backend == 'OpenCL':
+            fm = opencl_file_manager
         for kind in ["Type"]:
             if kind != 'Type' and density == "Sparse":
                 # No Storage or Tensor for sparse
@@ -454,6 +459,7 @@ def generate_outputs():
 
     file_manager.check_all_files_written()
     cuda_file_manager.check_all_files_written()
+    opencl_file_manager.check_all_files_written()
 
     # check that generated files match source files
     core_source_path = os.path.join(options.source_path, 'core')
@@ -475,5 +481,6 @@ if options.output_dependencies is not None:
     file_manager.write_outputs(options.output_dependencies)
     core_file_manager.write_outputs(options.output_dependencies + "-core")
     cuda_file_manager.write_outputs(options.output_dependencies + "-cuda")
+    opencl_file_manager.write_outputs(options.output_dependencies + "-opencl")
 else:
     generate_outputs()

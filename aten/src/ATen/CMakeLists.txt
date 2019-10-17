@@ -123,9 +123,11 @@ IF(USE_ROCM)
 endif()
 
 IF(USE_OPENCL)
-  set(ATen_OPENCL_SRCS ${ATen_OPENCL_SRCS} ${opencl_cpp} ${native_opencl_cpp})
+  set(ATen_OPENCL_SRCS ${ATen_OPENCL_SRCS} ${opencl_cpp} ${opencl_h} ${native_opencl_cpp} ${native_opencl_h})
+  set(all_opencl_cpp ${opencl_generated_cpp} ${ATen_OPENCL_SRCS})
   set(ATen_OPENCL_KERNELS ${ATen_OPENCL_KERNELS} ${opencl_cl} ${opencl_clh} ${native_opencl_cl} ${native_opencl_clh})
   set(ATen_OPENCL_KERNEL_SRCS ${ATen_OPENCL_KERNEL_SRCS} ${opencl_cl} ${native_opencl_cl})
+  # Here we define the compilation command for pre-compiled targets.
   if (USE_FPGA)
     foreach(opencl_kernel ${ATen_OPENCL_KERNEL_SRCS})
       get_filename_component(opencl_kernel_filename ${opencl_kernel} NAME_WE)
@@ -149,6 +151,7 @@ filter_list(generated_h generated_cpp "\\.h$")
 filter_list(cuda_generated_h cuda_generated_cpp "\\.h$")
 # TODO: When we have hip_generated_cpp
 #filter_list(hip_generated_h hip_generated_cpp "\\.h$")
+filter_list(opencl_generated_h opencl_generated_cpp "\\.h$")
 
 list(APPEND ATen_CPU_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 # so the build can find the generated header files
@@ -202,6 +205,10 @@ IF(LAPACK_FOUND)
     # It's not altogether clear that HIP behaves the same way, but it
     # seems safer to assume that it needs it too
     list(APPEND ATen_HIP_DEPENDENCY_LIBS ${LAPACK_LIBRARIES})
+  endif()
+  if(USE_OPENCL)
+    # The same can be said for OpenCL
+    list(APPEND ATen_OPENCL_DEPENDENCY_LIBS ${LAPACK_LIBRARIES})
   endif()
 ENDIF(LAPACK_FOUND)
 
@@ -365,6 +372,7 @@ ENDIF()
 # Include CPU paths for CUDA/HIP as well
 list(APPEND ATen_CUDA_INCLUDE ${ATen_CPU_INCLUDE})
 list(APPEND ATen_HIP_INCLUDE ${ATen_CPU_INCLUDE})
+list(APPEND ATen_OPENCL_INCLUDE ${ATen_CPU_INCLUDE})
 
 # We have two libraries: libATen_cpu.so and libATen_cuda.so,
 # with libATen_cuda.so depending on libATen_cpu.so.  The CPU library
@@ -425,6 +433,18 @@ if(USE_ROCM)
   endif()
 endif()
 
+if(USE_OPENCL)
+  set(ATen_OPENCL_SRCS ${all_opencl_cpp})
+  if(AT_LINK_STYLE STREQUAL "INTERFACE")
+    # Source code can't be added to an interface library, so it is
+    # passed back to be compiled into the containing library
+    add_library(ATen_opencl INTERFACE)
+    list(APPEND ATen_OPENCL_DEPENDENCY_LIBS ATEN_OPENCL_FILES_GEN_LIB)
+  else()
+    message(FATAL_ERROR "Non-INTERFACE AT_LINK_STYLE not (yet) supported for OpenCL build")
+  endif()
+endif()
+
 if(NOT AT_LINK_STYLE STREQUAL "INTERFACE")
   if(USE_CUDA)
     if (NOT $ENV{ATEN_STATIC_CUDA})
@@ -441,6 +461,9 @@ if(NOT AT_LINK_STYLE STREQUAL "INTERFACE")
     if(USE_ROCM)
       torch_compile_options(ATen_hip)
     endif()
+    if(USE_OPENCL)
+      torch_compile_options(ATen_opencl)
+    endif()
   endif()
 
   if(NOT ${CMAKE_VERSION} VERSION_LESS "3.1")
@@ -450,6 +473,9 @@ if(NOT AT_LINK_STYLE STREQUAL "INTERFACE")
     endif()
     if(USE_ROCM)
       set_property(TARGET ATen_hip PROPERTY CXX_STANDARD 11)
+    endif()
+    if(USE_OPENCL)
+      set_property(TARGET ATen_opencl PROPERTY CXX_STANDARD 11)
     endif()
   endif()
 endif()
@@ -473,7 +499,7 @@ FOREACH(HEADER  ${INSTALL_HEADERS})
 ENDFOREACH()
 
 # TODO: Install hip_generated_h when we have it
-FOREACH(HEADER ${generated_h} ${cuda_generated_h})
+FOREACH(HEADER ${generated_h} ${cuda_generated_h} ${opencl_generated_h})
   # NB: Assumed to be flat
   INSTALL(FILES ${HEADER} DESTINATION ${AT_INSTALL_INCLUDE_DIR}/ATen)
 ENDFOREACH()
