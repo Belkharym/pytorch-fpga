@@ -26,6 +26,10 @@
 namespace at {
 namespace native {
 
+static cl_mem &toBuffer(const StorageImpl* s) {
+    return (*toBuffer(s->data_ptr().get()))();
+}
+
 template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
 static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageImpl* out, const Scalar alpha, at::native::opencl::OpenCLOperationsPointwise3s op) {
   // DONE Call OpenCL kernel.
@@ -36,14 +40,13 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
     return;
   }
   cl::Kernel pointwise_op = opt_kernel.value();
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*toBuffer(a->data_ptr().get()))()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*toBuffer(b->data_ptr().get()))()));
-  auto scalar = alpha.to<S>();
-  AT_OPENCL_CHECK(pointwise_op.setArg<S>(2, scalar));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(3, (*toBuffer(out->data_ptr().get()))()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3s>(4, op));
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1));
+  AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), pointwise_op, {a->numel()},
+      toBuffer(a),
+      toBuffer(b),
+      toBuffer(out),
+      alpha.to<S>(),
+      op));
   AT_OPENCL_CHECK(syncOpenCLPointer(out->data_ptr().get()));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
@@ -58,12 +61,12 @@ static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImp
     return;
   }
   cl::Kernel pointwise_op = opt_kernel.value();
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*toBuffer(a->data_ptr().get()))()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(1, (*toBuffer(b->data_ptr().get()))()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*toBuffer(out->data_ptr().get()))()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3>(3, op));
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, /*offset=*/0, a->numel(), 1));
+  AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), pointwise_op, {a->numel()},
+      toBuffer(a),
+      toBuffer(b),
+      toBuffer(out),
+      op));
   AT_OPENCL_CHECK(syncOpenCLPointer(out->data_ptr().get()));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
@@ -75,13 +78,12 @@ static void pointwise_op2s(const StorageImpl* a, const Scalar b, StorageImpl* c,
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(0, (*toBuffer(a->data_ptr().get()))()));
-  auto scalar = b.to<S>();
-  AT_OPENCL_CHECK(pointwise_op.setArg<S>(1, scalar));
-  AT_OPENCL_CHECK(pointwise_op.setArg<cl_mem>(2, (*toBuffer(c->data_ptr().get()))()));
-  AT_OPENCL_CHECK(pointwise_op.setArg<at::native::opencl::OpenCLOperationsPointwise3>(3, op));
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(pointwise_op, 0, a->numel(), 1));
+  AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), pointwise_op, {a->numel()},
+      toBuffer(a),
+      b.to<S>(),
+      toBuffer(c),
+      op));
   AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get()));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }

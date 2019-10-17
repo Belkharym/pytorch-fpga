@@ -26,9 +26,9 @@ void fill_kernel_opencl(TensorIterator& iter, Scalar value) {
     TORCH_INTERNAL_ASSERT(kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
     auto stream = at::opencl::getCurrentOpenCLStream(self_->device().index());
     auto kernel = kernel_opt.value();
-    AT_OPENCL_CHECK(kernel.setArg<scalar_t>(0, value_converted));
-    AT_OPENCL_CHECK(kernel.setArg<cl_mem>(1, (*toBuffer(self_->data()))()));
-    AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(kernel, /*offset=*/0, self_->numel(), 1));
+    AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), kernel, {self_->numel()},
+        value_converted,
+        (*toBuffer(self_->data()))()));
     C10_OPENCL_CHECK(syncOpenCLPointer(self_->data()));
   });
 }
