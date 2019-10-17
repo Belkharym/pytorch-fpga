@@ -10,6 +10,8 @@
 #   SDACCEL_XOCC
 #   SDACCEL_VIVADO_HLS
 
+# See https://github.com/definelicht/sdaccel_example
+
 cmake_minimum_required(VERSION 2.8.12)
 
 find_path(XOCC_PATH
