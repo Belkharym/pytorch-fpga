@@ -570,7 +570,7 @@ endif()
 if (USE_OPENCL)
   if (USE_FPGA)
     find_package(SDAccel REQUIRED)
-    if (NOT SDAccel_FOUND)
+    if (NOT SDACCEL_FOUND)
       MESSAGE(FATAL_ERROR
         "Could not find SDAccel installation")
     endif()
