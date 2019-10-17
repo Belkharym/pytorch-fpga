@@ -123,10 +123,26 @@ IF(USE_ROCM)
 endif()
 
 IF(USE_OPENCL)
-  set(ATen_OPENCL_SRCS ${ATen_OPENCL_SRCS} ${opencl_cl} ${native_opencl_cl})
-  set(all_opencl_cpp ${opencl_cpp} ${native_opencl_cpp} ${ATen_OPENCL_SRCS})
-  set(ATen_OPENCL_KERNEL_SRCS ${ATen_OPENCL_KERNEL_SRCS} ${opencl_cl} ${opencl_clh} ${native_opencl_cl} ${native_opencl_clh})
-  install(FILES ${ATen_OPENCL_KERNEL_SRCS} DESTINATION ${_OPENCL_KERNEL_DIR})
+  set(ATen_OPENCL_SRCS ${ATen_OPENCL_SRCS} ${opencl_cpp} ${native_opencl_cpp})
+  set(ATen_OPENCL_KERNELS ${ATen_OPENCL_KERNELS} ${opencl_cl} ${opencl_clh} ${native_opencl_cl} ${native_opencl_clh})
+  set(ATen_OPENCL_KERNEL_SRCS ${ATen_OPENCL_KERNEL_SRCS} ${opencl_cl} ${native_opencl_cl})
+  if (USE_FPGA)
+    foreach(opencl_kernel ${ATen_OPENCL_KERNEL_SRCS})
+      get_filename_component(opencl_kernel_filename ${opencl_kernel} NAME_WE)
+      message("  +=-=-=-=-=-=-=+ ${opencl_kernel_filename}")
+      add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo
+                         MAIN_DEPENDENCY ${opencl_kernel}
+                         COMMAND ${SDACCEL_XOCC} -c ${CMAKE_CL_FLAGS} --platform ${AWS_PLATFORM} ${opencl_kernel} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo)
+      set(tmp_all_kernel_objects ${tmp_all_kernel_objects} ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo)
+    endforeach(opencl_kernel)
+    add_custom_target(aten_opencl_kernels ALL
+                      COMMAND ${SDACCEL_XOCC} -l --platform ${AWS_PLATFORM} ${tmp_all_kernel_objects} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin
+                      BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin
+                      DEPENDS ${tmp_all_kernel_objects})
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin DESTINATION ${_OPENCL_KERNEL_DIR})
+  else()
+    install(FILES ${ATen_OPENCL_KERNELS} DESTINATION ${_OPENCL_KERNEL_DIR})
+  endif()
 endif()
 
 filter_list(generated_h generated_cpp "\\.h$")
@@ -407,10 +423,6 @@ if(USE_ROCM)
   else()
     message(FATAL_ERROR "Non-INTERFACE AT_LINK_STYLE not (yet) supported for ROCm build")
   endif()
-endif()
-
-if(USE_OPENCL)
-  set(ATen_OPENCL_SRCS ${all_opencl_cpp})
 endif()
 
 if(NOT AT_LINK_STYLE STREQUAL "INTERFACE")

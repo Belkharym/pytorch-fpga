@@ -156,6 +156,7 @@ cmake_dependent_option(
     "USE_CUDA" OFF)
 option(USE_NUMPY "Use NumPy" ON)
 option(USE_OBSERVERS "Use observers module." OFF)
+option(USE_FPGA "Use FPGA" OFF)
 option(USE_OPENCL "Use OpenCL" OFF)
 cmake_dependent_option(
   BUILD_CAFFE2_MOBILE "Build libcaffe2 for mobile (deprecating)" ON
