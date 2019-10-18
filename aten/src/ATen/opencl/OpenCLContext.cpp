@@ -1,4 +1,5 @@
 #include <ATen/opencl/OpenCLContext.h>
+#include <c10/opencl/OpenCLFunctions.h>
 #include <c10/opencl/OpenCLCachingAllocator.h>
 
 #include <mutex>
@@ -31,6 +32,10 @@ static std::vector<std::string> stringSplit(std::string strToSplit, char delimet
        splittedStrings.push_back(item);
     }
     return splittedStrings;
+}
+
+static std::string clRemoveNullChars(const std::string& str) {
+  return c10::opencl::clRemoveNullChars(str);
 }
 
 void initDeviceProperty(DeviceIndex device_index) {
@@ -131,12 +136,6 @@ void initDeviceProperty(DeviceIndex device_index) {
 }
 
 } // anonymous namespace
-
-std::string clRemoveNullChars(const std::string &str) {
-  std::string ret;
-  std::copy_if(str.begin(), str.end(), std::back_inserter(ret), [](const char& c) {return !!c;});
-  return ret;
-}
 
 openclDeviceProp* getCurrentDeviceProperties() {
   auto device = c10::opencl::current_device();

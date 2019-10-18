@@ -3,14 +3,8 @@
 #include <c10/core/impl/DeviceGuardImplInterface.h>
 #include <c10/macros/Macros.h>
 #include <c10/util/Exception.h>
-
 #include <c10/core/Stream.h>
-
-#if defined(__APPLE__) || defined(__MACOSX)
-#include <OpenCL/cl.hpp>
-#else
-#include <CL/cl.hpp>
-#endif
+#include <c10/opencl/OpenCLMacros.h>
 
 namespace c10 {
 namespace opencl {

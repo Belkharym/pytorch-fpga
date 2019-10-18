@@ -20,16 +20,18 @@ cl::Context opencl_context();
 cl::Device opencl_device(DeviceIndex device_id = -1);
 c10::optional<cl::Kernel> opencl_kernel(const std::string& kernel_func_name, cl_int *err = NULL);
 
-template<typename Arg>
-cl_int setArgs(cl::Kernel &kernel, size_t idx, Arg&& arg) {
+C10_API std::string clRemoveNullChars(const std::string &str);
+
+template<size_t idx, typename Arg>
+cl_int setArgs(cl::Kernel &kernel, Arg&& arg) {
     return kernel.setArg<Arg>(idx, arg);
 }
 
-template<typename Arg, typename... Args>
-cl_int setArgs(cl::Kernel &kernel, size_t idx, Arg&& arg, Args&& ...args) {
+template<size_t idx, typename Arg, typename... Args>
+cl_int setArgs(cl::Kernel &kernel, Arg&& arg, Args&& ...args) {
     cl_int err = kernel.setArg<Arg>(idx, arg);
     if (err == CL_SUCCESS) {
-        return setArgs(kernel, idx + 1, std::move(args)...);
+        return setArgs<idx + 1>(kernel, std::forward<Args>(args)...);
     }
     return err;
 }
@@ -53,12 +55,11 @@ struct KernelExecConfig {
 };
 
 template<typename... Args>
-cl_int runKernel(cl::CommandQueue &stream, cl::Kernel &kernel, const KernelExecConfig &config, Args&& ...args) {
-    cl_int err = setArgs(kernel, 0, std::move(args)...);
-    if (err != CL_SUCCESS) {
-        return err;
-    }
-    return stream.enqueueNDRangeKernel(kernel, config.offset, config.global, config.local, config.events, config.event);
+cl_int runKernel(cl::Kernel &kernel, const cl::EnqueueArgs &config, Args&& ...args) {
+    cl::KernelFunctor<Args...> functor{kernel};
+    cl_int err;
+    functor(config, std::forward<Args>(args)..., err);
+    return err;
 }
 
 }} // namespace c10::opencl

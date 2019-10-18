@@ -1,10 +1,15 @@
 #pragma once
 
 #include <c10/opencl/impl/opencl_cmake_macros.h>
+//#define CL_HPP_ENABLE_EXCEPTIONS 1
+#define CL_HPP_CL_1_2_DEFAULT_BUILD 1
+#define CL_HPP_TARGET_OPENCL_VERSION 120
+#define CL_HPP_MINIMUM_OPENCL_VERSION 120
+//#include "libopencl.h"
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.hpp>
 #else
-#include <CL/cl.hpp>
+#include <CL/cl2.hpp>
 #endif
 
 // See c10/macros/Export.h for a detailed explanation of what the function
