@@ -30,7 +30,14 @@ file(GLOB C10_OPENCL_HEADERS
 
 message(INFO "C10_OPENCL_HEADERS ${C10_OPENCL_HEADERS}")
 
+if(USE_FPGA) # Save current compiler and switch with the FPGA one.
+  set(tmp_CXX_COMPILER ${CMAKE_CXX_COMPILER})
+  set(CMAKE_CXX_COMPILER ${SDACCEL_XCPP})
+endif()
 add_library(c10_opencl ${C10_OPENCL_SRCS} ${C10_OPENCL_HEADERS})
+if(USE_FPGA) # Restore original compiler
+  set(CMAKE_CXX_COMPILER ${tmp_CXX_COMPILER})
+endif()
 
 # ---[ Dependency of c10_opencl
 target_link_libraries(c10_opencl PUBLIC c10)
