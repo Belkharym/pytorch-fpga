@@ -138,7 +138,7 @@ IF(USE_OPENCL)
       set(tmp_all_kernel_objects ${tmp_all_kernel_objects} ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo)
     endforeach(opencl_kernel)
     add_custom_target(aten_opencl_kernels ALL
-                      COMMAND ${SDACCEL_XOCC} -l --platform ${AWS_PLATFORM} ${tmp_all_kernel_objects} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin
+                      COMMAND ${SDACCEL_XOCC} -l ${CMAKE_CL_FLAGS} --platform ${AWS_PLATFORM} ${tmp_all_kernel_objects} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin
                       BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin
                       DEPENDS ${tmp_all_kernel_objects})
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin DESTINATION ${_OPENCL_KERNEL_DIR})
