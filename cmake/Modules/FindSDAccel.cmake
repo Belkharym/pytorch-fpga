@@ -14,10 +14,12 @@
 
 cmake_minimum_required(VERSION 2.8.12)
 
+set(SDACCEL_ROOT_DIR "/opt/Xilinx/SDx/2018.3.op2405991/")
+
 find_path(XOCC_PATH
   NAMES xocc
   PATHS ${SDACCEL_ROOT_DIR} ENV XILINX_SDACCEL
-  PATH_SUFFIXES bin
+  PATH_SUFFIXES bin/
 )
 
 if(NOT EXISTS ${XOCC_PATH})
