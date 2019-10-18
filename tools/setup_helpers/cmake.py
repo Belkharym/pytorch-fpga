@@ -257,6 +257,9 @@ class CMake:
             elif var.startswith(('BUILD_', 'USE_', 'CMAKE_')):
                 build_options[var] = val
 
+        print("build options : ")
+        for var, val in build_options.items():
+            print(var, ":", val)
         # Some options must be post-processed. Ideally, this list will be shrunk to only one or two options in the
         # future, as CMake can detect many of these libraries pretty comfortably. We have them here for now before CMake
         # integration is completed. They appear here not in the CMake.defines call below because they start with either
@@ -273,7 +276,6 @@ class CMake:
         # Options starting with CMAKE_
         cmake__options = {
             'CMAKE_INSTALL_PREFIX': install_dir,
-            'CMAKE_TOOLCHAIN_FILE': '',
         }
 
         # We set some CMAKE_* options in our Python build code instead of relying on the user's direct settings. Emit an
