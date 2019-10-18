@@ -19,6 +19,10 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.10)
   set(FIND_CUDA_MODULE_DEPRECATED ON)
 endif()
 
+if(USE_FPGA)
+  include(cmake/toolchains/AWSFPGA.cmake)
+endif(USE_FPGA)
+
 # ---[ Project and semantic versioning.
 project(Caffe2 CXX C)
 
