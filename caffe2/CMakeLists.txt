@@ -1089,7 +1089,6 @@ endif()
 
 if (USE_OPENCL)
   target_link_libraries(torch PUBLIC c10_opencl)
-  target_link_libraries(torch PUBLIC )
 
   target_include_directories(torch INTERFACE $<INSTALL_INTERFACE:include>)
   target_include_directories(
