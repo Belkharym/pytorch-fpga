@@ -269,7 +269,7 @@ class CMake:
         # Options starting with CMAKE_
         cmake__options = {
             'CMAKE_INSTALL_PREFIX': install_dir,
-            'CMAKE_TOOLCHAIN_FILE': my_env['CMAKE_TOOLCHAIN_FILE'],
+            'CMAKE_TOOLCHAIN_FILE': '',
         }
 
         # We set some CMAKE_* options in our Python build code instead of relying on the user's direct settings. Emit an
