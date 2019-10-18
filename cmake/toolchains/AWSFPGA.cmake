@@ -10,6 +10,5 @@ if (NOT SDACCEL_FOUND)
     MESSAGE(FATAL_ERROR
         "Could not find SDAccel installation")
 endif()
-set(CMAKE_C_COMPILER ${SDACCEL_XCPP})
 set(CMAKE_CXX_COMPILER ${SDACCEL_XCPP})
 message(STATUS "SDACCEL_LIBRARIES \"${SDACCEL_LIBRARIES}\"")
