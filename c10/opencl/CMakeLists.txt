@@ -30,15 +30,10 @@ file(GLOB C10_OPENCL_HEADERS
 
 message(INFO "C10_OPENCL_HEADERS ${C10_OPENCL_HEADERS}")
 
-if(CMAKE_CXX_STANDARD GREATER_EQUAL 17)
-  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    add_compile_options(-stdc++fs)
-  endif()
-endif()
 add_library(c10_opencl ${C10_OPENCL_SRCS} ${C10_OPENCL_HEADERS})
 
 # ---[ Dependency of c10_opencl
-target_link_libraries(c10_opencl PUBLIC c10 stdc++fs)
+target_link_libraries(c10_opencl PUBLIC c10)
 
 target_include_directories(
     c10_opencl PUBLIC

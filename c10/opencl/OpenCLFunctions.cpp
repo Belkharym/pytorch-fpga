@@ -8,15 +8,9 @@
 #include <string>
 #include <sstream>
 #include <fstream>
-#include <experimental/filesystem>
+#include <dirent.h>
 
 #include <c10/util/typeid.h>
-
-#ifdef __cpp_lib_experimental_filesystem
-namespace fs {
-using namespace std::experimental::filesystem::v1;
-} // namespace fs
-#endif // __cpp_lib_experimental_filesystem
 
 #ifndef _STRINGIFY
 // Defined in GNU header file cdefs.h
@@ -29,6 +23,13 @@ using namespace std::experimental::filesystem::v1;
 #ifndef _OPENCL_KERNEL_DIR
 #define _OPENCL_KERNEL_DIR .
 #endif // !_OPENCL_KERNEL_DIR
+
+static constexpr char kPathSeparator =
+#ifdef _WIN32
+                            '\\';
+#else
+                            '/';
+#endif
 
 namespace caffe2 {
 // This is required to allow Storage class to handle cl::Buffers in its data pointer.
@@ -48,6 +49,24 @@ static std::map<std::string, cl::Kernel> kernels;
 
 static std::once_flag init_flag;
 
+static std::vector<std::string> listDirectory(const std::string& dirPath) {
+    std::vector<std::string> entries;
+    DIR *dir;
+    struct dirent *ent;
+    // Open directory
+    if ((dir = opendir(dirPath.c_str())) != NULL) {
+        // Fetch every entry name.
+        while ((ent = readdir (dir)) != NULL) {
+            if (ent->d_type != DT_DIR) {
+                entries.emplace_back(dirPath + kPathSeparator + ent->d_name);
+            }
+        }
+        closedir (dir);
+    }
+
+    return entries;
+}
+
 static void initOpenCLKernels(cl_int* cl_err) {
     static const std::string kernels_dir{_STRINGIFY(_OPENCL_KERNEL_DIR)};
     
@@ -58,32 +77,42 @@ static void initOpenCLKernels(cl_int* cl_err) {
     // get the name:
     //   cl_int cl_err = kernel.getInfo<char*>(
     //                       CL_KERNEL_FUNCTION_NAME, &kernel_name);
-    fs::path kernel_dir_path{kernels_dir};
-    if (!fs::exists(kernel_dir_path)) {
-        TORCH_WARN_ONCE("OpenCL Error : the kernel directory path \"", kernels_dir, "\" is not a valide path.");
+    std::string kernel_dir_path{kernels_dir};
+    std::vector<std::string> files = listDirectory(kernel_dir_path);
+    if (files.size() == 0) {
+        TORCH_WARN_ONCE("OpenCL Error : the kernel directory path \"", kernels_dir, "\" is not a valide path (no files found).");
         if (cl_err) {
             *cl_err = CL_INVALID_KERNEL_NAME;
         }
         return;
     }
-    std::vector<fs::path> files;
-    fs::directory_iterator start(kernel_dir_path);
-    fs::directory_iterator end;
-    std::transform(start, end, std::back_inserter(files), [](const fs::directory_entry& entry) {return entry.path();});
 #ifdef C10_USE_FPGA
-    cl::Program::Binaries contents;
+    using contentVector_t = cl::Program::Binaries;
     using fileContentPtr_t = void*;
 #else
-    cl::Program::Sources contents;
+    using contentVector_t = cl::Program::Sources;
     using fileContentPtr_t = char*;
 #endif // C10_USE_FPGA
-    std::transform(files.cbegin(), files.cend(), std::back_inserter(contents), [] (const fs::path& path) {
-        std::ifstream stream{path};
-        std::string content{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
-        fileContentPtr_t c_str = (fileContentPtr_t)malloc(content.size() + 1);
-        strncpy(c_str, content.c_str(), content.size() + 1);
-        return std::make_pair(c_str, content.size());
+    contentVector_t contents;
+    std::transform(files.cbegin(), files.cend(), std::back_inserter(contents), [] (const std::string& path) {
+        try {
+            std::ifstream stream{path};
+            if (!stream.fail()) {
+                std::string content{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
+                fileContentPtr_t c_str = (fileContentPtr_t)malloc(content.size() + 1);
+                strncpy(c_str, content.c_str(), content.size() + 1);
+                return std::make_pair(c_str, content.size());
+            }
+        } catch(std::exception& ptr) {
+            TORCH_WARN(ptr.what());
+        }
+        return std::make_pair((fileContentPtr_t)nullptr, (size_t)0);
     });
+    contentVector_t tmp;
+    std::copy_if(contents.cbegin(), contents.cend(), std::back_inserter(tmp), [&](const contentVector_t::value_type& p) {
+        return p.first != nullptr;
+    });
+    std::swap(contents, tmp);
 
 #ifdef C10_USE_FPGA
     // Only get the first binary, and apply it to all devices
