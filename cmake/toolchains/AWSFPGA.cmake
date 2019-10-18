@@ -1,16 +1,12 @@
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
-
 set(USE_CUDA 0)
 set(USE_OPENCL ON)
 set(USE_FPGA ON)
 
+include(${PROJECT_SOURCE_DIR}/cmake/Modules/FindSDAccel.cmake)
 if (NOT SDACCEL_FOUND)
-    find_package(SDAccel REQUIRED)
-    if (NOT SDACCEL_FOUND)
-        MESSAGE(FATAL_ERROR
-            "Could not find SDAccel installation")
-    endif()
+    MESSAGE(FATAL_ERROR
+        "Could not find SDAccel installation")
 endif()
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_CXX_COMPILER ${SDACCEL_XCPP})
