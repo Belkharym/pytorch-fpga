@@ -122,8 +122,6 @@ inline bool is_available() {
     return c10::opencl::device_count() > 0;
 }
 
-CAFFE2_API std::string clRemoveNullChars(const std::string &str);
-
 CAFFE2_API openclDeviceProp* getCurrentDeviceProperties();
 
 CAFFE2_API openclDeviceProp* getDeviceProperties(int64_t device);

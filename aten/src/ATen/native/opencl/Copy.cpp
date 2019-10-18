@@ -63,9 +63,9 @@ static void copy_device_to_device(TensorIterator& iter, bool non_blocking) {
     auto cast_kernel_opt = opencl_kernel(kernel_name);
     TORCH_CHECK(cast_kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
     auto cast_kernel = cast_kernel_opt.value();
-    AT_OPENCL_CHECK(c10::opencl::runKernel(*copy_stream.stream(), cast_kernel, {numel},
-        (*toBuffer(iter.data_ptr(1)))(),
-        (*toBuffer(iter.data_ptr(0)))()));
+    AT_OPENCL_CHECK(c10::opencl::runKernel(cast_kernel, {*copy_stream.stream(), numel, 1},
+        *toBuffer(iter.data_ptr(1)),
+        *toBuffer(iter.data_ptr(0))));
   }
   AT_OPENCL_CHECK(syncOpenCLPointer(iter.data_ptr(0)));
 

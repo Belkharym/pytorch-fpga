@@ -26,9 +26,9 @@
 
 static constexpr char kPathSeparator =
 #ifdef _WIN32
-                            '\\';
+        '\\';
 #else
-                            '/';
+        '/';
 #endif
 
 namespace caffe2 {
@@ -88,29 +88,27 @@ static void initOpenCLKernels(cl_int* cl_err) {
     }
 #ifdef C10_USE_FPGA
     using contentVector_t = cl::Program::Binaries;
-    using fileContentPtr_t = void*;
 #else
     using contentVector_t = cl::Program::Sources;
-    using fileContentPtr_t = char*;
 #endif // C10_USE_FPGA
+    using fileContent_t = contentVector_t::value_type;
     contentVector_t contents;
     std::transform(files.cbegin(), files.cend(), std::back_inserter(contents), [] (const std::string& path) {
         try {
             std::ifstream stream{path};
             if (!stream.fail()) {
                 std::string content{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
-                fileContentPtr_t c_str = (fileContentPtr_t)malloc(content.size() + 1);
-                strncpy((char*)c_str, content.c_str(), content.size() + 1);
-                return std::make_pair(c_str, content.size());
+                fileContent_t fileContent{content.begin(), content.end()};
+                return fileContent;
             }
         } catch(std::exception& ptr) {
             TORCH_WARN(ptr.what());
         }
-        return std::make_pair((fileContentPtr_t)nullptr, (size_t)0);
+        return fileContent_t{};
     });
     contentVector_t tmp;
     std::copy_if(contents.cbegin(), contents.cend(), std::back_inserter(tmp), [&](const contentVector_t::value_type& p) {
-        return p.first != nullptr;
+        return p.size() > 0;
     });
     std::swap(contents, tmp);
 
@@ -157,7 +155,7 @@ static void initOpenCLKernels(cl_int* cl_err) {
         [](const cl::Kernel& kernel) -> std::pair<std::string,cl::Kernel> {
             auto name = kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
             // There can be a null character left at the end of the string, which mess with the comparison in the map.
-            name.resize(name.size() - 1);
+            name = clRemoveNullChars(name);
             return std::make_pair(name, kernel);
         }
     );
@@ -252,6 +250,12 @@ c10::optional<cl::Kernel> opencl_kernel(const std::string& kernel_func_name, cl_
         return {};
     }
     return {it->second};
+}
+
+std::string clRemoveNullChars(const std::string &str) {
+  std::string ret;
+  std::copy_if(str.begin(), str.end(), std::back_inserter(ret), [](const char& c) {return !!c;});
+  return ret;
 }
 
 }} // namespace c10::opencl

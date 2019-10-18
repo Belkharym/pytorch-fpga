@@ -26,8 +26,8 @@
 namespace at {
 namespace native {
 
-static cl_mem &toBuffer(const StorageImpl* s) {
-    return (*toBuffer(s->data_ptr().get()))();
+static cl::Buffer &toBuffer(const StorageImpl* s) {
+    return (*toBuffer(s->data_ptr().get()));
 }
 
 template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
@@ -41,7 +41,7 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
   }
   cl::Kernel pointwise_op = opt_kernel.value();
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), pointwise_op, {a->numel()},
+  AT_OPENCL_CHECK(c10::opencl::runKernel(pointwise_op, {*stream.stream(), a->numel(), 1},
       toBuffer(a),
       toBuffer(b),
       toBuffer(out),
@@ -62,7 +62,7 @@ static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImp
   }
   cl::Kernel pointwise_op = opt_kernel.value();
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), pointwise_op, {a->numel()},
+  AT_OPENCL_CHECK(c10::opencl::runKernel(pointwise_op, {*stream.stream(), a->numel(), 1},
       toBuffer(a),
       toBuffer(b),
       toBuffer(out),
@@ -79,7 +79,7 @@ static void pointwise_op2s(const StorageImpl* a, const Scalar b, StorageImpl* c,
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), pointwise_op, {a->numel()},
+  AT_OPENCL_CHECK(c10::opencl::runKernel(pointwise_op, {*stream.stream(), a->numel(), 1},
       toBuffer(a),
       b.to<S>(),
       toBuffer(c),

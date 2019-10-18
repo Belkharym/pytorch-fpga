@@ -45,8 +45,8 @@ Tensor empty_opencl(IntArrayRef size, const TensorOptions& options, c10::optiona
   return tensor;
 }
 
-static cl_mem &toBuffer(const StorageImpl* s) {
-  return (*toBuffer(s->data_ptr().get()))();
+static cl::Buffer &toBuffer(const StorageImpl* s) {
+  return *toBuffer(s->data_ptr().get());
 }
 
 static void pointwise_op3(StorageImpl* c, const StorageImpl* a, const StorageImpl* b, at::native::opencl::OpenCLOperationsPointwise3 op, const ScalarType scalar_type) {
@@ -56,7 +56,7 @@ static void pointwise_op3(StorageImpl* c, const StorageImpl* a, const StorageImp
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), pointwise_op, {a->numel()},
+  AT_OPENCL_CHECK(c10::opencl::runKernel(pointwise_op, {*stream.stream(), a->numel(), 1},
       toBuffer(a),
       toBuffer(b),
       toBuffer(c),
@@ -73,7 +73,7 @@ static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), pointwise_op, {a->numel()},
+  AT_OPENCL_CHECK(c10::opencl::runKernel(pointwise_op, {*stream.stream(), a->numel(), 1},
       toBuffer(a),
       b.to<S>(),
       toBuffer(c),
@@ -89,7 +89,7 @@ static void pointwise_op2(StorageImpl* b, const StorageImpl* a, at::native::open
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(c10::opencl::runKernel(*stream.stream(), pointwise_op, {a->numel()},
+  AT_OPENCL_CHECK(c10::opencl::runKernel(pointwise_op, {*stream.stream(), a->numel(), 1},
       toBuffer(a),
       toBuffer(b),
       op));
@@ -173,9 +173,9 @@ Tensor & _zero_opencl(Tensor & self) {
   auto stream = at::opencl::getCurrentOpenCLStream(self_->device().index());
   auto kernel = kernel_opt.value();
   int scalar_0 = 0;
-  AT_OPENCL_CHECK(kernel.setArg<int>(0, scalar_0));
-  AT_OPENCL_CHECK(kernel.setArg<cl_mem>(1, (*toBuffer(self_->data()))()));
-  AT_OPENCL_CHECK(stream.stream()->enqueueNDRangeKernel(kernel, /*offset=*/0, self_->numel(), 1));
+  AT_OPENCL_CHECK(c10::opencl::runKernel(kernel, {*stream.stream(), self_->numel(), 1},
+    (int)0,
+    *toBuffer(self_->data())));
   AT_OPENCL_CHECK(syncOpenCLPointer(self_->data()));
 
   return self;
