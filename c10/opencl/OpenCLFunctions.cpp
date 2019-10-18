@@ -100,7 +100,7 @@ static void initOpenCLKernels(cl_int* cl_err) {
             if (!stream.fail()) {
                 std::string content{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
                 fileContentPtr_t c_str = (fileContentPtr_t)malloc(content.size() + 1);
-                strncpy(c_str, content.c_str(), content.size() + 1);
+                strncpy((char*)c_str, content.c_str(), content.size() + 1);
                 return std::make_pair(c_str, content.size());
             }
         } catch(std::exception& ptr) {
