@@ -575,7 +575,7 @@ if (USE_OPENCL)
       MESSAGE(FATAL_ERROR
         "Could not find SDAccel installation")
     endif()
-    set(OpenCL_FOUND TRUE PARENT_SCOPE)
+    set(OpenCL_FOUND TRUE)
     set(OpenCL_INCLUDE_DIRS "${OpenCL_INCLUDE_DIRS} ${SDACCEL_INCLUDE_DIRS}" CACHE STRING "")
     set(OpenCL_LIBRARIES "${OpenCL_LIBRARIES} ${SDACCEL_LIBRARIES}" CACHE STRING "")
     set(CMAKE_CL_FLAGS "${CMAKE_CL_FLAGS} --xp \"param:compiler.preserveHlsOutput=1\" --xp \"param:compiler.generateExtraRunData=true\" -s" CACHE STRING "OpenCL flags")

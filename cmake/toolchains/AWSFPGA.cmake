@@ -5,11 +5,14 @@ set(USE_CUDA 0)
 set(USE_OPENCL ON)
 set(USE_FPGA ON)
 
-find_package(SDAccel REQUIRED)
 if (NOT SDACCEL_FOUND)
-    MESSAGE(FATAL_ERROR
-        "Could not find SDAccel installation")
+    find_package(SDAccel REQUIRED)
+    if (NOT SDACCEL_FOUND)
+        MESSAGE(FATAL_ERROR
+            "Could not find SDAccel installation")
+    endif()
 endif()
+set(CMAKE_C_COMPILER gcc)
 set(CMAKE_CXX_COMPILER ${SDACCEL_XCPP})
-set(CMAKE_CROSSCOMPILING ON)
+set(HAVE_STD_REGEX 0) # set to success, which is 0
 message(STATUS "SDACCEL_LIBRARIES \"${SDACCEL_LIBRARIES}\"")
