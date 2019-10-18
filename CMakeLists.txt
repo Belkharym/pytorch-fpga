@@ -163,9 +163,7 @@ cmake_dependent_option(
 option(USE_NUMPY "Use NumPy" ON)
 option(USE_OBSERVERS "Use observers module." OFF)
 option(USE_FPGA "Use FPGA" OFF)
-set(ENV{USE_FPGA} ${USE_FPGA})
 option(USE_OPENCL "Use OpenCL" OFF)
-set(ENV{USE_OPENCL} ${USE_OPENCL})
 cmake_dependent_option(
   BUILD_CAFFE2_MOBILE "Build libcaffe2 for mobile (deprecating)" ON
   "NOT USE_OPENCL" OFF)
