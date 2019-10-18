@@ -1,5 +1,5 @@
 
-list(APPEND CMAKE_MODULE_PATH ../../cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../cmake/Modules)
 
 set(USE_CUDA 0)
 set(USE_OPENCL ON)
