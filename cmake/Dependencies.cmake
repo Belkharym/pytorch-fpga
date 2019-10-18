@@ -568,6 +568,7 @@ if(USE_LMDB)
 endif()
 
 if (USE_OPENCL)
+  message("Looking for OpenCL...")
   if (USE_FPGA)
     find_package(SDAccel REQUIRED)
     if (NOT SDACCEL_FOUND)
@@ -595,6 +596,8 @@ if (USE_OPENCL)
 
   list(APPEND Caffe2_PUBLIC_OPENCL_DEPENDENCY_LIBS c10)
   list(APPEND Caffe2_DEPENDENCY_LIBS ${OpenCL_LIBRARIES})
+else()
+  message("Not building with OpenCL.")
 endif()
 
 # ---[ LevelDB
