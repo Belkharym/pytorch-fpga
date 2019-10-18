@@ -48,8 +48,7 @@ else()
   # OpenCL libraries
   if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
     set(SDACCEL_LIBRARY_DIR ${SDACCEL_ROOT_DIR}/runtime/lib/x86_64/)
-    file(GLOB SDACCEL_LIBRARIES ${SDACCEL_ROOT_DIR}/runtime/lib/x86_64/
-         ${SDACCEL_ROOT_DIR}/runtime/lib/x86_64/*.so)
+    file(GLOB SDACCEL_LIBRARIES ${SDACCEL_ROOT_DIR}/runtime/lib/x86_64/ ${SDACCEL_ROOT_DIR}/runtime/lib/x86_64/*.so)
   endif()
 
   message(STATUS "Found SDAccel at ${SDACCEL_ROOT_DIR}.")
