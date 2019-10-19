@@ -173,19 +173,24 @@ Tensor & _ceil_out_opencl(Tensor &out, const Tensor &self) {
   return out;
 }
 
+typedef cl_int(OpenCLCastFunctor)(cl::Buffer, cl::Buffer, at::native::opencl::OpenCLCastType, at::native::opencl::OpenCLCastType);
+
 Tensor & _zero_opencl(Tensor & self) {
   TensorImpl* self_ = checked_tensor_unwrap(self, "self", 2, "_zero_opencl", false, c10::Backend::OpenCL, self.scalar_type());
 
-  auto kernel_name = "cast_s";
-  auto kernel_opt = c10::opencl::opencl_kernel(kernel_name);
-  TORCH_INTERNAL_ASSERT(kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
   auto stream = at::opencl::getCurrentOpenCLStream(self_->device().index());
+  auto kernel_name = "cast_s";
+  c10::optional<OpenCLCastFunctor> kernel_opt = c10::opencl::opencl_kernel_func(kernel_name, {*stream.stream(), self_->numel(), 1});
+  TORCH_INTERNAL_ASSERT(kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
   auto kernel = kernel_opt.value();
-  int* scalar_0 = 0;
 
-  AT_OPENCL_CHECK(c10::opencl::runKernel(kernel, {*stream.stream(), self_->numel(), 1},
-    scalar_0,
+  Tensor scalar_tensor = at::native::empty_opencl({0}, self.options(), self.suggest_memory_format());
+  scalar_tensor.fill_(Scalar((int)0));
+  TensorImpl* scalar_tensor_ = checked_tensor_unwrap(scalar_tensor, "value_0", 2, "fill_kernel_opencl", false, c10::Backend::OpenCL, at::kInt);
+  AT_OPENCL_CHECK(kernel(
+    *toBuffer(scalar_tensor.data_ptr()),
     *toBuffer(self_->data()),
+    at::native::opencl::OpenCLCastType::INT,
     getOpenCLKernelCastType(typeMetaToScalarType(self_->dtype()))));
   AT_OPENCL_CHECK(syncOpenCLPointer(self_->data()));
 
