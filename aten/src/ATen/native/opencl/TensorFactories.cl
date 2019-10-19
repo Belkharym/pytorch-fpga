@@ -117,7 +117,7 @@ DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_3_INT)
 __kernel void pointwise_op_3##suffix(__global const type* a, __global const type* b, __global type* out, const enum OpenCLOperationsPointwise3 op) { \
     switch(op) {                                                                                                            \
         case BAND: {                                                                                                        \
-            out[get_global_id(0)] = a[get_global_id(0)] && b[get_global_id(0)];                                             \
+            out[get_global_id(0)] = (type)((bool)a[get_global_id(0)] && (bool)b[get_global_id(0)]);                         \
             break;                                                                                                          \
         }                                                                                                                   \
         case MIN: {                                                                                                         \
@@ -214,7 +214,7 @@ DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_2S_INT)
 __kernel void pointwise_op_2##suffix##_s(__global const type* a, const type b, __global type* out, const enum OpenCLOperationsPointwise3 op) { \
     switch(op) {                                                                        \
         case BAND: {                                                                    \
-            out[get_global_id(0)] = a[get_global_id(0)] && b;                           \
+            out[get_global_id(0)] = (type)((bool)a[get_global_id(0)] && (bool)b);       \
             break;                                                                      \
         }                                                                               \
         case MIN: {                                                                     \
