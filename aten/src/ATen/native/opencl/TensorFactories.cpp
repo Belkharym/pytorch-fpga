@@ -151,7 +151,7 @@ Tensor _and_opencl(const Tensor & self, Scalar other) {
 #undef DEFINE_OPENCL_AND_CASE
 
   default:
-    TORCH_CHECK(false, "logical_tensor not supported on OpenCLType for ", scalar_type);
+    TORCH_CHECK(false, "_and_opencl not supported on OpenCLType for ", scalar_type);
     break;
   }
 
@@ -317,24 +317,110 @@ Tensor & _opencl_set_(Tensor &self, Tensor &src) {
   return self;
 }
 
-template <typename T, typename IndexType>
-struct CatArrInputTensor {
-  T* input;
-  IndexType offset;
-  IndexType dimSize;
-  IndexType nElements;
-};
-
-template<typename IndexType, unsigned int MaxDims>
-struct OutputTensorSizeStride {
-  IndexType outputSize[MaxDims];
-  IndexType outputStride[MaxDims];
-};
-
 Tensor _opencl_cat(TensorList tensors, int64_t dim) {
   std::vector<Tensor> cpuTensors;
   std::transform(tensors.begin(), tensors.end(), std::back_inserter(cpuTensors), [](const Tensor& t) -> Tensor {return t.toBackend(Backend::CPU);});
   return at::native::legacy::cpu::_th_cat(cpuTensors, dim).toBackend(Backend::OpenCL);
+}
+
+Tensor & _opencl_cat_out(Tensor & self, TensorList tensors, int64_t dim) {
+  std::vector<Tensor> cpuTensors;
+  std::transform(tensors.begin(), tensors.end(), std::back_inserter(cpuTensors), [](const Tensor& t) -> Tensor {return t.toBackend(Backend::CPU);});
+  auto self2 = self.toBackend(Backend::CPU);
+  at::native::legacy::cpu::_th_cat_out(self2, tensors, dim);
+  self = self2.toBackend(Backend::OpenCL);
+  return self;
+}
+
+Tensor & _opencl_remainder_out(Tensor & result, const Tensor & self, Scalar other) {
+  auto scalar_type = self.scalar_type();
+  auto result_ = checked_tensor_unwrap(self, "self", 1, "_opencl_remainder", false, Backend::OpenCL, scalar_type);
+  auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_remainder", false, Backend::OpenCL, scalar_type);
+
+  // The implementation applies fmod to the floating point types.
+  //TORCH_CHECK(isIntegralType(self.scalar_type()), "Remainder only applies to integral types");
+
+  opencl_resizeAs(result_, self_);
+  TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
+  switch (scalar_type)
+  {
+#define DEFINE_OPENCL_AND_CASE(type, name) \
+    case ScalarType::name: \
+      pointwise_op2_s<ScalarType::name, type>(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), other, at::native::opencl::OpenCLOperationsPointwise3::REM); \
+      break;
+    AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(DEFINE_OPENCL_AND_CASE)
+#undef DEFINE_OPENCL_AND_CASE
+
+  default:
+    TORCH_CHECK(false, "_opencl_remainder_out not supported on OpenCLType for ", scalar_type);
+    break;
+  }
+
+  result_->maybe_zero_dim(self_->dim() == 0);
+  return result;
+}
+
+Tensor _opencl_remainder(const Tensor & self, Scalar other) {
+  auto scalar_type = self.scalar_type();
+  auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(scalar_type), 0, self.storage().allocator(), true),TensorTypeId::OpenCLTensorId).release();
+  auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
+  auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_remainder", false, Backend::OpenCL, scalar_type);
+
+  // The implementation applies fmod to the floating point types.
+  //TORCH_CHECK(isIntegralType(scalar_type), "Remainder only applies to integral types");
+
+  opencl_resizeAs(result_, self_);
+  TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
+  switch (scalar_type)
+  {
+#define DEFINE_OPENCL_AND_CASE(type, name) \
+    case ScalarType::name: \
+      pointwise_op2_s<ScalarType::name, type>(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), other, at::native::opencl::OpenCLOperationsPointwise3::REM); \
+      break;
+    AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(DEFINE_OPENCL_AND_CASE)
+#undef DEFINE_OPENCL_AND_CASE
+
+  default:
+    TORCH_CHECK(false, "_opencl_remainder not supported on OpenCLType for ", scalar_type);
+    break;
+  }
+
+  result_->maybe_zero_dim(self_->dim() == 0);
+  return result;
+}
+
+Tensor & _opencl_remainder_out(Tensor & result, const Tensor & self, const Tensor & other) {
+  auto scalar_type = self.scalar_type();
+  auto result_ = checked_tensor_unwrap(result, "result", 0, "_opencl_remainder_out", false, Backend::OpenCL, scalar_type);
+  auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_remainder_out", false, Backend::OpenCL, scalar_type);
+  auto other_ = checked_tensor_unwrap(other, "other", 2, "_opencl_remainder_out", false, Backend::OpenCL, scalar_type);
+
+  TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
+  opencl_resizeAs(result_, self_);
+
+  pointwise_op3(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::REM, scalar_type);
+
+  result_->maybe_zero_dim(self_->dim() == 0 && other_->dim() == 0);
+  return result;
+}
+
+Tensor _opencl_remainder(const Tensor & self, const Tensor & other) {
+  auto scalar_type = self.scalar_type();
+  auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(scalar_type), 0, self.storage().allocator(), true),TensorTypeId::OpenCLTensorId).release();
+  auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
+  auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_remainder", false, Backend::OpenCL, scalar_type);
+  auto other_ = checked_tensor_unwrap(self, "other", 2, "_opencl_remainder", false, Backend::OpenCL, scalar_type);
+
+  // The implementation applies fmod to the floating point types.
+  //TORCH_CHECK(isIntegralType(self.scalar_type()), "Remainder only applies to integral types");
+
+  TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
+  opencl_resizeAs(result_, self_);
+
+  pointwise_op3(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::REM, scalar_type);
+
+  result_->maybe_zero_dim(self_->dim() == 0 && other_->dim() == 0);
+  return result;
 }
 
 }} // namespace at::native

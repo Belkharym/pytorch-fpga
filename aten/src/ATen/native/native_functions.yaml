@@ -4911,6 +4911,7 @@
   dispatch:
     CPU: legacy::cpu::_th_remainder_out
     CUDA: legacy::cuda::_th_remainder_out
+    OpenCL: _opencl_remainder_out
 
 - func: remainder.Scalar(Tensor self, Scalar other) -> Tensor
   use_c10_dispatcher: full
@@ -4918,11 +4919,13 @@
   dispatch:
     CPU: legacy::cpu::_th_remainder
     CUDA: legacy::cuda::_th_remainder
+    OpenCL: _opencl_remainder
 
 - func: remainder.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
   dispatch:
     CPU: legacy::cpu::_th_remainder_out
     CUDA: legacy::cuda::_th_remainder_out
+    OpenCL: _opencl_remainder_out
 
 - func: remainder.Tensor(Tensor self, Tensor other) -> Tensor
   use_c10_dispatcher: full
@@ -4930,6 +4933,7 @@
   dispatch:
     CPU: legacy::cpu::_th_remainder
     CUDA: legacy::cuda::_th_remainder
+    OpenCL: _opencl_remainder
 
 - func: min.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
   dispatch:
@@ -5193,6 +5197,7 @@
   dispatch:
     CPU: legacy::cpu::_th_cat_out
     CUDA: legacy::cuda::_th_cat_out
+    OpenCL: _opencl_cat_out
 
 - func: _mode(Tensor self, int dim=-1, bool keepdim=False) -> (Tensor, Tensor)
   dispatch:
