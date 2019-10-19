@@ -25,11 +25,12 @@ enum OpenCLOperationsPointwise3 {
     MIN,  // MINimum between 2 values
     MAX,  // MAXimum between 2 values
     BXOR, // Bitwise XOR
-    ADD, // addition
-    SUB, // subtract
-    MUL, // multiply
-    DIV, // divide
-    ATAN2, // arc tangent of y / x.
+    ADD,  // ADDition
+    SUB,  // SUBtract
+    MUL,  // MULtiply
+    DIV,  // DIVide
+    REM,  // REMainder
+    ATAN2, // Arc TANgent of y / x.
 };
 
 // Operations that have 1 output and 1 input, all tensors of the same type

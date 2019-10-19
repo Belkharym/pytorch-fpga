@@ -100,6 +100,10 @@ __kernel void pointwise_op_3##suffix(__global const type* a, __global const type
             out[get_global_id(0)] = a[get_global_id(0)] / b[get_global_id(0)];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
+        case REM: {                                                                                                         \
+            out[get_global_id(0)] = a[get_global_id(0)] % b[get_global_id(0)];                                              \
+            break;                                                                                                          \
+        }                                                                                                                   \
         case BXOR: {                                                                                                        \
             out[get_global_id(0)] = a[get_global_id(0)] ^ b[get_global_id(0)];                                              \
             break;                                                                                                          \
@@ -142,6 +146,10 @@ __kernel void pointwise_op_3##suffix(__global const type* a, __global const type
         }                                                                                                                   \
         case DIV: {                                                                                                         \
             out[get_global_id(0)] = a[get_global_id(0)] / b[get_global_id(0)];                                              \
+            break;                                                                                                          \
+        }                                                                                                                   \
+        case REM: {                                                                                                         \
+            out[get_global_id(0)] = fmod((float)a[get_global_id(0)], (float)b[get_global_id(0)]);                         \
             break;                                                                                                          \
         }                                                                                                                   \
         case BXOR: {                                                                                                        \
@@ -197,6 +205,10 @@ __kernel void pointwise_op_2##suffix##_s(__global const type* a, const type b, _
             out[get_global_id(0)] = a[get_global_id(0)] / b;                            \
             break;                                                                      \
         }                                                                               \
+        case REM: {                                                                     \
+            out[get_global_id(0)] = a[get_global_id(0)] % b;                            \
+            break;                                                                      \
+        }                                                                               \
         case BXOR: {                                                                    \
             out[get_global_id(0)] = a[get_global_id(0)] ^ b;                            \
             break;                                                                      \
@@ -239,6 +251,10 @@ __kernel void pointwise_op_2##suffix##_s(__global const type* a, const type b, _
         }                                                                               \
         case DIV: {                                                                     \
             out[get_global_id(0)] = a[get_global_id(0)] / b;                            \
+            break;                                                                      \
+        }                                                                               \
+        case REM: {                                                                     \
+            out[get_global_id(0)] = fmod((float)a[get_global_id(0)], (float)b);         \
             break;                                                                      \
         }                                                                               \
         case BXOR: {                                                                    \
