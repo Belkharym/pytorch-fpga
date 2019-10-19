@@ -135,7 +135,9 @@ IF(USE_OPENCL)
       get_filename_component(opencl_kernel_filename ${opencl_kernel} NAME_WE)
       add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo
                          MAIN_DEPENDENCY ${opencl_kernel}
-                         COMMAND ${SDACCEL_XOCC} -c ${CMAKE_CL_FLAGS} --platform ${AWS_PLATFORM} ${opencl_kernel} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo)
+                         BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/_x/reports/${opencl_kernel_filename}/system_estimate_${opencl_kernel_filename}.xtxt
+                         COMMAND ${SDACCEL_XOCC} -c ${CMAKE_CL_FLAGS} --platform ${AWS_PLATFORM} ${opencl_kernel} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo
+                         COMMAND echo "Generated file:" ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo)
       set(tmp_all_kernel_objects ${tmp_all_kernel_objects} ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo)
     endforeach(opencl_kernel)
     add_custom_target(aten_opencl_kernels ALL
