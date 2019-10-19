@@ -176,7 +176,7 @@ Tensor & _ceil_out_opencl(Tensor &out, const Tensor &self) {
 Tensor & _zero_opencl(Tensor & self) {
   TensorImpl* self_ = checked_tensor_unwrap(self, "self", 2, "_zero_opencl", false, c10::Backend::OpenCL, self.scalar_type());
 
-  auto kernel_name = "cast_i_" + getOpenCLKernelTypeSuffix(typeMetaToScalarType(self_->dtype())) + "_s";
+  auto kernel_name = "cast_is";
   auto kernel_opt = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
   auto stream = at::opencl::getCurrentOpenCLStream(self_->device().index());
@@ -184,7 +184,8 @@ Tensor & _zero_opencl(Tensor & self) {
   int scalar_0 = 0;
   AT_OPENCL_CHECK(c10::opencl::runKernel(kernel, {*stream.stream(), self_->numel(), 1},
     (int)0,
-    *toBuffer(self_->data())));
+    *toBuffer(self_->data()),
+    getOpenCLKernelCastType(typeMetaToScalarType(self_->dtype()))));
   AT_OPENCL_CHECK(syncOpenCLPointer(self_->data()));
 
   return self;
