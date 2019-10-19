@@ -46,6 +46,16 @@ enum OpenCLOperationsPointwise3s {
     SUBS, // subtract with alpha factor
 };
 
+enum OpenCLCastType {
+    BOOL,
+    CHAR,
+    SHORT,
+    INT,
+    LONG,
+    FLOAT,
+    DOUBLE,
+};
+
 #ifdef __cplusplus
 }}} // namespace at::native::opencl
 #endif

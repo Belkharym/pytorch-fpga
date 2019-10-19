@@ -1,6 +1,7 @@
 #include <c10/core/ScalarType.h>
 #include <caffe2/opencl/context.h>
 #include <ATen/opencl/PinnedMemoryAllocator.h>
+#include <ATen/native/opencl/OpenCLOperations.h>
 
 #include <string>
 
@@ -81,6 +82,52 @@ inline std::string getOpenCLKernelTypeSuffix(const ScalarType type) {
 
     default:
       return "u"; // For unknown
+      break;
+  }
+}
+
+inline at::native::opencl::OpenCLCastType getOpenCLKernelCastType(const ScalarType type) {
+  switch (type)
+  {
+    case ScalarType::Bool:
+      return at::native::opencl::OpenCLCastType::CHAR;
+      break;
+    case ScalarType::Byte:
+      return at::native::opencl::OpenCLCastType::CHAR;
+      break;
+    case ScalarType::Char:
+      return at::native::opencl::OpenCLCastType::CHAR;
+      break;
+    case ScalarType::Short:
+      return at::native::opencl::OpenCLCastType::SHORT;
+      break;
+    case ScalarType::Int:
+      return at::native::opencl::OpenCLCastType::INT;
+      break;
+    case ScalarType::Long:
+      return at::native::opencl::OpenCLCastType::LONG;
+      break;
+    case ScalarType::Half:
+      return at::native::opencl::OpenCLCastType::SHORT; // TODO support halfs
+      break;
+    case ScalarType::Float:
+      return at::native::opencl::OpenCLCastType::FLOAT;
+      break;
+    case ScalarType::Double:
+      return at::native::opencl::OpenCLCastType::DOUBLE;
+      break;
+    case ScalarType::QInt32:
+      return at::native::opencl::OpenCLCastType::INT;
+      break;
+    case ScalarType::QInt8:
+      return at::native::opencl::OpenCLCastType::CHAR;
+      break;
+    case ScalarType::QUInt8:
+      return at::native::opencl::OpenCLCastType::CHAR;
+      break;
+
+    default:
+      return at::native::opencl::OpenCLCastType::LONG; // For unknowns
       break;
   }
 }
