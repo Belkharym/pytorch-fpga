@@ -133,16 +133,15 @@ IF(USE_OPENCL)
     foreach(opencl_kernel ${ATen_OPENCL_KERNEL_SRCS})
       get_filename_component(opencl_kernel_filename ${opencl_kernel} NAME_WE)
       add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo
-                         COMMENT "Building ${opencl_kernel_filename}.cl"
+                         COMMENT "Compiling ${opencl_kernel_filename}.cl"
                          MAIN_DEPENDENCY ${opencl_kernel}
                          BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/_x/reports/${opencl_kernel_filename}/system_estimate_${opencl_kernel_filename}.xtxt
-                         COMMAND ${SDACCEL_XOCC} -c ${CMAKE_CL_FLAGS} --platform ${AWS_PLATFORM} ${opencl_kernel} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo
-                         COMMAND echo "'Generated file:'" ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo)
+                         COMMAND ${SDACCEL_XOCC} -c ${CMAKE_CL_FLAGS} --platform ${AWS_PLATFORM} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo ${opencl_kernel})
       set(tmp_all_kernel_objects ${tmp_all_kernel_objects} ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo)
     endforeach(opencl_kernel)
     add_custom_target(aten_opencl_kernels_bin
-                      COMMENT "Linking kernels into an XCLBIN..."
-                      COMMAND ${SDACCEL_XOCC} -l ${CMAKE_CL_FLAGS} --platform ${AWS_PLATFORM} ${tmp_all_kernel_objects} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin
+                      COMMENT "Linking kernels into an XCLBIN file..."
+                      COMMAND ${SDACCEL_XOCC} -l ${CMAKE_CL_FLAGS} --platform ${AWS_PLATFORM} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin ${tmp_all_kernel_objects}
                       BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin
                       DEPENDS ${tmp_all_kernel_objects})
     add_dependencies(aten_opencl_kernels aten_opencl_kernels_bin)
