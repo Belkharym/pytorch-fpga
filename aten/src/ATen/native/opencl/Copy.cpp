@@ -59,13 +59,15 @@ static void copy_device_to_device(TensorIterator& iter, bool non_blocking) {
         0,
         numel));
   } else {
-    auto kernel_name = "cast_" + getOpenCLKernelTypeSuffix(iter.dtype(1)) + "_" + getOpenCLKernelTypeSuffix(iter.dtype(0));
+    auto kernel_name = "cast";
     auto cast_kernel_opt = opencl_kernel(kernel_name);
     TORCH_CHECK(cast_kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
     auto cast_kernel = cast_kernel_opt.value();
     AT_OPENCL_CHECK(c10::opencl::runKernel(cast_kernel, {*copy_stream.stream(), numel, 1},
         *toBuffer(iter.data_ptr(1)),
-        *toBuffer(iter.data_ptr(0))));
+        *toBuffer(iter.data_ptr(0)),
+        getOpenCLKernelCastType(iter.dtype(1)),
+        getOpenCLKernelCastType(iter.dtype(0))));
   }
   AT_OPENCL_CHECK(syncOpenCLPointer(iter.data_ptr(0)));
 
@@ -155,7 +157,7 @@ static void copy_kernel_opencl(TensorIterator& iter, bool non_blocking) {
   OpenCLStream stream = getCurrentOpenCLStream();
 
   // Copy between CPU and Device
-  opencl::OptionalOpenCLGuard device_guard;
+  at::opencl::OptionalOpenCLGuard device_guard;
   if (dst_device.is_opencl() && src_device.is_cpu()) {
     device_guard.set_device(dst_device);
     AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer((*toBuffer(dst)), !non_blocking, 0, nbytes, src));
