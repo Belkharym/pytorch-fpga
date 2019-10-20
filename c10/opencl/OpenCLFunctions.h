@@ -67,12 +67,9 @@ namespace {
 
 template<typename Func, typename... Args>
 typename std::enable_if<(c10::opencl::function_traits<Func>::arity == sizeof...(Args)), c10::optional<Func>>::type opencl_kernel_func(const std::string& kernel_func_name, cl::EnqueueArgs config, cl_int *err) {
-    TORCH_WARN("kernel_func_name: ", kernel_func_name);
-    TORCH_WARN(__PRETTY_FUNCTION__);
     auto kernel = opencl_kernel(kernel_func_name, err);
     if (kernel.has_value()) {
         return {(Func)[=](Args&&... args) -> cl_int {
-            TORCH_WARN(__PRETTY_FUNCTION__);
             auto functor = cl::KernelFunctor<Args...>{kernel.value()};
             cl_int cl_err;
             functor(config, std::forward<Args&&>(args)..., cl_err);
