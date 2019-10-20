@@ -79,13 +79,13 @@ DECLARE_INT_COMP(long, long, l)
 
 __kernel void pointwise_op_comp_3(__global const void* a, __global const void* b, __global void* out, const enum OpenCLOperationsComp3 op, const enum OpenCLCastType typeTensor) {
     switch(typeTensor) {
-        POINTWISE_OP_3_CASE_(b, bool, BOOL, POINTWISE_OP_3)
-        POINTWISE_OP_3_CASE_(c, char, CHAR, POINTWISE_OP_3)
-        POINTWISE_OP_3_CASE_(s, short, SHORT, POINTWISE_OP_3)
-        POINTWISE_OP_3_CASE_(i, int, INT, POINTWISE_OP_3)
-        POINTWISE_OP_3_CASE_(l, long, LONG, POINTWISE_OP_3)
-        POINTWISE_OP_3_CASE_(f, float, FLOAT, POINTWISE_OP_3)
-        POINTWISE_OP_3_CASE_(d, double, DOUBLE, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(b, bool, BOOL, POINTWISE_OP_COMP_3)
+        POINTWISE_OP_3_CASE_(c, char, CHAR, POINTWISE_OP_COMP_3)
+        POINTWISE_OP_3_CASE_(s, short, SHORT, POINTWISE_OP_COMP_3)
+        POINTWISE_OP_3_CASE_(i, int, INT, POINTWISE_OP_COMP_3)
+        POINTWISE_OP_3_CASE_(l, long, LONG, POINTWISE_OP_COMP_3)
+        POINTWISE_OP_3_CASE_(f, float, FLOAT, POINTWISE_OP_COMP_3)
+        POINTWISE_OP_3_CASE_(d, double, DOUBLE, POINTWISE_OP_COMP_3)
     }
 }
 
@@ -98,7 +98,7 @@ __kernel void pointwise_op_comp_3(__global const void* a, __global const void* b
 #define POINTWISE_REM_INT(type) \
     ((__global type*)out)[get_global_id(0)] = ((__global typ*)a)[get_global_id(0)] % ((__global type*)b)[get_global_id(0)];
 
-#define REM_CASE(type, name, _) \
+#define OP_CASE(type, name, _) \
     case name: { \
         _(type) \
         break; \
@@ -136,13 +136,13 @@ __kernel void pointwise_op_comp_3(__global const void* a, __global const void* b
         }                                                                                                                   \
         case REM: {                                                                                                         \
             switch(typeTensor) {                                                                                            \
-                REM_CASE(bool, BOOL, POINTWISE_REM_INT)                                                                     \
-                REM_CASE(char, CHAR, POINTWISE_REM_INT)                                                                     \
-                REM_CASE(short, SHORT, POINTWISE_REM_INT)                                                                   \
-                REM_CASE(int, INT, POINTWISE_REM_INT)                                                                       \
-                REM_CASE(long, LONG, POINTWISE_REM_INT)                                                                     \
-                REM_CASE(float, FLOAT, POINTWISE_REM_FLOAT)                                                                 \
-                REM_CASE(double, DOUBLE, POINTWISE_REM_FLOAT)                                                               \
+                OP_CASE(bool, BOOL, POINTWISE_REM_INT)                                                                     \
+                OP_CASE(char, CHAR, POINTWISE_REM_INT)                                                                     \
+                OP_CASE(short, SHORT, POINTWISE_REM_INT)                                                                   \
+                OP_CASE(int, INT, POINTWISE_REM_INT)                                                                       \
+                OP_CASE(long, LONG, POINTWISE_REM_INT)                                                                     \
+                OP_CASE(float, FLOAT, POINTWISE_REM_FLOAT)                                                                 \
+                OP_CASE(double, DOUBLE, POINTWISE_REM_FLOAT)                                                               \
             }                                                                                                               \
             break;                                                                                                          \
         }                                                                                                                   \
@@ -157,7 +157,7 @@ __kernel void pointwise_op_comp_3(__global const void* a, __global const void* b
     }            
 }
 
-#define POINTWISE_OP_3_CASE_(type, name, _) \
+#define POINTWISE_OP_CASE_(type, name, _) \
     case name: { \
         _(type, name) \
         break; \
@@ -166,61 +166,62 @@ __kernel void pointwise_op_comp_3(__global const void* a, __global const void* b
 
 __kernel void pointwise_op_3(__global const void* a, __global const void* b, __global void* out, const enum OpenCLOperationsPointwise3 op, const enum OpenCLCastType typeTensor) { 
     switch(typeTensor) {
-        POINTWISE_OP_3_CASE_(bool, BOOL, POINTWISE_OP_3)
-        POINTWISE_OP_3_CASE_(char, CHAR, POINTWISE_OP_3)
-        POINTWISE_OP_3_CASE_(short, SHORT, POINTWISE_OP_3)
-        POINTWISE_OP_3_CASE_(int, INT, POINTWISE_OP_3)
-        POINTWISE_OP_3_CASE_(long, LONG, POINTWISE_OP_3)
-        POINTWISE_OP_3_CASE_(float, FLOAT, POINTWISE_OP_3)
-        POINTWISE_OP_3_CASE_(double, DOUBLE, POINTWISE_OP_3)
+        POINTWISE_OP_CASE_(bool, BOOL, POINTWISE_OP_3)
+        POINTWISE_OP_CASE_(char, CHAR, POINTWISE_OP_3)
+        POINTWISE_OP_CASE_(short, SHORT, POINTWISE_OP_3)
+        POINTWISE_OP_CASE_(int, INT, POINTWISE_OP_3)
+        POINTWISE_OP_CASE_(long, LONG, POINTWISE_OP_3)
+        POINTWISE_OP_CASE_(float, FLOAT, POINTWISE_OP_3)
+        POINTWISE_OP_CASE_(double, DOUBLE, POINTWISE_OP_3)
     }
     
 }
 
 #undef POINTWISE_REM_FLOAT
 #undef POINTWISE_REM_INT
-#undef REM_CASE
 #undef POINTWISE_OP_3
-#undef POINTWISE_OP_3_CASE_
 
-// Tensor and Scalar
+#define POINTWISE_CEIL_INT(type) \
+     ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)]);
 
-#define POINTWISE_OP_2_INT(suffix, type) \
-__kernel void pointwise_op_2##suffix(__global const type* a, __global type* out, const enum OpenCLOperationsPointwise2 op) { \
+#define POINTWISE_CEIL_FLOAT(type) \
+     ((__global type*)out)[get_global_id(0)] = ceil(((__global type*)a)[get_global_id(0)]);
+
+
+#define POINTWISE_OP_2(type, name) \
     switch(op) { \
         case ABS: { \
-            out[get_global_id(0)] = a[get_global_id(0)] < (type)0 ? -a[get_global_id(0)] : a[get_global_id(0)]; \
+            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] < (type)0 ? -((__global type*)a)[get_global_id(0)] : ((__global type*)a)[get_global_id(0)]; \
             break; \
         } \
         case CEIL: { \
-            out[get_global_id(0)] = a[get_global_id(0)]; \
+            switch typeTensor: {                                                                                            \
+                OP_CASE(bool, BOOL, POINTWISE_CEIL_INT)                                                                     \
+                OP_CASE(char, CHAR, POINTWISE_CEIL_INT)                                                                     \
+                OP_CASE(short, SHORT, POINTWISE_CEIL_INT)                                                                   \
+                OP_CASE(int, INT, POINTWISE_CEIL_INT)                                                                       \
+                OP_CASE(long, LONG, POINTWISE_CEIL_INT)                                                                     \
+                OP_CASE(float, FLOAT, POINTWISE_CEIL_FLOAT)                                                                 \
+                OP_CASE(double, DOUBLE, POINTWISE_CEIL_FLOAT)                                                               \
+            } \
             break; \
         } \
-    } \
+    }
+
+__kernel void pointwise_op_2(__global const void* a, __global void* out, const enum OpenCLOperationsPointwise2 op, const enum OpenCLCastType typeTensor) { \
+    switch(typeTensor) {
+        POINTWISE_OP_CASE_(bool, BOOL, POINTWISE_OP_2)
+        POINTWISE_OP_CASE_(char, CHAR, POINTWISE_OP_2)
+        POINTWISE_OP_CASE_(short, SHORT, POINTWISE_OP_2)
+        POINTWISE_OP_CASE_(int, INT, POINTWISE_OP_2)
+        POINTWISE_OP_CASE_(long, LONG, POINTWISE_OP_2)
+        POINTWISE_OP_CASE_(float, FLOAT, POINTWISE_OP_2)
+        POINTWISE_OP_CASE_(double, DOUBLE, POINTWISE_OP_2)
+    }
 }
 
-
-DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_2_INT)
-
-#undef POINTWISE_OP_2_INT
-
-
-#define POINTWISE_OP_2_FLOAT(suffix, type) \
-__kernel void pointwise_op_2##suffix(__global const type* a, __global type* out, const enum OpenCLOperationsPointwise2 op) { \
-    switch(op) { \
-        case ABS: { \
-            out[get_global_id(0)] = a[get_global_id(0)] < (type)0 ? -a[get_global_id(0)] : a[get_global_id(0)]; \
-            break; \
-        } \
-        case CEIL: { \
-            out[get_global_id(0)] = ceil((type)a[get_global_id(0)]); \
-            break; \
-        } \
-    } \
-}
-
-POINTWISE_OP_2_FLOAT(f, float)
-POINTWISE_OP_2_FLOAT(d, float)
-//DEFINE_KERNEL_FOR_ALL_TYPES(POINTWISE_OP_2)
-#undef POINTWISE_OP_2_FLOAT
-
+#undef POINTWISE_CEIL_FLOAT
+#undef POINTWISE_CEIL_INT
+#undef POINTWISE_OP_CASE_
+#undef OP_CASE
+#undef POINTWISE_OP_2
