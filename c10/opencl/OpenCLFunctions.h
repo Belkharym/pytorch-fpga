@@ -13,12 +13,16 @@ namespace opencl {
 
 namespace {
 
-template <size_t _i, typename _Arg, typename... _Args>
-struct _arg {
-    typedef typename std::conditional<_i == 0, _Arg, typename _arg<_i - 1, _Args...>::type>::type type;
+template <typename _Arg>
+struct _arg_stop {
+    typedef _Arg type;
 };
 
-} // namespace
+template <size_t _i, typename _Arg = void, typename... _Args>
+struct _arg : _arg<_i - 1, _Args...> {};
+
+template <typename _Arg, typename... _Args>
+struct _arg<0, _Arg, _Args...> : _arg_stop<_Arg> {};
 
 /// https://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda
 template <typename T>
@@ -45,6 +49,7 @@ struct function_traits<ReturnType(ClassType::*)(Args...) const>
     };
 };
 
+} // namespace
 
 DeviceIndex device_count() noexcept;
 // Returns the current device.
@@ -59,38 +64,46 @@ cl::Device opencl_device(DeviceIndex device_id = -1);
 c10::optional<cl::Kernel> opencl_kernel(const std::string& kernel_func_name, cl_int *err = NULL);
 
 namespace {
-struct _final_recursion {};
-}
 
-template<typename Func, typename... Args, typename = _final_recursion>
-c10::optional<Func> opencl_kernel_func(const std::string& kernel_func_name, cl::EnqueueArgs config, cl_int *err = NULL) {
+template<typename Func, typename... Args>
+typename std::enable_if<(c10::opencl::function_traits<Func>::arity == sizeof...(Args)), c10::optional<Func>>::type opencl_kernel_func(const std::string& kernel_func_name, cl::EnqueueArgs config, cl_int *err) {
+    TORCH_WARN("kernel_func_name: ", kernel_func_name);
+    TORCH_WARN(__PRETTY_FUNCTION__);
     auto kernel = opencl_kernel(kernel_func_name, err);
     if (kernel.has_value()) {
-        auto functor = cl::KernelFunctor<Args...>{kernel.value()};
-        return {[&](Args&&... args) {
-            cl_int err;
-            functor(config, std::forward<Args&&>(args)..., err);
-            return err;
+        return {(Func)[=](Args&&... args) -> cl_int {
+            TORCH_WARN(__PRETTY_FUNCTION__);
+            auto functor = cl::KernelFunctor<Args...>{kernel.value()};
+            cl_int cl_err;
+            functor(config, std::forward<Args&&>(args)..., cl_err);
+            return cl_err;
         }};
     }
     return {};
 }
 
-template<typename Func, typename... Args, typename std::enable_if<std::is_function<Func>::value && !(c10::opencl::function_traits<Func>::arity > sizeof...(Args)), void>::type>
-c10::optional<Func> opencl_kernel_func(const std::string &&kernel_func_name, cl::EnqueueArgs  &&config, cl_int* &&err = NULL) {
-    opencl_kernel_func<Func, Args..., _final_recursion>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
+template<typename Func, typename... Args>
+typename std::enable_if<!(c10::opencl::function_traits<Func>::arity > sizeof...(Args)), c10::optional<Func>>::type opencl_kernel_func(const std::string &&kernel_func_name, cl::EnqueueArgs  &&config, cl_int* &&err) {
+    return opencl_kernel_func<Func, Args...>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
 }
 
-template<typename Func, typename... Args, size_t N = c10::opencl::function_traits<Func>::arity, size_t M = sizeof...(Args), typename std::enable_if<std::is_function<Func>::value && (N > M), void>::type>
-c10::optional<Func> opencl_kernel_func(const std::string &&kernel_func_name, cl::EnqueueArgs  &&config, cl_int* &&err = NULL) {
-    typedef typename c10::opencl::function_traits<Func>::arg<(N - M) - 1>::type NewArg;
-    opencl_kernel_func<Func, NewArg, Args...>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
+template<typename Func, typename... Args, size_t N = c10::opencl::function_traits<Func>::arity, size_t M = sizeof...(Args)>
+typename std::enable_if<(N > M), c10::optional<Func>>::type opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl_int* err) {
+    typedef typename c10::opencl::function_traits<Func>::template arg<(N - M) - 1>::type NewArg;
+    return opencl_kernel_func<Func, NewArg, Args...>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
 }
 
-template<typename Func, size_t N = c10::opencl::function_traits<Func>::arity, size_t M = 0, typename std::enable_if<std::is_function<Func>::value && (N > M), void>::type>
-c10::optional<Func> opencl_kernel_func(const std::string &&kernel_func_name, cl::EnqueueArgs  &&config, cl_int* &&err = NULL) {
-    typedef typename c10::opencl::function_traits<Func>::arg<(N - M) - 1>::type NewArg;
-    opencl_kernel_func<Func, NewArg>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
+}
+
+template<typename Func, size_t N = c10::opencl::function_traits<Func>::arity>
+typename std::enable_if<(N > 0), c10::optional<Func>>::type opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl_int* err = NULL) {
+    typedef typename c10::opencl::function_traits<Func>::template arg<N - 1>::type NewArg;
+    return opencl_kernel_func<Func, NewArg>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
+}
+
+template<typename Func, size_t N = c10::opencl::function_traits<Func>::arity>
+typename std::enable_if<(N == 0), c10::optional<Func>>::type opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl_int* err = NULL) {
+    return opencl_kernel_func<Func>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
 }
 
 C10_API std::string clRemoveNullChars(const std::string &str);
