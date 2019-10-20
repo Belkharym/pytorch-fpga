@@ -63,12 +63,33 @@ DECLARE_INT_COMP(long, long, l)
 // The type 'Operations' is an enumaration, since we can't give a function pointer as a parameter
 // in some implementations (for instance, on FPGAs). Thus we use predefined operations and we choose
 // the operation within the enumaration (maybe using a switch-case statement).
+
+
 #define POINTWISE_OP_COMP_3(suffix, type) \
-__kernel void pointwise_op_comp_3##suffix(__global const type* a, __global const type* b, __global type* out, const enum OpenCLOperationsComp3 op) { \
-    out[get_global_id(0)] = (type)comp##suffix((type)a[get_global_id(0)], (type)b[get_global_id(0)], op); \
+    ((__global type*)out)[get_global_id(0)] = (__global type*)comp##suffix(((__global type*)a)[get_global_id(0)], ((__global type*)b)[get_global_id(0)], op);
+
+
+
+#define POINTWISE_OP_COMP_3_CASE_(suffix, type, name, _) \
+    case name: { \
+        _(suffix, type) \
+    break; \
+  }
+
+
+
+__kernel void pointwise_op_comp_3(__global const void* a, __global const void* b, __global void* out, const enum OpenCLOperationsComp3 op, const enum OpenCLCastType typeTensor) { \
+    switch(typeTensor) {
+        POINTWISE_OP_3_CASE_(b, bool, BOOL, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(c, char, CHAR, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(s, short, SHORT, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(i, int, INT, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(l, long, LONG, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(f, float, FLOAT, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(d, double, DOUBLE, POINTWISE_OP_3)
+    }
 }
-DEFINE_KERNEL_FOR_ALL_TYPES(POINTWISE_OP_COMP_3)
-#undef POINTWISE_OP_COMP_3
+
 
 #define POINTWISE_OP_3_INT(suffix, type) \
 __kernel void pointwise_op_3##suffix(__global const type* a, __global const type* b, __global type* out, const enum OpenCLOperationsPointwise3 op) { \
