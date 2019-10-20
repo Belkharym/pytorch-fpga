@@ -51,7 +51,7 @@ static cl::Buffer &toBuffer(const StorageImpl* s) {
 
 static void pointwise_op3(StorageImpl* c, const StorageImpl* a, const StorageImpl* b, at::native::opencl::OpenCLOperationsPointwise3 op, const ScalarType scalar_type) {
   // DONE Call OpenCL kernel.
-  auto kernel_name = "pointwise_op_3" + getOpenCLKernelTypeSuffix(scalar_type);
+  auto kernel_name = "pointwise_op_3";
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
@@ -67,24 +67,15 @@ static void pointwise_op3(StorageImpl* c, const StorageImpl* a, const StorageImp
 
 template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
 static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b, at::native::opencl::OpenCLOperationsPointwise3 op) {
-  // DONE Call OpenCL kernel.
-  auto kernel_name = "pointwise_op_2" + getOpenCLKernelTypeSuffix(T) + "_s";
-  auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
-  TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
-  cl::Kernel pointwise_op = opt_kernel.value();
-  auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  AT_OPENCL_CHECK(c10::opencl::runKernel(pointwise_op, {*stream.stream(), a->numel(), 1},
-      toBuffer(a),
-      b.to<S>(),
-      toBuffer(c),
-      op));
-  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get()));
-  AT_OPENCL_CHECK(stream.stream()->finish());
+  Tensor scalar_tensor = at::native::empty_opencl({0}, self.options(), self.suggest_memory_format());
+  scalar_tensor.fill_(Scalar((S)b.to<S>);
+  auto scalar_tensor_ = checked_tensor_unwrap(scalar_tensor, "value_b", 2, "fill_kernel_opencl", false, c10::Backend::OpenCL, T);
+  pointwise_op3(a, scalar_tensor.storage().unsafeGetStorageImpl(), c, op, T);
 }
 
 static void pointwise_op2(StorageImpl* b, const StorageImpl* a, at::native::opencl::OpenCLOperationsPointwise2 op, const ScalarType scalar_type) {
   // DONE Call OpenCL kernel.
-  auto kernel_name = "pointwise_op_2" + getOpenCLKernelTypeSuffix(scalar_type);
+  auto kernel_name = "pointwise_op_2";
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
   cl::Kernel pointwise_op = opt_kernel.value();
