@@ -184,13 +184,11 @@ __kernel void pointwise_op_3(__global const void* a, __global const void* b, __g
 #undef POINTWISE_OP_3
 #undef POINTWISE_OP_3_CASE_
 
+
+
+
 // Tensor and Scalar
-#define POINTWISE_OP_COMP_2S(suffix, type) \
-__kernel void pointwise_op_comp_2##suffix##_s(__global const type* a, const type b, __global type* out, const enum OpenCLOperationsComp3 op) { \
-    out[get_global_id(0)] = comp##suffix(a[get_global_id(0)], b, op); \
-}
-DEFINE_KERNEL_FOR_ALL_TYPES(POINTWISE_OP_COMP_2S)
-#undef POINTWISE_OP_COMP_2S
+
 
 #define POINTWISE_OP_2S_INT(suffix, type) \
 __kernel void pointwise_op_2##suffix##_s(__global const type* a, const type b, __global type* out, const enum OpenCLOperationsPointwise3 op) { \
