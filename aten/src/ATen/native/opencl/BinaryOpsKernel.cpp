@@ -61,7 +61,7 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
 
 static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImpl* out, at::native::opencl::OpenCLOperationsPointwise3 op, const ScalarType scalar_type) {
   // DONE Call OpenCL kernel.
-  auto kernel_name = "operation_3" + getOpenCLKernelTypeSuffix(scalar_type);
+  auto kernel_name = "pointwise_op_3";
   auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
   if (!opt_kernel) {
     TORCH_WARN("No value for kernel \"", kernel_name, "\"");
