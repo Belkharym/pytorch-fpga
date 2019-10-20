@@ -48,7 +48,7 @@ inline TensorImpl* resize_impl_opencl_(
   }
 
   // NB: We don't need to hold the device guard when calling from TH
-  opencl::OptionalOpenCLGuard guard;
+  at::opencl::OptionalOpenCLGuard guard;
   if (device_guard) {
     guard.set_index(self->storage().device().index());
   }
