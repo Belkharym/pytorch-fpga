@@ -89,6 +89,8 @@ __kernel void pointwise_op_comp_3(__global const void* a, __global const void* b
     }
 }
 
+#undef POINTWISE_OP_COMP_3
+#undef POINTWISE_OP_COMP_3_CASE_
 
 #define POINTWISE_OP_3_INT(suffix, type) \
 __kernel void pointwise_op_3##suffix(__global const type* a, __global const type* b, __global type* out, const enum OpenCLOperationsPointwise3 op) { \
