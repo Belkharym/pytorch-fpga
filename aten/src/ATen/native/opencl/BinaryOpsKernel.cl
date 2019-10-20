@@ -1,21 +1,53 @@
 #include "aten/src/ATen/native/opencl/OpenCLKernelMacros.clh"
 #include "aten/src/ATen/native/opencl/OpenCLOperations.h"
 
-
-#define POINTWISE_OP_3S(suffix, type) \
-__kernel void operation_3##suffix##_s(__global const type* a, __global const type* other, __global type* out, const type alpha, const enum OpenCLOperationsPointwise3s op) { \
-    switch(op) { \
-        case ADDS: { \
-            out[get_global_id(0)] = a[get_global_id(0)] + other[get_global_id(0)] * alpha; \
-            break; \
-        } \
-        case SUBS: { \
-            out[get_global_id(0)] = a[get_global_id(0)] - other[get_global_id(0)] * alpha; \
-            break; \
-        } \
-    } \
+#define OPERATION(type1, type2)
+switch(op) { \
+  case ADDS: { \
+    ((__global type1*)out)[get_global_id(0)] = ((__global type1*)a)[get_global_id(0)] + ((__global type1*)other)[get_global_id(0)] * ((__global type2*)alpha)[get_global_id(0)]; \
+    break; \
+  } \
+  case SUBS: { \
+    ((__global type1*)out)[get_global_id(0)] = ((__global type1*)a)[get_global_id(0)] - ((__global type1*)other)[get_global_id(0)] * ((__global type2*)alpha)[get_global_id(0)]; \
+    break; \
+  } \
 }
 
-DEFINE_KERNEL_FOR_ALL_TYPES(POINTWISE_OP_3S)
-#undef POINTWISE_OP_3S
+#define OPERATION_CASE(type1, type2, name2) \
+  case name2: { \
+    OPERATION(type1, type2) \
+    break; \
+  }
 
+#define OPERATION_CASE_(type1, name1, t2, _) \
+  case name1: { \
+    switch(t2) { \
+      _(type1, bool, BOOL) \
+      _(type1, char, CHAR) \
+      _(type1, short, SHORT) \
+      _(type1, int, INT) \
+      _(type1, long, LONG) \
+      _(type1, float, FLOAT) \
+      _(type1, double, DOUBLE) \
+    } \
+    break; \
+  }
+
+
+
+__kernel void operation_3_s(__global const void* a, __global const void* other, __global void* out, __global const void* alpha, const enum OpenCLOperationsPointwise3s op, const enum OpenCLCastType typeTensor, const enum OpenCLCastType typeAlpha) { \
+  switch(typeTensor) {
+    OPERATION_CASE_(bool, BOOL, typeAlpha, OPERATION_CASE)
+    OPERATION_CASE_(char, CHAR, typeAlpha, OPERATION_CASE)
+    OPERATION_CASE_(short, SHORT, typeAlpha, OPERATION_CASE)
+    OPERATION_CASE_(int, INT, typeAlpha, OPERATION_CASE)
+    OPERATION_CASE_(long, LONG, typeAlpha, OPERATION_CASE)
+    OPERATION_CASE_(float, FLOAT, typeAlpha, OPERATION_CASE)
+    OPERATION_CASE_(double, DOUBLE, typeAlpha, OPERATION_CASE)
+  }
+}
+
+
+#undef OPERATION
+#undef OPERATION_CASE
+#undef OPERATION_CASE_

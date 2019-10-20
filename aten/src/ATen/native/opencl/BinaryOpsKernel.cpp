@@ -41,12 +41,19 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
   }
   cl::Kernel pointwise_op = opt_kernel.value();
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
+  
+  Tensor scalar_tensor = at::native::empty_opencl({0}, self.options(), self.suggest_memory_format());
+  scalar_tensor.fill_(Scalar((S)alpha.to<S>);
+  TensorImpl* scalar_tensor_ = checked_tensor_unwrap(scalar_tensor, "value_alpha", 3, "fill_kernel_opencl", false, c10::Backend::OpenCL, T);
+
   AT_OPENCL_CHECK(c10::opencl::runKernel(pointwise_op, {*stream.stream(), a->numel(), 1},
-      toBuffer(a),
-      toBuffer(b),
-      toBuffer(out),
-      alpha.to<S>(),
-      op));
+      *toBuffer(a),
+      *toBuffer(b),
+      *toBuffer(out),
+      *toBuffer(scalar_tensor.data_ptr()),
+      op,
+      getOpenCLKernelCastType(a->data_type_), 
+      getOpenCLKernelCastType(T)));
   AT_OPENCL_CHECK(syncOpenCLPointer(out->data_ptr().get()));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
