@@ -42,11 +42,6 @@ c10::optional<Func> opencl_kernel_func(const std::string& kernel_func_name, cl::
     return {};
 }
 
-template<typename Func, typename... Args, typename std::enable_if<!(c10::function_traits<Func>::arity > sizeof...(Args)), int>::type = 0>
-c10::optional<Func> opencl_kernel_func(const std::string &&kernel_func_name, cl::EnqueueArgs  &&config, cl_int* &&err) {
-    return opencl_kernel_func<Func, Args...>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
-}
-
 template<typename Func, typename... Args, size_t N = c10::function_traits<Func>::arity, size_t M = sizeof...(Args), typename std::enable_if<(N > M), int>::type = 0>
 c10::optional<Func> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl_int* err) {
     typedef typename c10::function_traits<Func>::template argument<(N - M) - 1>::type NewArg;
@@ -57,11 +52,6 @@ template<typename Func, size_t N = c10::function_traits<Func>::arity, typename s
 c10::optional<Func> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl_int* err = NULL) {
     typedef typename c10::function_traits<Func>::template argument<N - 1>::type NewArg;
     return opencl_kernel_func<Func, NewArg>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
-}
-
-template<typename Func, size_t N = c10::function_traits<Func>::arity, typename std::enable_if<(N == 0), int>::type = 0>
-c10::optional<Func> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl_int* err = NULL) {
-    return opencl_kernel_func<Func>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
 }
 
 C10_API std::string clRemoveNullChars(const std::string &str);
