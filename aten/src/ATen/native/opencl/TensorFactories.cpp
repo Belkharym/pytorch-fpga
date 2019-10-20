@@ -180,8 +180,6 @@ Tensor & _ceil_out_opencl(Tensor &out, const Tensor &self) {
   return out;
 }
 
-typedef std::function<cl_int(cl::Buffer, cl::Buffer, at::native::opencl::OpenCLPtrType, at::native::opencl::OpenCLPtrType)> OpenCLCastFunctor;
-
 Tensor & _zero_opencl(Tensor & self) {
   TensorImpl* self_ = checked_tensor_unwrap(self, "self", 2, "_zero_opencl", false, c10::Backend::OpenCL, self.scalar_type());
 

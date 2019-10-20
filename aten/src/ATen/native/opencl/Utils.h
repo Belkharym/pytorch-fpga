@@ -8,12 +8,21 @@
 namespace at {
 namespace native {
 
+#ifndef _MSC_VER
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif
+
 typedef std::function<cl_int(cl::Buffer, cl::Buffer, at::native::opencl::OpenCLPtrType, at::native::opencl::OpenCLPtrType)> OpenCLCastFunctor;
 
 typedef std::function<cl_int(cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsPointwise2, at::native::opencl::OpenCLPtrType)> OpenCLPointwise2Functor;
 typedef std::function<cl_int(cl::Buffer, cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsComp3, at::native::opencl::OpenCLPtrType)> OpenCLComp3Functor;
 typedef std::function<cl_int(cl::Buffer, cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsPointwise3, at::native::opencl::OpenCLPtrType)> OpenCLPointwise3Functor;
 typedef std::function<cl_int(cl::Buffer, cl::Buffer, cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsPointwise3s, at::native::opencl::OpenCLPtrType, at::native::opencl::OpenCLPtrType)> OpenCLPointwise3sFunctor;
+
+#ifndef _MSC_VER
+#pragma GCC diagnostic pop
+#endif
 
 
 inline ScalarType getIntEquivalentOfFloat(const ScalarType type) {

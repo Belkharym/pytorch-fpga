@@ -16,8 +16,6 @@
 
 namespace at { namespace native {
 
-typedef std::function<cl_int(cl::Buffer, cl::Buffer, at::native::opencl::OpenCLPtrType, at::native::opencl::OpenCLPtrType)> OpenCLCastFunctor;
-
 void fill_kernel_opencl(TensorIterator& iter, Scalar value) {
   if (iter.numel() == 0) {
     return;
