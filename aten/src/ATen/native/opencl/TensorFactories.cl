@@ -77,7 +77,7 @@ DECLARE_INT_COMP(long, long, l)
 
 
 
-__kernel void pointwise_op_comp_3(__global const void* a, __global const void* b, __global void* out, const enum OpenCLOperationsComp3 op, const enum OpenCLCastType typeTensor) { \
+__kernel void pointwise_op_comp_3(__global const void* a, __global const void* b, __global void* out, const enum OpenCLOperationsComp3 op, const enum OpenCLCastType typeTensor) {
     switch(typeTensor) {
         POINTWISE_OP_3_CASE_(b, bool, BOOL, POINTWISE_OP_3)
         POINTWISE_OP_3_CASE_(c, char, CHAR, POINTWISE_OP_3)
@@ -92,102 +92,96 @@ __kernel void pointwise_op_comp_3(__global const void* a, __global const void* b
 #undef POINTWISE_OP_COMP_3
 #undef POINTWISE_OP_COMP_3_CASE_
 
-#define POINTWISE_OP_3_INT(suffix, type) \
-__kernel void pointwise_op_3##suffix(__global const type* a, __global const type* b, __global type* out, const enum OpenCLOperationsPointwise3 op) { \
+#define POINTWISE_REM_FLOAT(type) \
+    ((__global type*)out)[get_global_id(0)] = fmod(((__global typ*)a)[get_global_id(0)], ((__global type*)b)[get_global_id(0)]);
+
+#define POINTWISE_REM_INT(type) \
+    ((__global type*)out)[get_global_id(0)] = ((__global typ*)a)[get_global_id(0)] % ((__global type*)b)[get_global_id(0)];
+
+#define REM_CASE(type, name, _) \
+    case name: { \
+        _(type) \
+        break; \
+    }
+
+#define POINTWISE_OP_3(type, name) \
     switch(op) {                                                                                                            \
         case BAND: {                                                                                                        \
-            out[get_global_id(0)] = a[get_global_id(0)] & b[get_global_id(0)];                                              \
+            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] & ((__global type*)b)[get_global_id(0)];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
         case MIN: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] < b[get_global_id(0)] ? a[get_global_id(0)] : b[get_global_id(0)];  \
+            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] < ((__global type*)b)[get_global_id(0)] ? ((__global type*)a)[get_global_id(0)] : ((__global type*)b)[get_global_id(0)];  \
             break;                                                                                                          \
         }                                                                                                                   \
         case MAX: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] > b[get_global_id(0)] ? a[get_global_id(0)] : b[get_global_id(0)];  \
+            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] > ((__global type*)b)[get_global_id(0)] ? ((__global type*)a)[get_global_id(0)] : ((__global type*)b)[get_global_id(0)];  \
             break;                                                                                                          \
         }                                                                                                                   \
         case ADD: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] + b[get_global_id(0)];                                              \
+            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] + ((__global type*)b)[get_global_id(0)];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
         case SUB: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] - b[get_global_id(0)];                                              \
+            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] - ((__global type*)b)[get_global_id(0)];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
         case MUL: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] * b[get_global_id(0)];                                              \
+            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] * ((__global type*)b)[get_global_id(0)];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
         case DIV: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] / b[get_global_id(0)];                                              \
+            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] / ((__global type*)b)[get_global_id(0)];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
         case REM: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] % b[get_global_id(0)];                                              \
+            switch(typeTensor) {                                                                                            \
+                REM_CASE(bool, BOOL, POINTWISE_REM_INT)                                                                     \
+                REM_CASE(char, CHAR, POINTWISE_REM_INT)                                                                     \
+                REM_CASE(short, SHORT, POINTWISE_REM_INT)                                                                   \
+                REM_CASE(int, INT, POINTWISE_REM_INT)                                                                       \
+                REM_CASE(long, LONG, POINTWISE_REM_INT)                                                                     \
+                REM_CASE(float, FLOAT, POINTWISE_REM_FLOAT)                                                                 \
+                REM_CASE(double, DOUBLE, POINTWISE_REM_FLOAT)                                                               \
+            }                                                                                                               \
             break;                                                                                                          \
         }                                                                                                                   \
         case BXOR: {                                                                                                        \
-            out[get_global_id(0)] = a[get_global_id(0)] ^ b[get_global_id(0)];                                              \
+            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] ^ ((__global type*)b)[get_global_id(0)];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
         case ATAN2: {                                                                                                       \
             out[get_global_id(0)] = atan2((float)a[get_global_id(0)], (float)b[get_global_id(0)]);                          \
             break;                                                                                                          \
         }                                                                                                                   \
-    }                                                                                                                       \
-}
-DEFINE_KERNEL_FOR_INTS(POINTWISE_OP_3_INT)
-#undef POINTWISE_OP_3_INT
-
-#define POINTWISE_OP_3_FP(suffix, type) \
-__kernel void pointwise_op_3##suffix(__global const type* a, __global const type* b, __global type* out, const enum OpenCLOperationsPointwise3 op) { \
-    switch(op) {                                                                                                            \
-        case BAND: {                                                                                                        \
-            out[get_global_id(0)] = (type)((bool)a[get_global_id(0)] && (bool)b[get_global_id(0)]);                         \
-            break;                                                                                                          \
-        }                                                                                                                   \
-        case MIN: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] < b[get_global_id(0)] ? a[get_global_id(0)] : b[get_global_id(0)];  \
-            break;                                                                                                          \
-        }                                                                                                                   \
-        case MAX: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] > b[get_global_id(0)] ? a[get_global_id(0)] : b[get_global_id(0)];  \
-            break;                                                                                                          \
-        }                                                                                                                   \
-        case ADD: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] + b[get_global_id(0)];                                              \
-            break;                                                                                                          \
-        }                                                                                                                   \
-        case SUB: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] - b[get_global_id(0)];                                              \
-            break;                                                                                                          \
-        }                                                                                                                   \
-        case MUL: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] * b[get_global_id(0)];                                              \
-            break;                                                                                                          \
-        }                                                                                                                   \
-        case DIV: {                                                                                                         \
-            out[get_global_id(0)] = a[get_global_id(0)] / b[get_global_id(0)];                                              \
-            break;                                                                                                          \
-        }                                                                                                                   \
-        case REM: {                                                                                                         \
-            out[get_global_id(0)] = fmod((float)a[get_global_id(0)], (float)b[get_global_id(0)]);                         \
-            break;                                                                                                          \
-        }                                                                                                                   \
-        case BXOR: {                                                                                                        \
-            out[get_global_id(0)] = a[get_global_id(0)] != b[get_global_id(0)];                                             \
-            break;                                                                                                          \
-        }                                                                                                                   \
-        case ATAN2: {                                                                                                       \
-            out[get_global_id(0)] = atan2((float)a[get_global_id(0)], (float)b[get_global_id(0)]);                          \
-            break;                                                                                                          \
-        }                                                                                                                   \
-    }                                                                                                                       \
+    }            
 }
 
-DEFINE_KERNEL_FOR_FLOATS(POINTWISE_OP_3_FP)
-#undef POINTWISE_OP_3_FP
+#define POINTWISE_OP_3_CASE_(type, name, _) \
+    case name: { \
+        _(type, name) \
+        break; \
+    }
+
+
+__kernel void pointwise_op_3(__global const void* a, __global const void* b, __global void* out, const enum OpenCLOperationsPointwise3 op, const enum OpenCLCastType typeTensor) { 
+    switch(typeTensor) {
+        POINTWISE_OP_3_CASE_(bool, BOOL, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(char, CHAR, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(short, SHORT, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(int, INT, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(long, LONG, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(float, FLOAT, POINTWISE_OP_3)
+        POINTWISE_OP_3_CASE_(double, DOUBLE, POINTWISE_OP_3)
+    }
+    
+}
+
+#undef POINTWISE_REM_FLOAT
+#undef POINTWISE_REM_INT
+#undef REM_CASE
+#undef POINTWISE_OP_3
+#undef POINTWISE_OP_3_CASE_
 
 // Tensor and Scalar
 #define POINTWISE_OP_COMP_2S(suffix, type) \
