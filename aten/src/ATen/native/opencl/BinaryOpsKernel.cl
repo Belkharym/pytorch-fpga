@@ -1,7 +1,7 @@
 #include "aten/src/ATen/native/opencl/OpenCLKernelMacros.clh"
 #include "aten/src/ATen/native/opencl/OpenCLOperations.h"
 
-#define OPERATION(type1, type2)
+#define OPERATION(type1, type2) \
 switch(op) { \
   case ADDS: { \
     ((__global type1*)out)[get_global_id(0)] = ((__global type1*)a)[get_global_id(0)] + ((__global type1*)other)[get_global_id(0)] * ((__global type2*)alpha)[get_global_id(0)]; \
