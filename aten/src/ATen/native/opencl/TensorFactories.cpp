@@ -121,6 +121,8 @@ Tensor _and_opencl(const Tensor & self, const Tensor & other) {
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_and_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   auto other_ = checked_tensor_unwrap(other, "other", 2, "_and_opencl", false, c10::Backend::OpenCL, self.scalar_type());
 
+  TORCH_CHECK(isIntegralType(self.scalar_type(), true) && isIntegralType(other.scalar_type(), true), "_and_opencl operation is undefined for floating point scalar types (", self.scalar_type(), ", ", other.scalar_type(), ").");
+
   opencl_resize(result_, self_->sizes(), {});
   TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
   pointwise_op3(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), other_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise3::BAND, self.scalar_type());
@@ -136,6 +138,8 @@ Tensor _and_opencl(const Tensor & self, Scalar other) {
   auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_and_opencl", false, c10::Backend::OpenCL, self.scalar_type());
 
+  TORCH_CHECK(isIntegralType(self.scalar_type(), true), "_and_opencl operation is undefined for floating point scalar types (", self.scalar_type(), ").");
+
   opencl_resize(result_, self_->sizes(), {});
   TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
   auto scalar_type = self.scalar_type();
@@ -145,7 +149,7 @@ Tensor _and_opencl(const Tensor & self, Scalar other) {
     case ScalarType::name: \
       pointwise_op2_s<ScalarType::name, type>(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), other, at::native::opencl::OpenCLOperationsPointwise3::BAND); \
       break;
-    AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(DEFINE_OPENCL_AND_CASE)
+    AT_FORALL_SCALAR_TYPES_AND(Bool, DEFINE_OPENCL_AND_CASE)
 #undef DEFINE_OPENCL_AND_CASE
 
   default:
@@ -260,7 +264,7 @@ Tensor _opencl_max(const Tensor &self, const Tensor &other) {
 }
 
 Tensor _opencl_max(const Tensor &self) {
-  return at::native::legacy::cpu::_th_max(self.toBackend(Backend::CPU)).toBackend(Backend::OpenCL);
+  return self.toBackend(Backend::CPU).max().toBackend(Backend::OpenCL);
 }
 Tensor empty_strided_opencl(IntArrayRef size, IntArrayRef stride, const TensorOptions& options) {
   auto t = at::native::empty_opencl({0}, options);
@@ -318,25 +322,25 @@ Tensor & _opencl_set_(Tensor &self, Tensor &src) {
 Tensor _opencl_cat(TensorList tensors, int64_t dim) {
   std::vector<Tensor> cpuTensors;
   std::transform(tensors.begin(), tensors.end(), std::back_inserter(cpuTensors), [](const Tensor& t) -> Tensor {return t.toBackend(Backend::CPU);});
-  return at::native::legacy::cpu::_th_cat(cpuTensors, dim).toBackend(Backend::OpenCL);
+  return at::native::cat(cpuTensors, dim).toBackend(Backend::OpenCL);
 }
 
 Tensor & _opencl_cat_out(Tensor & self, TensorList tensors, int64_t dim) {
   std::vector<Tensor> cpuTensors;
   std::transform(tensors.begin(), tensors.end(), std::back_inserter(cpuTensors), [](const Tensor& t) -> Tensor {return t.toBackend(Backend::CPU);});
   auto self2 = self.toBackend(Backend::CPU);
-  at::native::legacy::cpu::_th_cat_out(self2, tensors, dim);
+  at::native::cat_out(self2, cpuTensors, dim);
   self = self2.toBackend(Backend::OpenCL);
   return self;
 }
 
 Tensor & _opencl_remainder_out(Tensor & result, const Tensor & self, Scalar other) {
   auto scalar_type = self.scalar_type();
-  auto result_ = checked_tensor_unwrap(self, "self", 1, "_opencl_remainder", false, Backend::OpenCL, scalar_type);
+  auto result_ = checked_tensor_unwrap(result, "result", 0, "_opencl_remainder", false, Backend::OpenCL, scalar_type);
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_remainder", false, Backend::OpenCL, scalar_type);
 
   // The implementation applies fmod to the floating point types.
-  //TORCH_CHECK(isIntegralType(self.scalar_type()), "Remainder only applies to integral types");
+  //TORCH_CHECK(isIntegralType(self.scalar_type(), true), "Remainder only applies to integral types");
 
   opencl_resizeAs(result_, self_);
   TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
@@ -365,7 +369,7 @@ Tensor _opencl_remainder(const Tensor & self, Scalar other) {
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_remainder", false, Backend::OpenCL, scalar_type);
 
   // The implementation applies fmod to the floating point types.
-  //TORCH_CHECK(isIntegralType(scalar_type), "Remainder only applies to integral types");
+  //TORCH_CHECK(isIntegralType(scalar_type, true), "Remainder only applies to integral types");
 
   opencl_resizeAs(result_, self_);
   TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
@@ -410,7 +414,7 @@ Tensor _opencl_remainder(const Tensor & self, const Tensor & other) {
   auto other_ = checked_tensor_unwrap(self, "other", 2, "_opencl_remainder", false, Backend::OpenCL, scalar_type);
 
   // The implementation applies fmod to the floating point types.
-  //TORCH_CHECK(isIntegralType(self.scalar_type()), "Remainder only applies to integral types");
+  //TORCH_CHECK(isIntegralType(self.scalar_type(), true), "Remainder only applies to integral types");
 
   TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
   opencl_resizeAs(result_, self_);

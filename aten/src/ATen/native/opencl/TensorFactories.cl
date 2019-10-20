@@ -170,7 +170,6 @@ __kernel void pointwise_op_comp_2s(__global const void* a, __global const void* 
 #define POINTWISE_OP_3_FLOAT(type, name) \
     switch(op) {                                                                                                            \
         case BAND: {                                                                                                        \
-            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] && ((__global type*)b)[get_global_id(0)];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
         case MIN: {                                                                                                         \
@@ -258,7 +257,6 @@ __kernel void pointwise_op_comp_2s(__global const void* a, __global const void* 
 #define POINTWISE_OP_2S_FLOAT(type, name) \
     switch(op) {                                                                                                            \
         case BAND: {                                                                                                        \
-            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] && ((__global type*)b)[0];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
         case MIN: {                                                                                                         \
