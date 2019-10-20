@@ -1,0 +1,114 @@
+#ifndef __FUNCTION_TRAITS_H__
+#define __FUNCTION_TRAITS_H__
+
+#include <cstddef>
+#include <type_traits>
+
+namespace c10 {
+namespace {
+/**
+ * @brief   A namespace to contain the definition of the Template parameter
+ *          pack iterator.
+ * 
+ * {@code __Pack_It} is a Template structure used to find the i-eth type of a
+ * template parameter pack. This is made using recursion.
+ * 
+ * We start by defining the structure that recursivly inherite from itself.
+ * 
+ * Then, we define the final step {@code __Pack_It_stop} which recovers the
+ * current type 
+ */
+
+/**
+ * @brief   The Template parameter pack Iterator.
+ * 
+ * This struct will recursively pass the next types {@code _Tps} while
+ * decrementing the counter {@code _i} which decrement for each type we iterate
+ * through.
+ * 
+ * The default behavious is to return {@code void} as the default type
+ * when no types are provided, or when we iterated through the whole pack but
+ * the counter has not reached 0 yet.
+ * 
+ * @param   size_t      _i      The index in the pack of the type we desire to
+ *                              fetch.
+ * @param   typename    _Tp     The current type through which we iterate.
+ * @param   typename    _Tps    The rest of the pack we have to iterate
+ *                              through.
+ */
+template <size_t _i, typename _Tp = void, typename... _Tps>
+struct __Pack_It : __Pack_It<_i - 1, _Tps...> {};
+
+/**
+ * @brief   The final step in the recursive Template parameter pack Iterator.
+ * 
+ * This struct will simply fetch and return the current type {@code _Tp}
+ * by defining its own {@code type} type as being {@code _Tp}.
+ */
+template <typename _Tp, typename... _Tps>
+struct __Pack_It<0, _Tp, _Tps...> {
+    typedef _Tp type;
+};
+
+} // namespace
+
+// For generic types, directly use the result of the signature of its 'operator()'
+template <class T>
+struct function_traits
+    : public function_traits<decltype(&T::operator())> {};
+
+template<class F>
+struct function_traits<F&>
+    : public function_traits<F> {};
+ 
+template<class F>
+struct function_traits<F&&>
+    : public function_traits<F> {};
+
+template <typename R, typename... Args>
+struct function_traits<R(Args...)>
+{
+    // arity is the number of arguments.
+    static constexpr size_t arity = sizeof...(Args);
+
+    typedef R result_type;
+
+    template <size_t i>
+    struct argument {
+        static_assert(i < arity, "error: invalid parameter index.");
+        typedef typename __Pack_It<i, Args...>::type type;
+    };
+};
+
+template<typename R, typename... Args>
+struct function_traits<R(Args...) const>
+    : function_traits<R(Args...)> {};
+
+// function pointer
+template<typename R, typename... Args>
+struct function_traits<R(*)(Args...)>
+    : public function_traits<R(Args...)> {};
+
+// member function pointer
+template<class C, typename R, typename... Args>
+struct function_traits<R(C::*)(Args...)>
+    : public function_traits<R(C&,Args...)> {};
+ 
+// const member function pointer
+template<class C, typename R, typename... Args>
+struct function_traits<R(C::*)(Args...) const>
+    : public function_traits<R(C&,Args...)> {};
+ 
+// member object pointer
+template<class C, typename R>
+struct function_traits<R(C::*)>
+    : public function_traits<R(C&)> {};
+
+// std::function
+template<typename F>
+struct function_traits<std::function<F>>
+    : function_traits<F> {};
+
+} // namespace c10
+
+#endif // !__FUNCTION_TRAITS_H__
