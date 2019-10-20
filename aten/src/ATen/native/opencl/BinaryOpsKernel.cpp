@@ -47,10 +47,10 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
   TensorImpl* scalar_tensor_ = checked_tensor_unwrap(scalar_tensor, "value_alpha", 3, "fill_kernel_opencl", false, c10::Backend::OpenCL, T);
 
   AT_OPENCL_CHECK(c10::opencl::runKernel(pointwise_op, {*stream.stream(), a->numel(), 1},
-      *toBuffer(a),
-      *toBuffer(b),
-      *toBuffer(out),
-      *toBuffer(scalar_tensor.data_ptr()),
+      toBuffer(a),
+      toBuffer(b),
+      toBuffer(out),
+      toBuffer(scalar_tensor.data_ptr()),
       op,
       getOpenCLKernelCastType(T), 
       getOpenCLKernelCastType(T)));
