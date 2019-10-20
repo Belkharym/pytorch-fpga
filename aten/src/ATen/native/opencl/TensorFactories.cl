@@ -147,7 +147,7 @@ __kernel void pointwise_op_comp_3(__global const void* a, __global const void* b
             break;                                                                                                          \
         }                                                                                                                   \
         case BXOR: {                                                                                                        \
-            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] ^ ((__global type*)b)[get_global_id(0)];                                              \
+            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] ^ ((__global type*)b)[get_global_id(0)]; z\
             break;                                                                                                          \
         }                                                                                                                   \
         case ATAN2: {                                                                                                       \
@@ -225,3 +225,4 @@ __kernel void pointwise_op_2(__global const void* a, __global void* out, const e
 #undef POINTWISE_OP_CASE_
 #undef OP_CASE
 #undef POINTWISE_OP_2
+
