@@ -34,23 +34,20 @@ template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPTyp
 static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageImpl* out, const Scalar alpha, at::native::opencl::OpenCLOperationsPointwise3s op) {
   // DONE Call OpenCL kernel.
   auto kernel_name = "operation_3_s";
-  auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
-  if (!opt_kernel) {
-    TORCH_WARN("No value for kernel \"", kernel_name, "\"");
-    return;
-  }
-  cl::Kernel pointwise_op = opt_kernel.value();
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
+  auto opt_kernel = c10::opencl::opencl_kernel_func<OpenCLPointwise3sFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
+  TORCH_CHECK(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
+  auto pointwise_op = opt_kernel.value();
   
-  Tensor scalar_tensor = at::native::empty_opencl({0}, self.options(), self.suggest_memory_format());
-  scalar_tensor.fill_(Scalar((S)alpha.to<S>);
-  TensorImpl* scalar_tensor_ = checked_tensor_unwrap(scalar_tensor, "value_alpha", 3, "fill_kernel_opencl", false, c10::Backend::OpenCL, T);
+  auto scalar_tensor_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(T), 1, out->allocator(), true),TensorTypeId::OpenCLTensorId).release();
+    S value_s = alpha.to<S>();
+    AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer(*toBuffer(scalar_tensor_->data()), CL_TRUE, 0, sizeof(S), &value_s));
 
-  AT_OPENCL_CHECK(c10::opencl::runKernel(pointwise_op, {*stream.stream(), a->numel(), 1},
+  AT_OPENCL_CHECK(pointwise_op(
       toBuffer(a),
       toBuffer(b),
       toBuffer(out),
-      toBuffer(scalar_tensor.data_ptr()),
+      toBuffer(scalar_tensor_->storage().unsafeGetStorageImpl()),
       op,
       getOpenCLKernelCastType(T), 
       getOpenCLKernelCastType(T)));
@@ -62,20 +59,16 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
 static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImpl* out, at::native::opencl::OpenCLOperationsPointwise3 op, const ScalarType scalar_type) {
   // DONE Call OpenCL kernel.
   auto kernel_name = "pointwise_op_3";
-  auto opt_kernel = c10::opencl::opencl_kernel(kernel_name);
-  if (!opt_kernel) {
-    TORCH_WARN("No value for kernel \"", kernel_name, "\"");
-    return;
-  }
-  cl::Kernel pointwise_op = opt_kernel.value();
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
+  auto opt_kernel = c10::opencl::opencl_kernel_func<OpenCLPointwise3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
+  TORCH_CHECK(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
+  auto pointwise_op = opt_kernel.value();
 
-  AT_OPENCL_CHECK(c10::opencl::runKernel(pointwise_op, {*stream.stream(), a->numel(), 1},
+  AT_OPENCL_CHECK(pointwise_op(
       toBuffer(a),
       toBuffer(b),
       toBuffer(out),
       op,
-      getOpenCLKernelCastType(scalar_type), 
       getOpenCLKernelCastType(scalar_type)));
 
   AT_OPENCL_CHECK(syncOpenCLPointer(out->data_ptr().get()));
@@ -84,10 +77,25 @@ static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImp
 
 template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
 static void pointwise_op2s(const StorageImpl* a, const Scalar b, StorageImpl* c, at::native::opencl::OpenCLOperationsPointwise3 op) {
-  Tensor scalar_tensor = at::native::empty_opencl({0}, self.options(), self.suggest_memory_format());
-  scalar_tensor.fill_(Scalar((S)b.to<S>);
-  auto scalar_tensor_ = checked_tensor_unwrap(scalar_tensor, "value_b", 2, "fill_kernel_opencl", false, c10::Backend::OpenCL, T);
-  pointwise_op3(a, scalar_tensor.storage().unsafeGetStorageImpl(), c, op, T);
+  auto kernel_name = "pointwise_op_2s";
+  auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
+  auto opt_kernel = c10::opencl::opencl_kernel_func<OpenCLPointwise3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
+  TORCH_CHECK(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
+  auto pointwise_op = opt_kernel.value();
+
+  auto scalar_tensor_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(T), 1, c->allocator(), true),TensorTypeId::OpenCLTensorId).release();
+  S value_s = b.to<S>();
+  AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer(*toBuffer(scalar_tensor_->data()), CL_TRUE, 0, sizeof(S), &value_s));
+
+  AT_OPENCL_CHECK(pointwise_op(
+      toBuffer(a),
+      toBuffer(scalar_tensor_->storage().unsafeGetStorageImpl()),
+      toBuffer(c),
+      op,
+      getOpenCLKernelCastType(T)));
+
+  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get()));
+  AT_OPENCL_CHECK(stream.stream()->finish());
 }
 
 // STUB
