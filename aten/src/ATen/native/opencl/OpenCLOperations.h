@@ -45,7 +45,7 @@ enum OpenCLOperationsPointwise3s {
     SUBS, // subtract with alpha factor
 };
 
-enum OpenCLCastType {
+enum OpenCLPtrType {
     BOOL,
     CHAR,
     SHORT,

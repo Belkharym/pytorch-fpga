@@ -8,6 +8,14 @@
 namespace at {
 namespace native {
 
+typedef std::function<cl_int(cl::Buffer, cl::Buffer, at::native::opencl::OpenCLPtrType, at::native::opencl::OpenCLPtrType)> OpenCLCastFunctor;
+
+typedef std::function<cl_int(cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsPointwise2, at::native::opencl::OpenCLPtrType)> OpenCLPointwise2Functor;
+typedef std::function<cl_int(cl::Buffer, cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsComp3, at::native::opencl::OpenCLPtrType)> OpenCLComp3Functor;
+typedef std::function<cl_int(cl::Buffer, cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsPointwise3, at::native::opencl::OpenCLPtrType)> OpenCLPointwise3Functor;
+typedef std::function<cl_int(cl::Buffer, cl::Buffer, cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsPointwise3s, at::native::opencl::OpenCLPtrType, at::native::opencl::OpenCLPtrType)> OpenCLPointwise3sFunctor;
+
+
 inline ScalarType getIntEquivalentOfFloat(const ScalarType type) {
   switch (type)
   {
@@ -86,48 +94,48 @@ inline std::string getOpenCLKernelTypeSuffix(const ScalarType type) {
   }
 }
 
-inline at::native::opencl::OpenCLCastType getOpenCLKernelCastType(const ScalarType type) {
+inline at::native::opencl::OpenCLPtrType getOpenCLKernelCastType(const ScalarType type) {
   switch (type)
   {
     case ScalarType::Bool:
-      return at::native::opencl::OpenCLCastType::CHAR;
+      return at::native::opencl::OpenCLPtrType::CHAR;
       break;
     case ScalarType::Byte:
-      return at::native::opencl::OpenCLCastType::CHAR;
+      return at::native::opencl::OpenCLPtrType::CHAR;
       break;
     case ScalarType::Char:
-      return at::native::opencl::OpenCLCastType::CHAR;
+      return at::native::opencl::OpenCLPtrType::CHAR;
       break;
     case ScalarType::Short:
-      return at::native::opencl::OpenCLCastType::SHORT;
+      return at::native::opencl::OpenCLPtrType::SHORT;
       break;
     case ScalarType::Int:
-      return at::native::opencl::OpenCLCastType::INT;
+      return at::native::opencl::OpenCLPtrType::INT;
       break;
     case ScalarType::Long:
-      return at::native::opencl::OpenCLCastType::LONG;
+      return at::native::opencl::OpenCLPtrType::LONG;
       break;
     case ScalarType::Half:
-      return at::native::opencl::OpenCLCastType::SHORT; // TODO support halfs
+      return at::native::opencl::OpenCLPtrType::SHORT; // TODO support halfs
       break;
     case ScalarType::Float:
-      return at::native::opencl::OpenCLCastType::FLOAT;
+      return at::native::opencl::OpenCLPtrType::FLOAT;
       break;
     case ScalarType::Double:
-      return at::native::opencl::OpenCLCastType::DOUBLE;
+      return at::native::opencl::OpenCLPtrType::DOUBLE;
       break;
     case ScalarType::QInt32:
-      return at::native::opencl::OpenCLCastType::INT;
+      return at::native::opencl::OpenCLPtrType::INT;
       break;
     case ScalarType::QInt8:
-      return at::native::opencl::OpenCLCastType::CHAR;
+      return at::native::opencl::OpenCLPtrType::CHAR;
       break;
     case ScalarType::QUInt8:
-      return at::native::opencl::OpenCLCastType::CHAR;
+      return at::native::opencl::OpenCLPtrType::CHAR;
       break;
 
     default:
-      return at::native::opencl::OpenCLCastType::LONG; // For unknowns
+      return at::native::opencl::OpenCLPtrType::LONG; // For unknowns
       break;
   }
 }

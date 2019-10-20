@@ -21,7 +21,7 @@
     break; \
   }
 
-__kernel void cast(__global const void *a, __global void *b, const enum OpenCLCastType ta, const enum OpenCLCastType tb) {
+__kernel void cast(__global const void *a, __global void *b, const enum OpenCLPtrType ta, const enum OpenCLPtrType tb) {
   switch(ta) {
     CAST_CASE_(bool, BOOL, tb, CAST_CASE)
     CAST_CASE_(char, CHAR, tb, CAST_CASE)
@@ -40,7 +40,7 @@ __kernel void cast(__global const void *a, __global void *b, const enum OpenCLCa
   }
 
 // Scalar version
-__kernel void cast_s(__global const void *a, __global void *b, const enum OpenCLCastType ta, const enum OpenCLCastType tb) {
+__kernel void cast_s(__global const void *a, __global void *b, const enum OpenCLPtrType ta, const enum OpenCLPtrType tb) {
   switch(ta) {
     CAST_CASE_(bool, BOOL, tb, CAST_CASE_S)
     CAST_CASE_(char, CHAR, tb, CAST_CASE_S)

@@ -35,7 +35,7 @@ switch(op) { \
 
 
 
-__kernel void operation_3_s(__global const void* a, __global const void* other, __global void* out, __global const void* alpha, const enum OpenCLOperationsPointwise3s op, const enum OpenCLCastType typeTensor, const enum OpenCLCastType typeAlpha) { \
+__kernel void operation_3_s(__global const void* a, __global const void* other, __global void* out, __global const void* alpha, const enum OpenCLOperationsPointwise3s op, const enum OpenCLPtrType typeTensor, const enum OpenCLPtrType typeAlpha) { \
   switch(typeTensor) {
     OPERATION_CASE_(bool, BOOL, typeAlpha, OPERATION_CASE)
     OPERATION_CASE_(char, CHAR, typeAlpha, OPERATION_CASE)
