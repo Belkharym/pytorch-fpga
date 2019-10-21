@@ -122,6 +122,12 @@ static void initOpenCLKernels(cl_int* cl_err) {
 #endif // C10_USE_FPGA
     if (*cl_err != CL_SUCCESS) {
         TORCH_WARN_ONCE("OpenCL Error : cannot create OpenCL Program (", clErrorString(*cl_err), ")");
+#ifdef C10_USE_FPGA
+        TORCH_WARN("Device status:");
+        for (size_t i = 0; i < binaryStatus.size(); ++i) {
+            TORCH_WARN("  Device #", i, " [", devices[i].getInfo<CL_DEVICE_NAME>(), "]: ", clErrorString(binaryStatus[i]));
+        }
+#endif // C10_USE_FPGA
         return;
     }
 
