@@ -614,7 +614,14 @@ ELSEIF(USE_CUDA)
   cuda_add_library(torch ${Caffe2_CPU_SRCS})
   set(CUDA_LINK_LIBRARIES_KEYWORD)
 ELSE()
+  if(USE_FPGA) # Save current compiler and switch with the FPGA one.
+    set(tmp_CXX_COMPILER ${CMAKE_CXX_COMPILER})
+    set(CMAKE_CXX_COMPILER ${SDACCEL_XCPP})
+  endif()
   add_library(torch ${Caffe2_CPU_SRCS})
+  if(USE_FPGA) # Restore original compiler
+    set(CMAKE_CXX_COMPILER ${tmp_CXX_COMPILER})
+  endif()
 ENDIF()
 
 
