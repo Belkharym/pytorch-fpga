@@ -6,7 +6,8 @@ include(../../cmake/public/utils.cmake)
 
 # ---[ Configure macro file.
 set(C10_OPENCL_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS}) # used in cmake_macros.h.in
-set(_OPENCL_KERNEL_DIR ${CMAKE_INSTALL_PREFIX}/opencl)
+set(_OPENCL_KERNEL_DIR opencl)
+set(_tmp_OPENCL_KERNEL_DIR ${CMAKE_INSTALL_PREFIX}/${_OPENCL_KERNEL_DIR})
 if(USE_FPGA)
   set(C10_USE_FPGA ${USE_FPGA})
 endif()

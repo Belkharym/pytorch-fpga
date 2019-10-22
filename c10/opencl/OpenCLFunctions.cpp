@@ -24,6 +24,8 @@
 #define _OPENCL_KERNEL_DIR .
 #endif // !_OPENCL_KERNEL_DIR
 
+using namespace std::placeholders;
+
 static constexpr char kPathSeparator =
 #ifdef _WIN32
         '\\';
@@ -49,6 +51,11 @@ static std::map<std::string, cl::Kernel> kernels;
 
 static std::once_flag init_flag;
 
+static bool endsWith(const std::string& str, const std::string& suffix) {
+  return str.size() >= suffix.size() &&
+      0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
+}
+
 static std::vector<std::string> listDirectory(const std::string& dirPath) {
     std::vector<std::string> entries;
     DIR *dir;
@@ -57,7 +64,12 @@ static std::vector<std::string> listDirectory(const std::string& dirPath) {
     if ((dir = opendir(dirPath.c_str())) != NULL) {
         // Fetch every entry name.
         while ((ent = readdir (dir)) != NULL) {
-            if (ent->d_type != DT_DIR) {
+#ifdef C10_USE_FPGA
+            static const std::vector<std::string> ext = {".xclbin",".awsxclbin"};
+#else
+            static const std::vector<std::string> ext = {".cl"};
+#endif // C10_USE_FPGA
+            if (ent->d_type != DT_DIR && std::any_of(ext.begin(), ext.end(), std::bind(endsWith, ent->d_name, _1))) {
                 entries.emplace_back(dirPath + kPathSeparator + ent->d_name);
             }
         }
@@ -69,7 +81,7 @@ static std::vector<std::string> listDirectory(const std::string& dirPath) {
 
 static void initOpenCLKernels(cl_int* cl_err) {
     static const std::string kernels_dir{_STRINGIFY(_OPENCL_KERNEL_DIR)};
-    
+
     // TODO Fetch files and put them all in a cl::Program::Sources object
     // to then build them (if on FPGA, fetch the binaries and put them
     // in a cl::Program::Binaries) and fetch all the kernel names using
@@ -132,7 +144,7 @@ static void initOpenCLKernels(cl_int* cl_err) {
     }
 
 #ifndef C10_USE_FPGA
-    *cl_err = program.build(devices);
+    *cl_err = program.build(devices, std::string{"-I" + kernels_dir}.c_str());
     if (*cl_err != CL_SUCCESS) {
         TORCH_WARN_ONCE("OpenCL Error : cannot build OpenCL Program (", clErrorString(*cl_err), ")");
         if (*cl_err == CL_BUILD_PROGRAM_FAILURE) {

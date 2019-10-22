@@ -1,5 +1,5 @@
-#include "aten/src/ATen/native/opencl/OpenCLKernelMacros.clh"
-#include "aten/src/ATen/native/opencl/OpenCLOperations.h"
+#include <OpenCLKernelMacros.clh>
+#include <OpenCLOperations.h>
 
 #define CAST_CASE_(type1, name1, t2, _) \
   case name1: { \

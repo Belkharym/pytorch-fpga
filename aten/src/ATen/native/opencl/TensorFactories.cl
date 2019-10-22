@@ -1,6 +1,5 @@
-#include "aten/src/ATen/native/opencl/OpenCLKernelMacros.clh"
-#include "aten/src/ATen/native/opencl/OpenCLOperations.h"
-#include "aten/src/ATen/native/opencl/MacroOpenCL.h"
+#include <OpenCLKernelMacros.clh>
+#include <OpenCLOperations.h>
 
 /// Code Declatation
 
