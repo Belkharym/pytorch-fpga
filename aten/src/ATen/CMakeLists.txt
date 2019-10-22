@@ -125,7 +125,7 @@ endif()
 IF(USE_OPENCL)
   set(ATen_OPENCL_SRCS ${ATen_OPENCL_SRCS} ${opencl_cpp} ${opencl_h} ${native_opencl_cpp} ${native_opencl_h})
   set(all_opencl_cpp ${opencl_generated_cpp} ${ATen_OPENCL_SRCS})
-  set(ATen_OPENCL_KERNELS ${ATen_OPENCL_KERNELS} ${opencl_cl} ${opencl_clh} ${native_opencl_cl} ${native_opencl_clh})
+  set(ATen_OPENCL_KERNELS ${ATen_OPENCL_KERNELS} ${opencl_cl} ${opencl_clh} ${native_opencl_cl} ${native_opencl_clh} ${native_opencl_h})
   set(ATen_OPENCL_KERNEL_SRCS ${ATen_OPENCL_KERNEL_SRCS} ${opencl_cl} ${native_opencl_cl})
   # Here we define the compilation command for pre-compiled targets.
   if (USE_FPGA)
@@ -136,16 +136,14 @@ IF(USE_OPENCL)
                          COMMENT "Compiling ${opencl_kernel_filename}.cl"
                          MAIN_DEPENDENCY ${opencl_kernel}
                          BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/_x/reports/${opencl_kernel_filename}/system_estimate_${opencl_kernel_filename}.xtxt
-                         COMMAND ${SDACCEL_XOCC} -c ${CMAKE_CL_FLAGS} --platform ${AWS_PLATFORM} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo ${opencl_kernel})
+                         COMMAND ${SDACCEL_XOCC} -c ${CMAKE_CL_FLAGS} --platform ${AWS_PLATFORM} -t ${FPGA_TARGET} --include ${CMAKE_CURRENT_SOURCE_DIR}/native/opencl -o ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo ${opencl_kernel})
       set(tmp_all_kernel_objects ${tmp_all_kernel_objects} ${CMAKE_CURRENT_BINARY_DIR}/${opencl_kernel_filename}.xo)
     endforeach(opencl_kernel)
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin
                        COMMENT "Linking kernels into an XCLBIN file..."
                        MAIN_DEPENDENCY ${tmp_all_kernel_objects}
                        COMMAND ${SDACCEL_XOCC} -l ${CMAKE_CL_FLAGS} --platform ${AWS_PLATFORM} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin ${tmp_all_kernel_objects})
-    add_custom_target(aten_opencl_kernels_bin ALL
-                      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin)
-    add_dependencies(aten_opencl_kernels aten_opencl_kernels_bin)
+    add_dependencies(aten_opencl_kernels ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin)
     list(APPEND ATen_OPENCL_DEPENDENCY_LIBS aten_opencl_kernels)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin DESTINATION ${_OPENCL_KERNEL_DIR})
   else()

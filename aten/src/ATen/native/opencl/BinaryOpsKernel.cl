@@ -1,5 +1,5 @@
-#include "aten/src/ATen/native/opencl/OpenCLKernelMacros.clh"
-#include "aten/src/ATen/native/opencl/OpenCLOperations.h"
+#include <OpenCLKernelMacros.clh>
+#include <OpenCLOperations.h>
 
 #define OPERATION(type1, type2) \
 switch(op) { \

@@ -42,15 +42,15 @@ c10::optional<Func> opencl_kernel_func(const std::string& kernel_func_name, cl::
     return {};
 }
 
-template<typename Func, typename... Args, size_t N = c10::function_traits<Func>::arity, size_t M = sizeof...(Args), typename std::enable_if<(N > M), int>::type = 0>
+template<typename Func, typename... Args, size_t N = sizeof...(Args), typename std::enable_if<(c10::function_traits<Func>::arity > N), int>::type = 0>
 c10::optional<Func> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl_int* err) {
-    typedef typename c10::function_traits<Func>::template argument<(N - M) - 1>::type NewArg;
-    return opencl_kernel_func<Func, NewArg, Args...>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
+    typedef typename c10::function_traits<Func>::template argument<N>::type NewArg;
+    return opencl_kernel_func<Func, Args..., NewArg>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
 }
 
-template<typename Func, size_t N = c10::function_traits<Func>::arity, typename std::enable_if<(N > 0), int>::type = 0>
+template<typename Func, typename std::enable_if<(c10::function_traits<Func>::arity > 0), int>::type = 0>
 c10::optional<Func> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl_int* err = NULL) {
-    typedef typename c10::function_traits<Func>::template argument<N - 1>::type NewArg;
+    typedef typename c10::function_traits<Func>::template argument<0>::type NewArg;
     return opencl_kernel_func<Func, NewArg>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
 }
 
