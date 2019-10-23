@@ -42,32 +42,50 @@ cl::Context opencl_context();
 cl::Device opencl_device(DeviceIndex device_id = -1);
 c10::optional<cl::Kernel> opencl_kernel(const std::string& kernel_func_name, cl_int *err = NULL);
 
+namespace {
+
+/**
+ * @brief   Returns a functor which calls an OpenCL kernel with the given
+ *          parameters.
+ * 
+ * This function is similar to {@code opencl_kernel} in the sense where it
+ * fetches a kernel with the given name
+ */
 template<typename Func, typename... Args, typename std::enable_if<std::integral_constant<bool, (::c10::function_traits<Func>::arity == sizeof...(Args))>::value && std::is_function<Func>::value, int>::type = 0>
-c10::optional<std::function<typename unwrap_function<Func>::type>> opencl_kernel_func(const std::string& kernel_func_name, cl::EnqueueArgs config, cl_int *err) {
-    auto kernel = opencl_kernel(kernel_func_name, err);
-    if (kernel.has_value()) {
-        return static_cast<std::function<typename unwrap_function<Func>::type>>([kernel_func_name, config](Args&&... args) -> cl_int {
-            auto kern = opencl_kernel(kernel_func_name);
-            TORCH_INTERNAL_ASSERT(kern.has_value(), "An opencl kernel went missing.");
-            auto functor = cl::KernelFunctor<Args...>{kern.value()};
+std::function<typename unwrap_function<Func>::type> opencl_kernel_func(const std::string& kernel_func_name, cl::EnqueueArgs config, cl::Event *event) {
+    return static_cast<std::function<typename unwrap_function<Func>::type>>(
+        [kernel_func_name, config, event](Args&&... args) -> cl_int {
             cl_int cl_err;
-            functor(config, std::forward<Args&&>(args)..., cl_err);
+            auto kern = opencl_kernel(kernel_func_name, &cl_err);
+            if (kern.has_value()) {
+                auto functor = cl::KernelFunctor<Args...>{kern.value()};
+                cl::Event ev= functor(config, std::forward<Args&&>(args)..., cl_err);
+                if (event) {
+                    *event = ev;
+                }
+            }
             return cl_err;
-        });
-    }
-    return {};
+        }
+    );
 }
 
 template<typename Func, typename... Args, size_t N = sizeof...(Args), typename std::enable_if<(c10::function_traits<Func>::arity > N) && std::is_function<Func>::value, int>::type = 0>
-c10::optional<std::function<typename unwrap_function<Func>::type>> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl_int* err) {
+std::function<typename unwrap_function<Func>::type> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl::Event* err) {
     typedef typename c10::function_traits<Func>::template argument<N>::type NewArg;
-    return opencl_kernel_func<typename unwrap_function<Func>::type, Args..., NewArg>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
+    return opencl_kernel_func<typename unwrap_function<Func>::type, Args..., NewArg>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl::Event*>(err));
 }
 
+} // namespace
+
 template<typename Func, typename std::enable_if<(c10::function_traits<Func>::arity > 0) && std::is_function<Func>::value, int>::type = 0>
-c10::optional<std::function<typename unwrap_function<Func>::type>> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl_int* err = NULL) {
+std::function<typename unwrap_function<Func>::type> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl::Event* err = NULL) {
     typedef typename c10::function_traits<Func>::template argument<0>::type NewArg;
-    return opencl_kernel_func<typename unwrap_function<Func>::type, NewArg>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl_int*>(err));
+    return opencl_kernel_func<typename unwrap_function<Func>::type, NewArg>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl::Event*>(err));
+}
+
+template<typename Func, typename std::enable_if<(c10::function_traits<Func>::arity == 0) && std::is_function<Func>::value, int>::type = 0>
+std::function<typename unwrap_function<Func>::type> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl::Event* err = NULL) {
+    return opencl_kernel_func<typename unwrap_function<Func>::type>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl::Event*>(err));
 }
 
 C10_API std::string clRemoveNullChars(const std::string &str);

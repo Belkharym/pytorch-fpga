@@ -12,6 +12,7 @@
 // and __FILE__, but no one has found this worth doing.
 
 const char* clErrorString(cl_int error);
+const char* clDeviceTypeString(cl_device_type device_type);
 
 // For OpenCL Runtime API
 #define C10_OPENCL_CHECK(EXPR, ...)                                  \

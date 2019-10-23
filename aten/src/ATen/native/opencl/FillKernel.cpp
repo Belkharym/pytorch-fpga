@@ -31,11 +31,9 @@ void fill_kernel_opencl(TensorIterator& iter, Scalar value) {
   });
   auto scalar_tensor = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(scalar_tensor_));
   auto kernel_name = "cast_s";
-  auto kernel_opt = c10::opencl::opencl_kernel_func<OpenCLCastFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), self_->numel(), 1});
-  TORCH_INTERNAL_ASSERT(kernel_opt.has_value(), "Kernel not found \"", kernel_name, "\"");
-  auto kernel = kernel_opt.value();
+  auto kernel = c10::opencl::opencl_kernel_func<OpenCLCastFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), self_->numel(), 1});
   AT_OPENCL_CHECK(kernel(*toBuffer(scalar_tensor_->data()), *toBuffer(self_->data()), type, type));
-  C10_OPENCL_CHECK(syncOpenCLPointer(self_->data()));
+  AT_OPENCL_CHECK(syncOpenCLPointer(self_->data()));
 }
 
 REGISTER_DISPATCH(fill_stub, &fill_kernel_opencl);
