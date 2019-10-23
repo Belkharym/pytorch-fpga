@@ -92,7 +92,7 @@ static void initOpenCLKernels(cl_int* cl_err) {
     std::string kernel_dir_path{kernels_dir};
     std::vector<std::string> files = listDirectory(kernel_dir_path);
     if (files.size() == 0) {
-        TORCH_WARN_ONCE("OpenCL Error : the kernel directory path \"", kernels_dir, "\" is not a valide path (no files found).");
+        TORCH_WARN("OpenCL Error : the kernel directory path \"", kernels_dir, "\" is not a valide path (no files found).");
         if (cl_err) {
             *cl_err = CL_INVALID_KERNEL_NAME;
         }
@@ -133,7 +133,7 @@ static void initOpenCLKernels(cl_int* cl_err) {
     program = cl::Program{context, contents, cl_err};
 #endif // C10_USE_FPGA
     if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN_ONCE("OpenCL Error : cannot create OpenCL Program (", clErrorString(*cl_err), ")");
+        TORCH_WARN("OpenCL Error : cannot create OpenCL Program (", clErrorString(*cl_err), ")");
 #ifdef C10_USE_FPGA
         TORCH_WARN("Device status:");
         for (size_t i = 0; i < binaryStatus.size(); ++i) {
@@ -146,15 +146,16 @@ static void initOpenCLKernels(cl_int* cl_err) {
 #ifndef C10_USE_FPGA
     *cl_err = program.build(devices, std::string{"-I" + kernels_dir}.c_str());
     if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN_ONCE("OpenCL Error : cannot build OpenCL Program (", clErrorString(*cl_err), ")");
+        TORCH_WARN("OpenCL Error : cannot build OpenCL Program (", clErrorString(*cl_err), ")");
         if (*cl_err == CL_BUILD_PROGRAM_FAILURE) {
             for (auto& device : devices) {
                 auto build_status = program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device);
                 if (build_status != CL_BUILD_SUCCESS) {
                     auto device_name = device.getInfo<CL_DEVICE_NAME>();
+                    auto device_type = device.getInfo<CL_DEVICE_TYPE>();
                     auto build_log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
-                    TORCH_WARN("- Device ", device_name);
-                    TORCH_WARN("Build logs: \n", build_log, "\n");
+                    TORCH_WARN("- Device [", clDeviceTypeString(device_type), "] ", device_name);
+                    TORCH_WARN("  Build logs: \n", build_log, "\n");
                 }
             }
         }
@@ -165,7 +166,7 @@ static void initOpenCLKernels(cl_int* cl_err) {
     std::vector<cl::Kernel> kernels_;
     *cl_err = program.createKernels(&kernels_);
     if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN_ONCE("OpenCL Error : cannot fetch OpenCL kernels (", clErrorString(*cl_err), ")");
+        TORCH_WARN("OpenCL Error : cannot fetch OpenCL kernels (", clErrorString(*cl_err), ")");
         return;
     }
 
@@ -189,7 +190,7 @@ static void initOpenCLContext(cl_int* cl_err) {
         *cl_err = CL_INVALID_PLATFORM;
     }
     if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN_ONCE("Cannot find platform for OpenCL. (", clErrorString(*cl_err), ")");
+        TORCH_WARN("Cannot find platform for OpenCL. (", clErrorString(*cl_err), ")");
         return;
     }
     platform = platforms[platform_id];
@@ -200,7 +201,7 @@ static void initOpenCLContext(cl_int* cl_err) {
         *cl_err = CL_DEVICE_NOT_FOUND;
     }
     if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN_ONCE("Cannot find OpenCL compatible device. (", clErrorString(*cl_err),")");
+        TORCH_WARN("Cannot find OpenCL compatible device. (", clErrorString(*cl_err),")");
         return;
     }
     current_device_ = device_id;

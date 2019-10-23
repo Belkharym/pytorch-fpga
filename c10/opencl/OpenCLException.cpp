@@ -81,3 +81,55 @@ const char* clErrorString(cl_int error)
     else
          return strings[64];
 }
+
+const char* clDeviceTypeString(cl_device_type device_type) {
+    static constexpr const char* strings[] =
+    {
+        // Device Types
+          "UNKNOWN"                             //  0
+        , "DEFAULT"                             //  1
+        , "CPU"                                 //  2
+        , "DEFAULT CPU"                         //  3
+        , "GPU"                                 //  4
+        , "DEFAULT GPU"                         //  5
+        , "CPU GPU"                             //  6
+        , "DEFAULT CPU GPU"                     //  7
+        , "ACCELERATOR"                         //  8
+        , "DEFAULT ACCELERATOR"                 //  9
+        , "CPU ACCELERATOR"                     // 10
+        , "DEFAULT CPU ACCELERATOR"             // 11
+        , "GPU ACCELERATOR"                     // 12
+        , "DEFAULT GPU ACCELERATOR"             // 13
+        , "CPU GPU ACCELERATOR"                 // 14
+        , "DEFAULT CPU GPU ACCELERATOR"         // 15
+        , "CUSTOM"                              // 16
+        , "DEFAULT CUSTOM"                      // 17
+        , "CPU CUSTOM"                          // 18
+        , "DEFAULT CPU CUSTOM"                  // 19
+        , "GPU CUSTOM"                          // 20
+        , "DEFAULT GPU CUSTOM"                  // 21
+        , "CPU GPU CUSTOM"                      // 22
+        , "DEFAULT CPU GPU CUSTOM"              // 23
+        , "ACCELERATOR CUSTOM"                  // 24
+        , "DEFAULT ACCELERATOR CUSTOM"          // 25
+        , "CPU ACCELERATOR CUSTOM"              // 26
+        , "DEFAULT CPU ACCELERATOR CUSTOM"      // 27
+        , "GPU ACCELERATOR CUSTOM"              // 28
+        , "DEFAULT GPU ACCELERATOR CUSTOM"      // 29
+        , "CPU GPU ACCELERATOR CUSTOM"          // 30
+        , "DEFAULT CPU GPU ACCELERATOR CUSTOM"  // 31
+        , "ALL"
+    };
+    // CL_DEVICE_TYPE_DEFAULT                      (1 << 0)
+    // CL_DEVICE_TYPE_CPU                          (1 << 1)
+    // CL_DEVICE_TYPE_GPU                          (1 << 2)
+    // CL_DEVICE_TYPE_ACCELERATOR                  (1 << 3)
+    // CL_DEVICE_TYPE_CUSTOM                       (1 << 4)
+    // CL_DEVICE_TYPE_ALL                          0xFFFFFFFF
+    if (device_type < 32 /*(1 << 5)*/ && device_type >= 0) {
+        return strings[device_type];
+    }
+    else {
+        return strings[32];
+    }
+}

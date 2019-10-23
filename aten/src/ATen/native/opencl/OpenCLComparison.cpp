@@ -22,9 +22,7 @@ static void pointwise_op_comp3(StorageImpl* c, const StorageImpl* a, const Stora
   // DONE Call OpenCL kernel.
   auto kernel_name = "pointwise_op_comp_3";
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  auto opt_kernel = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
-  TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
-  auto pointwise_op = opt_kernel.value();
+  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
   AT_OPENCL_CHECK(pointwise_op(
       toBuffer(a),
       toBuffer(b),
@@ -39,9 +37,7 @@ template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPTyp
 static void pointwise_op_comp2_s(StorageImpl* c, const StorageImpl* a, const Scalar b, at::native::opencl::OpenCLOperationsComp3 op) {
   auto kernel_name = "pointwise_op_comp_2s";
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  auto opt_kernel = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
-  TORCH_INTERNAL_ASSERT(opt_kernel.has_value(), "No value for kernel \"", kernel_name, "\"");
-  auto pointwise_op = opt_kernel.value();
+  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
   
   auto scalar_tensor_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(T), 1, c->allocator(), true),TensorTypeId::OpenCLTensorId).release();
   S value_s = b.to<S>();
