@@ -17,6 +17,12 @@
 #include <unordered_set>
 #include <vector>
 
+#ifdef _WIN32
+#define ALIGNED_MALLOC(size, alignment) ::_aligned_malloc(size, alignment)
+#else
+#define ALIGNED_MALLOC(size, alignment) ::aligned_alloc(alignment, size)
+#endif // _WIN32
+
 namespace c10 {
 
 C10_DEFINE_REGISTRY(FreeOpenCLMemoryCallbacksRegistry, FreeMemoryCallback);
@@ -473,7 +479,7 @@ struct THOCachingAllocator
     // Try clCreateBuffer. If clCreateBuffer fails, frees all non-split cached blocks
     // and retries.
     cl_int err;
-    *devPtr = ::aligned_alloc(alignof(max_align_t) * 16, size);
+    *devPtr = ALIGNED_MALLOC(size, alignof(max_align_t) * 16);
     if (*devPtr == nullptr) {
       C10_OPENCL_CHECK(false, "Cannot allocate ", size, " byte for OpenCL Buffer");
     }
