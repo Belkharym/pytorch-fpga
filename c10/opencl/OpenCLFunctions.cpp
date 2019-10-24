@@ -8,7 +8,12 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <iostream>
+#ifdef _WIN32
+#include <Windows.h>
+#else
 #include <dirent.h>
+#endif // _WIN32
 
 #include <c10/util/typeid.h>
 
@@ -56,25 +61,64 @@ static bool endsWith(const std::string& str, const std::string& suffix) {
       0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
 }
 
-static std::vector<std::string> listDirectory(const std::string& dirPath) {
+static std::vector<std::string> listDirectory(std::string dirPath) {
     std::vector<std::string> entries;
+#ifdef C10_USE_FPGA
+            static const std::vector<std::string> ext = {".xclbin",".awsxclbin"};
+#else
+            static const std::vector<std::string> ext = {".cl"};
+#endif // C10_USE_FPGA
+
+#ifndef _WIN32
     DIR *dir;
     struct dirent *ent;
     // Open directory
     if ((dir = opendir(dirPath.c_str())) != NULL) {
         // Fetch every entry name.
         while ((ent = readdir (dir)) != NULL) {
-#ifdef C10_USE_FPGA
-            static const std::vector<std::string> ext = {".xclbin",".awsxclbin"};
-#else
-            static const std::vector<std::string> ext = {".cl"};
-#endif // C10_USE_FPGA
             if (ent->d_type != DT_DIR && std::any_of(ext.begin(), ext.end(), std::bind(endsWith, ent->d_name, _1))) {
                 entries.emplace_back(dirPath + kPathSeparator + ent->d_name);
             }
         }
         closedir (dir);
     }
+#else
+    //open a directory the WIN32 way
+    HANDLE hFind = INVALID_HANDLE_VALUE;
+    WIN32_FIND_DATA fdata;
+ 
+    if(dirPath[dirPath.size()-1] == '\\' || dirPath[dirPath.size()-1] == '/') {
+        dirPath = dirPath.substr(0,dirPath.size()-1);
+    }
+ 
+    hFind = FindFirstFile(std::string(dirPath).append("\\*").c_str(), &fdata); 
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            if (strncmp(fdata.cFileName, ".", sizeof(fdata.cFileName)) != 0 &&
+                strncmp(fdata.cFileName, "..", sizeof(fdata.cFileName)) != 0) {
+                if (fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY || !std::any_of(ext.begin(), ext.end(), std::bind(endsWith, fdata.cFileName, _1))) {
+                    continue; // a diretory
+                }
+                else {
+                    entries.push_back(fdata.cFileName);
+                }
+            }
+        }
+        while (FindNextFile(hFind, &fdata) != 0);
+    } else {
+        // Can't open directory
+        return entries;
+    }
+ 
+    if (GetLastError() != ERROR_NO_MORE_FILES) {
+        FindClose(hFind);
+        TORCH_WARN("some error with opening directory: ", GetLastError());
+        return entries;
+    }
+ 
+    FindClose(hFind);
+    hFind = INVALID_HANDLE_VALUE;
+#endif // _WIN32
 
     return entries;
 }
