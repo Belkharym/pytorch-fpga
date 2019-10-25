@@ -589,6 +589,7 @@ if (USE_OPENCL)
   include_directories(${CMAKE_CURRENT_LIST_DIR}/../caffe2/opencl)
 
   list(APPEND Caffe2_PUBLIC_OPENCL_DEPENDENCY_LIBS c10)
+  list(APPEND Caffe2_OPENCL_INCLUDE ${OpenCL_INCLUDE_DIRS})
   list(APPEND Caffe2_OPENCL_DEPENDENCY_LIBS ${OpenCL_LIBRARIES})
 else()
   message("Not building with OpenCL.")

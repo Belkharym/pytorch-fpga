@@ -64,6 +64,11 @@ IF(USE_ROCM)
 ENDIF()
 
 IF(USE_OPENCL)
+  find_package(OpenCL REQUIRED)
+  if (NOT OpenCL_FOUND)
+    MESSAGE(FATAL_ERROR
+      "Could not find OpenCL installation")
+  endif()
   list(APPEND ATen_OPENCL_INCLUDE ${OpenCL_INCLUDE_DIRS})
   list(APPEND ATen_OPENCL_DEPENDENCY_LIBS ${OpenCL_LIBRARIES})
 ENDIF()
