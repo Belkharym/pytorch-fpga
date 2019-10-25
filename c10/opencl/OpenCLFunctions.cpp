@@ -15,8 +15,6 @@
 #include <dirent.h>
 #endif // _WIN32
 
-#include <c10/util/typeid.h>
-
 #ifndef _STRINGIFY
 // Defined in GNU header file cdefs.h
 #ifndef __STRING
@@ -37,11 +35,6 @@ static constexpr char kPathSeparator =
 #else
         '/';
 #endif
-
-namespace caffe2 {
-// This is required to allow Storage class to handle cl::Buffers in its data pointer.
-CAFFE_KNOWN_TYPE(cl::Buffer);
-} // namespace caffe2
 
 namespace c10 {
 namespace opencl {
@@ -275,12 +268,14 @@ static void initOpenCLContext(cl_int* cl_err) {
 
     context = cl::Context(devices, NULL, NULL, NULL, cl_err);
     if (*cl_err != CL_SUCCESS) {
-        C10_OPENCL_CHECK_WARN(*cl_err);
+        TORCH_WARN("Cannot create OpenCL context. (", clErrorString(*cl_err),")");
         return;
     }
 
     initOpenCLKernels(cl_err);
-    C10_OPENCL_CHECK_WARN(*cl_err);
+    if (*cl_err != CL_SUCCESS) {
+      TORCH_WARN("Cannot initialize OpenCL kernels. (", clErrorString(*cl_err), ")");
+    }
 }
 
 } // namespace ::<unnamed>

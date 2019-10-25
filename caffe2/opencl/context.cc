@@ -12,6 +12,12 @@
 #include <vector>
 #include <mutex>
 
+#ifdef _WIN32
+#define ALIGNED_MALLOC(size, alignment) ::_aligned_malloc(size, alignment)
+#else
+#define ALIGNED_MALLOC(size, alignment) ::aligned_alloc(alignment, size)
+#endif // _WIN32
+
 namespace caffe2 {
 namespace opencl {
 
@@ -226,7 +232,7 @@ struct DefaultOpenCLAllocator final : public at::Allocator {
 
         if (nbytes != 0) {
             cl_int err;
-            ctx->data = aligned_alloc(alignof(max_align_t) * 16, nbytes);
+            ctx->data = ALIGNED_MALLOC(nbytes, alignof(max_align_t) * 16);
             TORCH_INTERNAL_ASSERT(ctx->data, "Cannot allocate ", nbytes, " byte(s) of memory for OpenCL buffer.");
             ctx->buf = new cl::Buffer{c10::opencl::opencl_context(), CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, nbytes, ctx->data, &err};
             TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : Cannot allocate Buffer of ", nbytes, " byte(s). (", clErrorString(err), ")");

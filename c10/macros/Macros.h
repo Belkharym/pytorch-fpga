@@ -97,6 +97,7 @@
 namespace c10 {} // namespace c10
 namespace c10 { namespace cuda {} }
 namespace c10 { namespace hip {} }
+namespace c10 { namespace opencl {} }
 
 // Since C10 is the core library for caffe2 (and aten), we will simply reroute
 // all abstractions defined in c10 to be available in caffe2 as well.
@@ -105,6 +106,7 @@ namespace c10 { namespace hip {} }
 namespace caffe2 { using namespace c10; }
 namespace at { using namespace c10; }
 namespace at { namespace cuda { using namespace c10::cuda; }}
+namespace at { namespace opencl { using namespace c10::opencl; }}
 
 // WARNING!!! THIS IS A GIANT HACK!!!
 // This line means you cannot simultaneously include c10/hip
