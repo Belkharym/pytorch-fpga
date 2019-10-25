@@ -121,6 +121,7 @@ void OpenCLContext::CopyBytesAsync(
     Device src_device,
     void* dst,
     Device dst_device) {
+    if (nbytes == 0) return;
     cl_int err = CL_SUCCESS;
     switch (src_device.type()) {
         case OPENCL: {
@@ -131,6 +132,7 @@ void OpenCLContext::CopyBytesAsync(
                 C10_OPENCL_CHECK(at::native::syncOpenCLPointer(dst));
             }
             else {
+                memcpy(dst, src, nbytes);
                 err = stream.stream()->enqueueReadBuffer(*toBuffer(const_cast<void*>(src)), CL_FALSE, 0, nbytes, dst, NULL, NULL);
             }
             break;
@@ -139,8 +141,8 @@ void OpenCLContext::CopyBytesAsync(
             if (dst_device.type() == OPENCL) {
                 c10::opencl::OpenCLStream stream = c10::opencl::getStreamFromPool(dst_device.index());
                 c10::opencl::OpenCLStreamGuard guard{stream};
-                err = stream.stream()->enqueueWriteBuffer(*toBuffer(dst), CL_FALSE, 0, nbytes, src, NULL, NULL);
-                C10_OPENCL_CHECK(at::native::syncOpenCLPointer(dst));
+                memcpy(dst, src, nbytes);
+                err = stream.stream()->enqueueWriteBuffer(*toBuffer(dst), CL_FALSE, 0, nbytes, dst, NULL, NULL);
             }
             else {
                 err = CL_INVALID_MEM_OBJECT;
@@ -164,6 +166,7 @@ void OpenCLContext::CopyBytesSync(
     Device src_device,
     void* dst,
     Device dst_device) {
+    if (nbytes == 0) return;
     cl_int err = CL_SUCCESS;
     switch (src_device.type()) {
         case OPENCL: {
@@ -176,6 +179,7 @@ void OpenCLContext::CopyBytesSync(
                 cl_ev.wait();
             }
             else {
+                memcpy(dst, src, nbytes);
                 err = stream.stream()->enqueueReadBuffer(*toBuffer(const_cast<void*>(src)), CL_TRUE, 0, nbytes, dst, NULL, NULL);
             }
             break;
@@ -184,8 +188,8 @@ void OpenCLContext::CopyBytesSync(
             if (dst_device.type() == OPENCL) {
                 c10::opencl::OpenCLStream stream = c10::opencl::getStreamFromPool(dst_device.index());
                 c10::opencl::OpenCLStreamGuard guard{stream};
+                memcpy(dst, src, nbytes);
                 err = stream.stream()->enqueueWriteBuffer(*toBuffer(dst), CL_TRUE, 0, nbytes, src, NULL, NULL);
-                C10_OPENCL_CHECK(at::native::syncOpenCLPointer(dst));
             }
             else {
                 err = CL_INVALID_MEM_OBJECT;
@@ -205,23 +209,30 @@ void OpenCLContext::CopyBytesSync(
 
 } // namespace opencl
 
+struct OpenCLPtrContext {
+    void* data;
+    cl::Buffer* buf;
+};
+
 struct DefaultOpenCLAllocator final : public at::Allocator {
     DefaultOpenCLAllocator() {}
     ~DefaultOpenCLAllocator() override {}
     at::DataPtr allocate(size_t nbytes) const override {
         // Lock the mutex
         std::lock_guard<std::mutex> lock(opencl::OpenCLContext::mutex());
-        void* ptr = nullptr;
+        OpenCLPtrContext* ctx = new OpenCLPtrContext();
+        ctx->data = nullptr;
+        ctx->buf = nullptr;
 
         if (nbytes != 0) {
             cl_int err;
-            ptr = aligned_alloc(alignof(max_align_t) * 16, nbytes);
-            TORCH_INTERNAL_ASSERT(ptr, "Cannot allocate ", nbytes, "byte(s) of memory for OpenCL buffer.");
-            cl::Buffer* buf = new cl::Buffer{c10::opencl::opencl_context(), CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, nbytes, ptr, &err};
-            TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : Cannot allocate buffer of ", nbytes, " byte(s). (", clErrorString(err), ")");
-            buffers.emplace(ptr, buf);
+            ctx->data = aligned_alloc(alignof(max_align_t) * 16, nbytes);
+            TORCH_INTERNAL_ASSERT(ctx->data, "Cannot allocate ", nbytes, " byte(s) of memory for OpenCL buffer.");
+            ctx->buf = new cl::Buffer{c10::opencl::opencl_context(), CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, nbytes, ctx->data, &err};
+            TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : Cannot allocate Buffer of ", nbytes, " byte(s). (", clErrorString(err), ")");
+            buffers.emplace(ctx->data, ctx);
         }
-        return {ptr, ptr, &Delete, at::Device(OPENCL, c10::opencl::current_device())};
+        return {ctx->data, ctx, &Delete, at::Device(OPENCL, c10::opencl::current_device())};
     }
 
     at::DeleterFnPtr raw_deleter() const override {
@@ -229,33 +240,41 @@ struct DefaultOpenCLAllocator final : public at::Allocator {
     }
 
 private:
-    static std::unordered_map<void*, cl::Buffer*> buffers;
-    static void Delete(void* ptr) {
+    static std::unordered_map<void*, OpenCLPtrContext*> buffers;
+    static void Delete(void* ctxPtr) {
         // lock the mutex
         std::lock_guard<std::mutex> lock(opencl::OpenCLContext::mutex());
-        
-        auto it = buffers.find(ptr);
-        TORCH_CHECK(it != buffers.end());
-        // If memory pool is not set up, use simple cudaFree.
-        ::free(it->first);
-        delete it->second;
-        buffers.erase(it);
+
+        TORCH_INTERNAL_ASSERT(ctxPtr != nullptr);
+
+        OpenCLPtrContext* ctx = reinterpret_cast<OpenCLPtrContext*>(ctxPtr);
+        auto it = buffers.find(ctx->data);
+        // If memory pool is not set up, use simple free.
+        if (ctx->data) ::free(ctx->data);
+        if (ctx->buf) delete ctx->buf;
+        if (it != buffers.end()) {
+            buffers.erase(it);
+        }
+        else {
+            delete ctx;
+        }
     }
     friend cl::Buffer* caffe2::opencl::getBufferFromPtr(void *ptr);
 };
 
-std::unordered_map<void*, cl::Buffer*> DefaultOpenCLAllocator::buffers;
+std::unordered_map<void*, OpenCLPtrContext*> DefaultOpenCLAllocator::buffers;
 static DefaultOpenCLAllocator g_opencl_alloc;
 REGISTER_ALLOCATOR(OPENCL, &g_opencl_alloc);
 
 namespace opencl {
 
 cl::Buffer* getBufferFromPtr(void *ptr) {
+    std::lock_guard<std::mutex> lock(opencl::OpenCLContext::mutex());
     auto it = DefaultOpenCLAllocator::buffers.find(ptr);
     if (it == DefaultOpenCLAllocator::buffers.end()) {
         return nullptr;
     }
-    return it->second;
+    return it->second->buf;
 }
 
 }

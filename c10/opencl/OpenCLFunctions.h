@@ -49,7 +49,9 @@ namespace {
  *          parameters.
  * 
  * This function is similar to {@code opencl_kernel} in the sense where it
- * fetches a kernel with the given name
+ * fetches a kernel with the given name {@code kernel_func_name}, but instead
+ * of returning a {@code cl::Kernel} instance, it returns a functor which can
+ * be called to run the kernel with with the given function signature.
  */
 template<typename Func, typename... Args, typename std::enable_if<std::integral_constant<bool, (::c10::function_traits<Func>::arity == sizeof...(Args))>::value && std::is_function<Func>::value, int>::type = 0>
 std::function<typename unwrap_function<Func>::type> opencl_kernel_func(const std::string& kernel_func_name, cl::EnqueueArgs config, cl::Event *event) {
@@ -104,25 +106,8 @@ cl_int setArgs(cl::Kernel &kernel, Arg&& arg, Args&& ...args) {
     return err;
 }
 
-struct KernelExecConfig {
-    const cl::NDRange global;
-    const cl::NDRange offset;
-    const cl::NDRange local;
-    const std::vector<cl::Event> *events;
-    cl::Event* event;
-    KernelExecConfig(const cl::NDRange global,
-                     const cl::NDRange offset = 0,
-                     const cl::NDRange local = 1,
-                     const std::vector<cl::Event> *events = NULL,
-                     cl::Event* event = NULL)
-                     : global(global)
-                     , offset(offset)
-                     , local(local)
-                     , events(events)
-                     , event(event) {}
-};
-
 template<typename... Args>
+C10_DEPRECATED_MESSAGE("runKernel is deprecated in favor to using the opencl_kernel_func.")
 cl_int runKernel(cl::Kernel &kernel, const cl::EnqueueArgs &config, Args&& ...args) {
     cl::KernelFunctor<Args...> functor{kernel};
     cl_int err;

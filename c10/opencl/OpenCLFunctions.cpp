@@ -143,8 +143,31 @@ static void initOpenCLKernels(cl_int* cl_err) {
         return;
     }
 
+    std::stringstream build_params;
+    cl_bitfield min_fp_config;
+    cl_bitfield device_fp_config;
+
+#define CHECK_FP_CONFIG(FP, MIN_FP_CONFIG) \
+    min_fp_config = MIN_FP_CONFIG; \
+    device_fp_config = devices[0].getInfo<CL_DEVICE_##FP##_FP_CONFIG>(cl_err); \
+    if (*cl_err != CL_SUCCESS) { \
+        TORCH_WARN("OpenCL Error : cannot get device property of device #0"); \
+        return; \
+    } \
+    if ((device_fp_config & min_fp_config) == min_fp_config) { \
+        build_params << " -D" #FP "_PRECISION"; \
+    }
+
+    CHECK_FP_CONFIG(DOUBLE, CL_FP_FMA | CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO | CL_FP_ROUND_TO_INF | CL_FP_INF_NAN | CL_FP_DENORM);
+    CHECK_FP_CONFIG(HALF, CL_FP_ROUND_TO_INF | CL_FP_INF_NAN);
+    if ((device_fp_config & min_fp_config) != min_fp_config) {
+        CHECK_FP_CONFIG(HALF, CL_FP_ROUND_TO_ZERO | CL_FP_INF_NAN);
+    }
+    CHECK_FP_CONFIG(SINGLE, CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN);
+#undef CHECK_FP_CONFIG
+
 #ifndef C10_USE_FPGA
-    *cl_err = program.build(devices, std::string{"-I" + kernels_dir}.c_str());
+    *cl_err = program.build(devices, std::string{"-I" + kernels_dir + build_params.str()}.c_str());
     if (*cl_err != CL_SUCCESS) {
         TORCH_WARN("OpenCL Error : cannot build OpenCL Program (", clErrorString(*cl_err), ")");
         if (*cl_err == CL_BUILD_PROGRAM_FAILURE) {
