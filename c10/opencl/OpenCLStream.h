@@ -54,7 +54,7 @@ public:
 
   void synchronize() const {
     DeviceGuard guard{stream_.device()};
-    C10_OPENCL_CHECK(clFinish((*stream())()));
+    C10_OPENCL_CHECK(stream()->finish());
   }
 
   /// Reversibly pack a OpenCLStream into a uint64_t representation.  This may

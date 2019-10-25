@@ -24,12 +24,13 @@ void fill_kernel_opencl(TensorIterator& iter, Scalar value) {
   TensorImpl* self_ = checked_tensor_unwrap(self, "self", 2, "fill_kernel_opencl", false, c10::Backend::OpenCL, iter.dtype());
   auto type = getOpenCLKernelCastType(iter.dtype());
   auto stream = at::opencl::getCurrentOpenCLStream(self_->device().index());
-  auto scalar_tensor_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 1, self.storage().allocator(), true),TensorTypeId::OpenCLTensorId).release();
+
+  Tensor scalar_tensor = at::native::empty({1}, c10::nullopt, self.options());
+  auto scalar_tensor_ = scalar_tensor.storage().unsafeGetStorageImpl();
   AT_DISPATCH_ALL_TYPES_AND(at::ScalarType::Bool, iter.dtype(), "fill_kernel_opencl", [&]{
     scalar_t value_s = value.to<scalar_t>();
     AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer(*toBuffer(scalar_tensor_->data()), CL_TRUE, 0, sizeof(scalar_t), &value_s));
   });
-  auto scalar_tensor = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(scalar_tensor_));
   auto kernel_name = "cast_s";
   auto kernel = c10::opencl::opencl_kernel_func<OpenCLCastFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), self_->numel(), 1});
   AT_OPENCL_CHECK(kernel(*toBuffer(scalar_tensor_->data()), *toBuffer(self_->data()), type, type));

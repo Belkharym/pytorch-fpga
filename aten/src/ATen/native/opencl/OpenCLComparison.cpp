@@ -39,13 +39,14 @@ static void pointwise_op_comp2_s(StorageImpl* c, const StorageImpl* a, const Sca
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
   
-  auto scalar_tensor_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(T), 1, c->allocator(), true),TensorTypeId::OpenCLTensorId).release();
+  Tensor scalar_tensor = at::native::empty_opencl({1}, TensorOptions{T}.merge_in({a->device()}));
+  auto scalar_tensor_ = scalar_tensor.storage().unsafeGetStorageImpl();
   S value_s = b.to<S>();
   AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer(*toBuffer(scalar_tensor_->data()), CL_TRUE, 0, sizeof(S), &value_s));
 
   AT_OPENCL_CHECK(pointwise_op(
       toBuffer(a),
-      toBuffer(scalar_tensor_->storage().unsafeGetStorageImpl()),
+      toBuffer(scalar_tensor_),
       toBuffer(c),
       op,
       getOpenCLKernelCastType(T)));
