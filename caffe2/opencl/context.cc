@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <mutex>
+#include <memory>
 
 #ifdef _WIN32
 #define ALIGNED_MALLOC(size, alignment) ::_aligned_malloc(size, alignment)
@@ -215,6 +216,54 @@ void OpenCLContext::CopyBytesSync(
 
 } // namespace opencl
 
+struct sync_opencl_ptr : public DataPtr {
+    sync_opencl_ptr() : dptr_() {}
+    sync_opencl_ptr(void* data, Device device) : dptr_(data, device) {}
+    sync_opencl_ptr(void* data, void* ctx, DeleterFnPtr ctx_deleter, Device device)
+        : dptr_(data, ctx, ctx_deleter, device) {}
+    void* operator->() const {
+        return dptr_.get();
+    }
+    void clear() {
+        at::native::syncOpenCLPointer(dptr_.get());
+        c10::opencl::getCurrentOpenCLStream().synchronize();
+        dptr_.clear();
+    }
+    void* get() const {
+        return dptr_.get();
+    }
+    void* get_context() const {
+        return dptr_.get_context();
+    }
+    void* release_context() {
+        return dptr_.release_context();
+    }
+    std::unique_ptr<void, DeleterFnPtr>&& move_context() {
+        return dptr_.move_context();
+    }
+    operator bool() const {
+        return static_cast<bool>(dptr_);
+    }
+    template <typename T>
+    T* cast_context(DeleterFnPtr expected_deleter) const {
+        return dptr_.cast_context<T>(expected_deleter);
+    }
+    DeleterFnPtr get_deleter() const {
+        return dptr_.get_deleter();
+    }
+    C10_NODISCARD bool compare_exchange_deleter(DeleterFnPtr expected_deleter, DeleterFnPtr new_deleter) {
+        return dptr_.compare_exchange_deleter(expected_deleter, new_deleter);
+    }
+    Device device() const {
+        return dptr_.device();
+    }
+    void unsafe_set_device(Device device) {
+        dptr_.unsafe_set_device(device);
+    }
+private:
+    DataPtr dptr_;
+};
+
 struct OpenCLPtrContext {
     void* data;
     cl::Buffer* buf;
@@ -248,13 +297,17 @@ struct DefaultOpenCLAllocator final : public at::Allocator {
 private:
     static std::unordered_map<void*, OpenCLPtrContext*> buffers;
     static void Delete(void* ctxPtr) {
+        TORCH_INTERNAL_ASSERT(ctxPtr != nullptr);
+        OpenCLPtrContext* ctx = reinterpret_cast<OpenCLPtrContext*>(ctxPtr);
+
+        at::native::syncOpenCLPointer(ctx->data);
+        c10::opencl::getCurrentOpenCLStream().synchronize();
+
         // lock the mutex
         std::lock_guard<std::mutex> lock(opencl::OpenCLContext::mutex());
 
-        TORCH_INTERNAL_ASSERT(ctxPtr != nullptr);
-
-        OpenCLPtrContext* ctx = reinterpret_cast<OpenCLPtrContext*>(ctxPtr);
         auto it = buffers.find(ctx->data);
+        // Sync data
         // If memory pool is not set up, use simple free.
         if (ctx->data) ::free(ctx->data);
         if (ctx->buf) delete ctx->buf;
