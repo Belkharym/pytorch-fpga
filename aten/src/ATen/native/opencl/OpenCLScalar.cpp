@@ -15,7 +15,7 @@ Scalar _local_scalar_dense_opencl(const Tensor& self) {
       scalar_t value;
       at::opencl::OpenCLStream stream = at::opencl::getCurrentOpenCLStream(self.device().index());
       AT_OPENCL_CHECK(syncOpenCLPointer(self.storage().data()));
-      stream.synchronize(); // Pointless syncronization, since we read blocking-ly.
+      stream.synchronize();
       value = ((scalar_t*)self.storage().data())[0];
       r = Scalar(value);
     });

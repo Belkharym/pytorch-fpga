@@ -70,10 +70,8 @@ static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
 
-  Tensor scalar_tensor = at::native::empty_opencl({1}, TensorOptions{T}.merge_in({a->device()}));
+  Tensor scalar_tensor = at::native::scalar_tensor_opencl(b, TensorOptions{T}.merge_in({a->device()}));
   auto scalar_tensor_ = scalar_tensor.storage().unsafeGetStorageImpl();
-  S value_s = b.to<S>();
-  AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer(*toBuffer(scalar_tensor_->data()), CL_TRUE, 0, sizeof(S), &value_s));
 
   AT_OPENCL_CHECK(pointwise_op(
       toBuffer(a),
@@ -81,7 +79,7 @@ static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b
       toBuffer(c),
       op,
       getOpenCLKernelCastType(T)));
-  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get()));
+  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get(), stream));
   AT_OPENCL_CHECK(stream.stream()->finish());
 }
 
@@ -186,15 +184,13 @@ Tensor & _zero_opencl(Tensor & self) {
   auto kernel_name = "cast_s";
   auto kernel = c10::opencl::opencl_kernel_func<OpenCLCastFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)self_->numel()}, 1});
 
-  Tensor scalar_tensor = at::native::empty({1}, c10::nullopt, self.options().merge_in(TensorOptions{ScalarType::Int}));
-  int value_0 = 0;
-  AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer(*toBuffer(scalar_tensor.data_ptr()), CL_TRUE, 0, sizeof(int), &value_0));
+  Tensor scalar_tensor = at::native::scalar_tensor_opencl(Scalar(0), self.options().merge_in(TensorOptions{ScalarType::Int}));
   AT_OPENCL_CHECK(kernel(
     *toBuffer(scalar_tensor.data_ptr()),
     *toBuffer(self_->data()),
     at::native::opencl::OpenCLPtrType::INT,
     getOpenCLKernelCastType(typeMetaToScalarType(self_->dtype()))));
-  AT_OPENCL_CHECK(syncOpenCLPointer(self_->data()));
+  AT_OPENCL_CHECK(syncOpenCLPointer(self_->data(), stream));
 
   return self;
 

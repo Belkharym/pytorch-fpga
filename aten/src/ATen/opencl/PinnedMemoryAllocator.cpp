@@ -166,6 +166,7 @@ struct HostAllocator
     Block& block = it->second;
     TORCH_INTERNAL_ASSERT(block.allocated);
 
+    stream.stream()->flush();
     block.streams.insert(stream);
     return CL_SUCCESS;
   }

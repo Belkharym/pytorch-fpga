@@ -172,6 +172,8 @@ static void copy_kernel_opencl(TensorIterator& iter, bool non_blocking) {
     // TODO find a way to ensure that, when we try to access to the host pointer (when dst is host),
     // we block until the read is done.
     AT_OPENCL_CHECK(OpenCLCachingHostAllocator_recordEvent(ptr, stream));
+    // TODO Find how CUDA do to ensure that when we use the tensors, everything is synchronized.
+    if (dst_device == kCPU) stream.synchronize();
   } else {
     stream.synchronize();
   }
