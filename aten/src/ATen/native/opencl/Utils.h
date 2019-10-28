@@ -1,5 +1,6 @@
 #include <c10/core/ScalarType.h>
 #include <caffe2/opencl/context.h>
+#include <ATen/ATen.h>
 #include <ATen/opencl/PinnedMemoryAllocator.h>
 #include <ATen/native/opencl/OpenCLOperations.h>
 
@@ -163,14 +164,14 @@ inline cl::Buffer* toBuffer(void *ptr, bool *is_host = nullptr) {
   return ret;
 }
 
-inline cl_int syncOpenCLPointer(void *ptr) {
+inline cl_int syncOpenCLPointer(void *ptr, c10::optional<c10::opencl::OpenCLStream> stream_opt = c10::nullopt) {
   bool is_host;
   cl::Buffer* buffer = toBuffer(ptr, &is_host);
   if (buffer == nullptr) {
     return CL_INVALID_ARG_VALUE;
   }
   cl_int err;
-  auto stream = c10::opencl::getCurrentOpenCLStream();
+  auto stream = stream_opt ? *stream_opt : c10::opencl::getCurrentOpenCLStream();
 
   size_t buffer_size;
   err = buffer->getInfo(CL_MEM_SIZE, &buffer_size);
@@ -180,6 +181,42 @@ inline cl_int syncOpenCLPointer(void *ptr) {
 
   err = stream.stream()->enqueueReadBuffer(*buffer, CL_FALSE, /*offset=*/0, buffer_size, ptr, NULL, NULL);
   return err;
+}
+
+namespace {
+
+template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
+at::Tensor scalar_tensor_opencl_impl(c10::Scalar s, c10::optional<c10::TensorOptions> options = c10::nullopt) {
+  auto stream = at::opencl::getCurrentOpenCLStream(options ? options->device().index() : -1);
+  c10::ScalarType type = (T == c10::ScalarType::Undefined ? c10::typeMetaToScalarType(options->dtype()) : T);
+
+  at::Tensor scalar_tensor = at::native::empty_opencl({1}, c10::TensorOptions{type}.merge_in(options ? *options : c10::TensorOptions{}));
+  auto scalar_tensor_ = scalar_tensor.storage().unsafeGetStorageImpl();
+  S value_s = s.to<S>();
+  memcpy(scalar_tensor_->data(), &value_s, sizeof(S));
+  AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer(*toBuffer(scalar_tensor_->data()), CL_TRUE, 0, sizeof(S), &value_s));
+
+  return scalar_tensor;
+}
+
+} // namespace
+
+template <c10::ScalarType T, typename std::enable_if<T != c10::ScalarType::Undefined, int>::type = 0>
+at::Tensor scalar_tensor_opencl(c10::Scalar s, c10::optional<c10::TensorOptions> options) {
+  TORCH_CHECK(!options || options->dtype() == T, "[scalar_tensor_opencl] Type mismatch");
+
+  return scalar_tensor_opencl_impl<T>(s, options);
+}
+
+template <c10::ScalarType T = c10::ScalarType::Undefined, typename std::enable_if<T == c10::ScalarType::Undefined, int>::type = 0>
+at::Tensor scalar_tensor_opencl(c10::Scalar s, c10::optional<c10::TensorOptions> options) {
+  TORCH_CHECK(options && options->has_dtype(),
+    "scalar_tensor_opencl need a type to be provided, either from a template parameter, or through the TensorOptions.");
+
+  return AT_DISPATCH_ALL_TYPES_AND3(
+  at::ScalarType::Half, at::ScalarType::Bool, at::ScalarType::BFloat16, c10::typeMetaToScalarType(options->dtype()), "scalar_tensor_opencl", [&] {
+    return scalar_tensor_opencl_impl<c10::ScalarType::Undefined, scalar_t>(s, options);
+  });
 }
 
 }} // namespace at::native

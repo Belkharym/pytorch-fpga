@@ -54,6 +54,7 @@ public:
 
   void synchronize() const {
     DeviceGuard guard{stream_.device()};
+    stream()->flush();
     C10_OPENCL_CHECK(stream()->finish());
   }
 

@@ -37,10 +37,8 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3sFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
   
-  Tensor scalar_tensor = at::native::empty_opencl({1}, TensorOptions{T}.merge_in({a->device()}));
+  Tensor scalar_tensor = at::native::scalar_tensor_opencl<T>(alpha, TensorOptions{T}.merge_in({a->device()}));
   auto scalar_tensor_ = scalar_tensor.storage().unsafeGetStorageImpl();
-  S value_s = alpha.to<S>();
-  AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer(*toBuffer(scalar_tensor_->data()), CL_TRUE, 0, sizeof(S), &value_s));
 
   AT_OPENCL_CHECK(pointwise_op(
       toBuffer(a),
@@ -78,10 +76,8 @@ static void pointwise_op2s(const StorageImpl* a, const Scalar b, StorageImpl* c,
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
 
-  Tensor scalar_tensor = at::native::empty_opencl({1}, TensorOptions{T}.merge_in({a->device()}));
+  Tensor scalar_tensor = at::native::scalar_tensor_opencl<T>(b, TensorOptions{T}.merge_in({a->device()}));
   auto scalar_tensor_ = scalar_tensor.storage().unsafeGetStorageImpl();
-  S value_s = b.to<S>();
-  AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer(*toBuffer(scalar_tensor_->data()), CL_TRUE, 0, sizeof(S), &value_s));
 
   AT_OPENCL_CHECK(pointwise_op(
       toBuffer(a),
