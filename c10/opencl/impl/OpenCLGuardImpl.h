@@ -10,7 +10,7 @@ namespace c10 {
 namespace opencl {
 namespace impl {
 
-struct OpenCLGuardImpl final : public c10::impl::DeviceGuardImplInterface {
+struct C10_OPENCL_API OpenCLGuardImpl final : public c10::impl::DeviceGuardImplInterface {
   static constexpr DeviceType static_type = DeviceType::OPENCL;
 
   OpenCLGuardImpl() {}
