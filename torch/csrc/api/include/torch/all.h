@@ -4,6 +4,7 @@
 #include <torch/data.h>
 #include <torch/jit.h>
 #include <torch/nn.h>
+#include <torch/opencl.h>
 #include <torch/optim.h>
 #include <torch/serialize.h>
 #include <torch/types.h>

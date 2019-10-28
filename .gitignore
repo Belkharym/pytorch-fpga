@@ -31,6 +31,7 @@ docs/src/**/*
 docs/cpp/build
 docs/cpp/source/api
 log
+out
 test/.coverage
 test/.hypothesis/
 test/cpp/api/mnist
@@ -66,6 +67,7 @@ torch/cmake/
 torch/lib/*.a*
 torch/lib/*.dll*
 torch/lib/*.exe*
+torch/lib/*.pdb*
 torch/lib/*.dylib*
 torch/lib/*.h
 torch/lib/*.lib
@@ -84,7 +86,7 @@ torch/lib/site-packages/
 torch/lib/python*
 torch/lib64
 torch/include/
-torch/opencl/
+torch/opencl/kernels
 torch/share/
 torch/test/
 torch/version.py

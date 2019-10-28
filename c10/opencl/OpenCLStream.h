@@ -14,7 +14,7 @@
 namespace c10 {
 namespace opencl {
 
-class C10_API OpenCLStream {
+class C10_OPENCL_API OpenCLStream {
 public:
 
   enum Unchecked { UNCHECKED };
@@ -30,11 +30,11 @@ public:
   /// be invoked as: OpenCLStream(OpenCLStream::UNCHECKED, stream)
   explicit OpenCLStream(Unchecked, Stream stream) : stream_(stream) {}
 
-  bool operator==(const OpenCLStream& other) const noexcept {
+  inline bool operator==(const OpenCLStream& other) const noexcept {
     return unwrap() == other.unwrap();
   }
 
-  bool operator!=(const OpenCLStream& other) const noexcept {
+  inline bool operator!=(const OpenCLStream& other) const noexcept {
     return unwrap() != other.unwrap();
   }
 
@@ -125,7 +125,7 @@ CAFFE2_API OpenCLStream getCurrentOpenCLStream(DeviceIndex device_index = -1);
  */
 CAFFE2_API void setCurrentOpenCLStream(OpenCLStream stream);
 
-C10_API std::ostream& operator<<(std::ostream& stream, const OpenCLStream& s);
+C10_OPENCL_API std::ostream& operator<<(std::ostream& stream, const OpenCLStream& s);
 
 } // namespace opencl
 } // namespace c10

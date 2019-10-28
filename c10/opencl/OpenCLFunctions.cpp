@@ -2,13 +2,15 @@
 #include "OpenCLException.h"
 
 #include <vector>
+#include <deque>
 #include <map>
-#include <algorithm>
 #include <mutex>
+#include <algorithm>
 #include <string>
 #include <sstream>
 #include <fstream>
 #include <iostream>
+#include <regex>
 #ifdef _WIN32
 #include <Windows.h>
 #else
@@ -93,13 +95,14 @@ static std::vector<std::string> listDirectory(std::string dirPath) {
                     continue; // a diretory
                 }
                 else {
-                    entries.push_back(fdata.cFileName);
+                    entries.push_back(dirPath + kPathSeparator + fdata.cFileName);
                 }
             }
         }
         while (FindNextFile(hFind, &fdata) != 0);
     } else {
         // Can't open directory
+        TORCH_WARN("Can't open directory ", dirPath);
         return entries;
     }
  
@@ -112,7 +115,6 @@ static std::vector<std::string> listDirectory(std::string dirPath) {
     FindClose(hFind);
     hFind = INVALID_HANDLE_VALUE;
 #endif // _WIN32
-
     return entries;
 }
 
@@ -170,7 +172,7 @@ static void initOpenCLKernels(cl_int* cl_err) {
     program = cl::Program{context, contents, cl_err};
 #endif // C10_USE_FPGA
     if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN("OpenCL Error : cannot create OpenCL Program (", clErrorString(*cl_err), ")");
+        TORCH_WARN("OpenCL Error : cannot create OpenCL Program (", clErrorString(*cl_err), ") {dir:\"", kernel_dir_path,"\"; content.size:", contents.size(), "}");
 #ifdef C10_USE_FPGA
         TORCH_WARN("Device status:");
         for (size_t i = 0; i < binaryStatus.size(); ++i) {
@@ -188,7 +190,7 @@ static void initOpenCLKernels(cl_int* cl_err) {
     min_fp_config = MIN_FP_CONFIG; \
     device_fp_config = devices[0].getInfo<CL_DEVICE_##FP##_FP_CONFIG>(cl_err); \
     if (*cl_err != CL_SUCCESS) { \
-        TORCH_WARN("OpenCL Error : cannot get device property of device #0"); \
+        TORCH_WARN("OpenCL Error : cannot get device property of device #0 (", clErrorString(*cl_err), ")"); \
         return; \
     } \
     if ((device_fp_config & min_fp_config) == min_fp_config) { \
@@ -196,9 +198,12 @@ static void initOpenCLKernels(cl_int* cl_err) {
     }
 
     CHECK_FP_CONFIG(DOUBLE, CL_FP_FMA | CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO | CL_FP_ROUND_TO_INF | CL_FP_INF_NAN | CL_FP_DENORM);
-    CHECK_FP_CONFIG(HALF, CL_FP_ROUND_TO_INF | CL_FP_INF_NAN);
-    if ((device_fp_config & min_fp_config) != min_fp_config) {
-        CHECK_FP_CONFIG(HALF, CL_FP_ROUND_TO_ZERO | CL_FP_INF_NAN);
+    std::string extensions = devices[0].getInfo<CL_DEVICE_EXTENSIONS>(cl_err);
+    if (std::regex_match(extensions, std::regex{"cl_khr_fp16"})) {
+        CHECK_FP_CONFIG(HALF, CL_FP_ROUND_TO_INF | CL_FP_INF_NAN);
+        if ((device_fp_config & min_fp_config) != min_fp_config) {
+            CHECK_FP_CONFIG(HALF, CL_FP_ROUND_TO_ZERO | CL_FP_INF_NAN);
+        }
     }
     CHECK_FP_CONFIG(SINGLE, CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN);
 #undef CHECK_FP_CONFIG
@@ -264,7 +269,7 @@ static void initOpenCLContext(cl_int* cl_err) {
         TORCH_WARN("Cannot find OpenCL compatible device. (", clErrorString(*cl_err),")");
         return;
     }
-    current_device_ = device_id;
+    set_device(device_id);
 
     context = cl::Context(devices, NULL, NULL, NULL, cl_err);
     if (*cl_err != CL_SUCCESS) {
@@ -295,12 +300,14 @@ DeviceIndex device_count() noexcept {
     return static_cast<DeviceIndex>(count);
 }
 
-DeviceIndex current_device() {
+DeviceIndex current_device() noexcept {
     return current_device_;
 }
 
 void set_device(DeviceIndex device_id) {
-    // TODO Check if the device id is valid
+    if (device_id >= devices.size() || device_id < 0) {
+        throw std::range_error("device_id is out of range (given " + c10::to_string(device_id) + ", device count is " + c10::to_string(device_count()));
+    }
     current_device_ = device_id;
 }
 
@@ -314,7 +321,7 @@ cl::Context opencl_context() {
 
 cl::Device opencl_device(DeviceIndex device_id) {
     if (device_id == -1) {
-        device_id = current_device_;
+        device_id = current_device();
     }
     return devices[device_id];
 }
@@ -337,6 +344,143 @@ std::string clRemoveNullChars(const std::string &str) {
   std::string ret;
   std::copy_if(str.begin(), str.end(), std::back_inserter(ret), [](const char& c) {return !!c;});
   return ret;
+}
+
+namespace {
+
+DeviceIndex num_devices = -1;
+std::once_flag device_init_flag;
+std::deque<std::once_flag> device_flags;
+std::vector<openclDeviceProp> device_properties;
+
+void initOpenCLContextVectors() {
+  num_devices = c10::opencl::device_count();
+  device_flags.resize(num_devices);
+  device_properties.resize(num_devices);
+}
+
+static std::vector<std::string> stringSplit(std::string strToSplit, char delimeter)
+{
+    std::stringstream ss(strToSplit);
+    std::string item;
+    std::vector<std::string> splittedStrings;
+    while (std::getline(ss, item, delimeter))
+    {
+       splittedStrings.push_back(item);
+    }
+    return splittedStrings;
+}
+
+void initDeviceProperty(DeviceIndex device_index) {
+  cl_int cl_err;
+  openclDeviceProp device_prop;
+  auto device = c10::opencl::opencl_device(device_index);
+
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_ADDRESS_BITS, &device_prop.addressBits));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_AVAILABLE, &device_prop.available));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_AVAILABLE, &device_prop.available));
+  auto kernels = clRemoveNullChars(device.getInfo<CL_DEVICE_BUILT_IN_KERNELS>(&cl_err));
+  C10_OPENCL_CHECK(cl_err);
+  device_prop.builtInKernels = stringSplit(kernels, ';');
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_COMPILER_AVAILABLE, &device_prop.compilerAvailable));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_DOUBLE_FP_CONFIG, &device_prop.doubleFpConfig));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_ENDIAN_LITTLE, &device_prop.endianLittle));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_ERROR_CORRECTION_SUPPORT, &device_prop.errorCorrectionSupport));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_EXECUTION_CAPABILITIES, &device_prop.executionCapabilities));
+  auto extensions = clRemoveNullChars(device.getInfo<CL_DEVICE_EXTENSIONS>(&cl_err));
+  C10_OPENCL_CHECK(cl_err);
+  device_prop.extensions = stringSplit(extensions, ' ');
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, &device_prop.globalMemCacheSize));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_GLOBAL_MEM_CACHE_TYPE, &device_prop.globalMemCacheType));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE, &device_prop.globalMemCachelineSize));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_GLOBAL_MEM_SIZE, &device_prop.globalMemSize));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_HALF_FP_CONFIG, &device_prop.halfFpConfig));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &device_prop.hostUnifiedMemory));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_IMAGE_SUPPORT, &device_prop.imageSupport));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_IMAGE2D_MAX_HEIGHT, &device_prop.image2dMaxHeight));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_IMAGE2D_MAX_WIDTH, &device_prop.image2dMaxWidth));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_IMAGE3D_MAX_DEPTH, &device_prop.image3dMaxDepth));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_IMAGE3D_MAX_HEIGHT, &device_prop.image3dMaxHeight));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_IMAGE3D_MAX_WIDTH, &device_prop.image3dMaxWidth));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_IMAGE_MAX_BUFFER_SIZE, &device_prop.imageMaxBufferSize));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_IMAGE_MAX_ARRAY_SIZE, &device_prop.imageMaxArraySize));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_LINKER_AVAILABLE, &device_prop.linkerAvailable));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_LOCAL_MEM_SIZE, &device_prop.localMemSize));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_LOCAL_MEM_TYPE, &device_prop.localMemType));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MAX_CLOCK_FREQUENCY, &device_prop.maxClockFrequency));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MAX_COMPUTE_UNITS, &device_prop.maxComputeUnits));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MAX_CONSTANT_ARGS, &device_prop.maxConstantArgs));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, &device_prop.maxConstantBufferSize));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MAX_MEM_ALLOC_SIZE, &device_prop.maxMemAllocSize));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MAX_PARAMETER_SIZE, &device_prop.maxParameterSize));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MAX_READ_IMAGE_ARGS, &device_prop.maxReadImageArgs));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MAX_SAMPLERS, &device_prop.maxSamplers));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MAX_WORK_GROUP_SIZE, &device_prop.maxWorkGroupSize));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, &device_prop.maxWorkItemDimensions));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MAX_WORK_ITEM_SIZES, &device_prop.maxWorkItemSizes));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MAX_WRITE_IMAGE_ARGS, &device_prop.maxWriteImageArgs));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MEM_BASE_ADDR_ALIGN, &device_prop.memBaseAddrAlign));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE, &device_prop.minDataTypeAlignSize));
+  device_prop.name = clRemoveNullChars(device.getInfo<CL_DEVICE_NAME>(&cl_err));
+  C10_OPENCL_CHECK(cl_err);
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR, &device_prop.nativeVectorWidthChar));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT, &device_prop.nativeVectorWidthShort));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, &device_prop.nativeVectorWidthInt));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, &device_prop.nativeVectorWidthLong));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT, &device_prop.nativeVectorWidthFloat));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, &device_prop.nativeVectorWidthDouble));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF, &device_prop.nativeVectorWidthHalf));
+  device_prop.openclCVersion = clRemoveNullChars(device.getInfo<CL_DEVICE_OPENCL_C_VERSION>(&cl_err));
+  C10_OPENCL_CHECK(cl_err);
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PARENT_DEVICE, &device_prop.parentDevice));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PARTITION_MAX_SUB_DEVICES, &device_prop.partitionMaxSubDevices));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PARTITION_PROPERTIES, &device_prop.partitionProperties));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PARTITION_AFFINITY_DOMAIN, &device_prop.partitionAffinityDomain));
+  size_t nTypes;
+  C10_OPENCL_CHECK(clGetDeviceInfo(device(), CL_DEVICE_PARTITION_TYPE, 0, NULL, &nTypes));
+  device_prop.partitionType.resize(nTypes);
+  C10_OPENCL_CHECK(clGetDeviceInfo(device(), CL_DEVICE_PARTITION_TYPE, device_prop.partitionType.size(), device_prop.partitionType.data(), NULL));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PLATFORM, &device_prop.platform));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR, &device_prop.preferredVectorWidthChar));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT, &device_prop.preferredVectorWidthShort));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT, &device_prop.preferredVectorWidthInt));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG, &device_prop.preferredVectorWidthLong));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT, &device_prop.preferredVectorWidthFloat));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, &device_prop.preferredVectorWidthDouble));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF, &device_prop.preferredVectorWidthHalf));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PRINTF_BUFFER_SIZE, &device_prop.printfBufferSize));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PREFERRED_INTEROP_USER_SYNC, &device_prop.preferredInteropUserSync));
+  device_prop.profile = clRemoveNullChars(device.getInfo<CL_DEVICE_PROFILE>(&cl_err));
+  C10_OPENCL_CHECK(cl_err);
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_PROFILING_TIMER_RESOLUTION, &device_prop.profilingTimerResolution));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_QUEUE_PROPERTIES, &device_prop.queueProperties));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_REFERENCE_COUNT, &device_prop.referenceCount));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_SINGLE_FP_CONFIG, &device_prop.singleFpConfig));
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_TYPE, &device_prop.type));
+  device_prop.vendor = clRemoveNullChars(device.getInfo<CL_DEVICE_VENDOR>(&cl_err));
+  C10_OPENCL_CHECK(cl_err);
+  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_VENDOR_ID, &device_prop.vendorId));
+  device_prop.version = clRemoveNullChars(device.getInfo<CL_DEVICE_VERSION>(&cl_err));
+  C10_OPENCL_CHECK(cl_err);
+  device_prop.driverVersion = clRemoveNullChars(device.getInfo<CL_DRIVER_VERSION>(&cl_err));
+  C10_OPENCL_CHECK(cl_err);
+
+  device_properties[device_index] = device_prop;
+}
+
+} // anonymous namespace
+
+openclDeviceProp* getCurrentDeviceProperties() {
+  auto device = c10::opencl::current_device();
+  return getDeviceProperties(device);
+}
+
+openclDeviceProp* getDeviceProperties(int64_t device) {
+  std::call_once(device_init_flag, initOpenCLContextVectors);
+  if (device == -1) device = c10::opencl::current_device();
+  AT_ASSERT(device >= 0 && device < num_devices);
+  std::call_once(device_flags[device], initDeviceProperty, device);
+  return &device_properties[device];
 }
 
 }} // namespace c10::opencl

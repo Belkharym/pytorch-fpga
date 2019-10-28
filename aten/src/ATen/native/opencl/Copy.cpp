@@ -61,7 +61,7 @@ static void copy_device_to_device(TensorIterator& iter, bool non_blocking) {
         numel));
   } else {
     auto kernel_name = "cast";
-    auto cast_kernel = opencl_kernel_func<OpenCLCastFunctor>(kernel_name, cl::EnqueueArgs{*copy_stream.stream(), numel, 1});
+    auto cast_kernel = opencl_kernel_func<OpenCLCastFunctor>(kernel_name, cl::EnqueueArgs{*copy_stream.stream(), cl::NDRange{(size_t)numel}, 1});
     AT_OPENCL_CHECK(cast_kernel(
         *toBuffer(iter.data_ptr(1)),
         *toBuffer(iter.data_ptr(0)),

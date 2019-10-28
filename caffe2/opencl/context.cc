@@ -235,7 +235,7 @@ struct DefaultOpenCLAllocator final : public at::Allocator {
             ctx->data = ALIGNED_MALLOC(nbytes, alignof(max_align_t) * 16);
             TORCH_INTERNAL_ASSERT(ctx->data, "Cannot allocate ", nbytes, " byte(s) of memory for OpenCL buffer.");
             ctx->buf = new cl::Buffer{c10::opencl::opencl_context(), CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, nbytes, ctx->data, &err};
-            TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : Cannot allocate Buffer of ", nbytes, " byte(s). (", clErrorString(err), ")");
+            TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : Cannot allocate Buffer of ", nbytes, " byte(s). (", ::c10::opencl::clErrorString(err), ")");
             buffers.emplace(ctx->data, ctx);
         }
         return {ctx->data, ctx, &Delete, at::Device(OPENCL, c10::opencl::current_device())};

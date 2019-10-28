@@ -35,7 +35,7 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
   // DONE Call OpenCL kernel.
   auto kernel_name = "operation_3_s";
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3sFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
+  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3sFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
   
   Tensor scalar_tensor = at::native::empty_opencl({1}, TensorOptions{T}.merge_in({a->device()}));
   auto scalar_tensor_ = scalar_tensor.storage().unsafeGetStorageImpl();
@@ -59,7 +59,7 @@ static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImp
   // DONE Call OpenCL kernel.
   auto kernel_name = "pointwise_op_3";
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
+  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
 
   AT_OPENCL_CHECK(pointwise_op(
       toBuffer(a),
@@ -76,7 +76,7 @@ template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPTyp
 static void pointwise_op2s(const StorageImpl* a, const Scalar b, StorageImpl* c, at::native::opencl::OpenCLOperationsPointwise3 op) {
   auto kernel_name = "pointwise_op_2s";
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
+  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
 
   Tensor scalar_tensor = at::native::empty_opencl({1}, TensorOptions{T}.merge_in({a->device()}));
   auto scalar_tensor_ = scalar_tensor.storage().unsafeGetStorageImpl();

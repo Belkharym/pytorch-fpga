@@ -6,7 +6,7 @@ include(../../cmake/public/utils.cmake)
 
 # ---[ Configure macro file.
 set(C10_OPENCL_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS}) # used in cmake_macros.h.in
-set(_OPENCL_KERNEL_DIR opencl)
+set(_OPENCL_KERNEL_DIR opencl/kernels)
 set(_tmp_OPENCL_KERNEL_DIR ${CMAKE_INSTALL_PREFIX}/${_OPENCL_KERNEL_DIR})
 if(USE_FPGA)
   set(C10_USE_FPGA ${USE_FPGA})
@@ -22,14 +22,14 @@ file(GLOB C10_OPENCL_SRCS
     impl/*.cpp
     )
 
-message(INFO "C10_OPENCL_SRCS ${C10_OPENCL_SRCS}")
+message(STATUS "C10_OPENCL_SRCS ${C10_OPENCL_SRCS}")
 
 file(GLOB C10_OPENCL_HEADERS
     *.h
     impl/*.h
 )
 
-message(INFO "C10_OPENCL_HEADERS ${C10_OPENCL_HEADERS}")
+message(STATUS "C10_OPENCL_HEADERS ${C10_OPENCL_HEADERS}")
 
 if(USE_FPGA) # Save current compiler and switch with the FPGA one.
   set(tmp_CXX_COMPILER ${CMAKE_CXX_COMPILER})
@@ -38,10 +38,19 @@ endif()
 add_library(c10_opencl ${C10_OPENCL_SRCS} ${C10_OPENCL_HEADERS})
 if(USE_FPGA) # Restore original compiler
   set(CMAKE_CXX_COMPILER ${tmp_CXX_COMPILER})
+  set(tmp_CXX_COMPILER)
+endif()
+# If building shared library, set dllimport/dllexport proper.
+target_compile_options(c10_opencl PRIVATE "-DC10_OPENCL_BUILD_MAIN_LIB")
+# Enable hidden visibility if compiler supports it.
+if (${COMPILER_SUPPORTS_HIDDEN_VISIBILITY})
+  target_compile_options(c10_opencl PRIVATE "-fvisibility=hidden")
 endif()
 
 # ---[ Dependency of c10_opencl
 target_link_libraries(c10_opencl PUBLIC c10)
+
+target_link_libraries(c10_opencl PUBLIC OpenCL::OpenCL)
 
 target_include_directories(
     c10_opencl PUBLIC
@@ -56,7 +65,8 @@ target_include_directories(
 install(TARGETS c10_opencl EXPORT Caffe2Targets DESTINATION lib)
 foreach(file ${C10_OPENCL_HEADERS})
   get_filename_component( dir ${file} DIRECTORY )
-  install( FILES ${file} DESTINATION include/c10/opencl/${dir} )
+  file(RELATIVE_PATH dir_path ${CMAKE_SOURCE_DIR} ${dir})
+  install( FILES ${file} DESTINATION include/${dir_path} )
 endforeach()
 install(FILES ${CMAKE_BINARY_DIR}/c10/opencl/impl/opencl_cmake_macros.h
   DESTINATION include/c10/opencl/impl)
