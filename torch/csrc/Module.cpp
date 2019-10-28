@@ -757,6 +757,7 @@ PyObject* initModule() {
   PyObject *has_cuda = Py_False;
 #endif
   ASSERT_TRUE(set_module_attr("has_cuda", has_cuda));
+  ASSERT_TRUE(set_module_attr("has_opencl", at::hasOpenCL() ? Py_True : Py_False));
 
   ASSERT_TRUE(set_module_attr("has_mkldnn", at::hasMKLDNN() ? Py_True : Py_False));
 

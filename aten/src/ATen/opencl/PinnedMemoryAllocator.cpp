@@ -6,6 +6,12 @@
 
 #include <stdexcept>
 
+#ifdef _WIN32
+#define ALIGNED_MALLOC(size, alignment) ::_aligned_malloc(size, alignment)
+#else
+#define ALIGNED_MALLOC(size, alignment) ::aligned_alloc(alignment, size)
+#endif // _WIN32
+
 namespace at { namespace opencl {
 
 namespace {
@@ -98,7 +104,7 @@ struct HostAllocator
 
     // We allign the memory to 16 * MAX_SIZE_COMPONENT to meet the requirement of OpenCL alignement rull.
     // See https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
-    *ptr = aligned_alloc(alignof(max_align_t) * 16, size);
+    *ptr = ALIGNED_MALLOC(size, alignof(max_align_t) * 16);
     TORCH_INTERNAL_ASSERT(*ptr, "Could not allocate memory for Host pointer.");
 
     cl::Buffer buffer{at::opencl::opencl_context(), CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE, size, *ptr, &err};

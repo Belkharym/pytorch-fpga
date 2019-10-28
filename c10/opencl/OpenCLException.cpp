@@ -1,6 +1,7 @@
 #include "OpenCLException.h"
 
-
+namespace c10 {
+namespace opencl {
 const char* clErrorString(cl_int error)
 {
     static const char* strings[] =
@@ -133,3 +134,4 @@ const char* clDeviceTypeString(cl_device_type device_type) {
         return strings[32];
     }
 }
+}} // namespace c10::opencl

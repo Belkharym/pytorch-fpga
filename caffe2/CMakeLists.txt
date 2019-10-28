@@ -673,6 +673,7 @@ ELSE()
   add_library(torch ${Caffe2_CPU_SRCS})
   if(USE_FPGA) # Restore original compiler
     set(CMAKE_CXX_COMPILER ${tmp_CXX_COMPILER})
+    set(tmp_CXX_COMPILER)
   endif()
 ENDIF()
 

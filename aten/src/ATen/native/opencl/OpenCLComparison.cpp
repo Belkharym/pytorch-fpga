@@ -22,7 +22,7 @@ static void pointwise_op_comp3(StorageImpl* c, const StorageImpl* a, const Stora
   // DONE Call OpenCL kernel.
   auto kernel_name = "pointwise_op_comp_3";
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
+  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
   AT_OPENCL_CHECK(pointwise_op(
       toBuffer(a),
       toBuffer(b),
@@ -37,7 +37,7 @@ template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPTyp
 static void pointwise_op_comp2_s(StorageImpl* c, const StorageImpl* a, const Scalar b, at::native::opencl::OpenCLOperationsComp3 op) {
   auto kernel_name = "pointwise_op_comp_2s";
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), a->numel(), 1});
+  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
   
   Tensor scalar_tensor = at::native::empty_opencl({1}, TensorOptions{T}.merge_in({a->device()}));
   auto scalar_tensor_ = scalar_tensor.storage().unsafeGetStorageImpl();

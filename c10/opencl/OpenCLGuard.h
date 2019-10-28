@@ -16,7 +16,7 @@ namespace c10 { namespace opencl {
 /// A variant of DeviceGuard that is specialized for OpenCL.  It accepts
 /// integer indices (interpreting them as OpenCL devices) and is a little
 /// more efficient than DeviceGuard.
-struct OpenCLGuard {
+struct C10_OPENCL_API OpenCLGuard {
   /// No default constructor; see Note [Omitted default constructor from RAII]
   explicit OpenCLGuard() = delete;
 
@@ -61,7 +61,7 @@ struct OpenCLGuard {
 
 /// A variant of OptionalDeviceGuard that is specialized for OpenCL.  See
 /// OpenCLGuard for when you can use this.
-struct OptionalOpenCLGuard {
+struct C10_OPENCL_API OptionalOpenCLGuard {
   /// Create an uninitialized OptionalOpenCLGuard.
   explicit OptionalOpenCLGuard() : guard_() {}
 
@@ -113,7 +113,7 @@ private:
 
 /// A variant of StreamGuard that is specialized for OpenCL.  See OpenCLGuard
 /// for when you can use this.
-struct OpenCLStreamGuard {
+struct C10_OPENCL_API OpenCLStreamGuard {
   /// No default constructor, see Note [Omitted default constructor from RAII]
   explicit OpenCLStreamGuard() = delete;
 
@@ -169,7 +169,7 @@ private:
 
 /// A variant of OptionalStreamGuard that is specialized for OpenCL.  See OpenCLGuard
 /// for when you can use this.
-struct OptionalOpenCLStreamGuard {
+struct C10_OPENCL_API OptionalOpenCLStreamGuard {
   /// Create an uninitialized guard.
   explicit OptionalOpenCLStreamGuard() : guard_() {}
 

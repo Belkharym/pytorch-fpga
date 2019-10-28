@@ -4,8 +4,6 @@
 #include <c10/opencl/OpenCLException.h>
 #include <c10/opencl/OpenCLFunctions.h>
 #include <c10/util/UniqueVoidPtr.h>
-#include <ATen/opencl/OpenCLContext.h>
-#include <ATen/opencl/OpenCLEvent.h>
 
 #include <algorithm>
 #include <deque>
