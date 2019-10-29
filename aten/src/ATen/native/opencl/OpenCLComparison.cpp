@@ -29,8 +29,8 @@ static void pointwise_op_comp3(StorageImpl* c, const StorageImpl* a, const Stora
       toBuffer(c),
       op,
       getOpenCLKernelCastType(scalar_type)));
-  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get()));
-  AT_OPENCL_CHECK(stream.stream()->finish());
+  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get(), stream));
+  stream.synchronize();
 }
 
 template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
@@ -49,7 +49,7 @@ static void pointwise_op_comp2_s(StorageImpl* c, const StorageImpl* a, const Sca
       op,
       getOpenCLKernelCastType(T)));
   AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get(), stream));
-  AT_OPENCL_CHECK(stream.stream()->finish());
+  stream.synchronize();
 }
 
 // See THC_logicalTensor in aten/src/THC/THCTensorMathCompareT.cuh for implementation details

@@ -60,8 +60,8 @@ static void pointwise_op3(StorageImpl* c, const StorageImpl* a, const StorageImp
       toBuffer(c),
       op,
       getOpenCLKernelCastType(scalar_type)));
-  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get()));
-  AT_OPENCL_CHECK(stream.stream()->finish());
+  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get(), stream));
+  stream.synchronize();
 }
 
 template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
@@ -80,7 +80,7 @@ static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b
       op,
       getOpenCLKernelCastType(T)));
   AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get(), stream));
-  AT_OPENCL_CHECK(stream.stream()->finish());
+  stream.synchronize();
 }
 
 static void pointwise_op2(StorageImpl* b, const StorageImpl* a, at::native::opencl::OpenCLOperationsPointwise2 op, const ScalarType scalar_type) {
@@ -93,8 +93,8 @@ static void pointwise_op2(StorageImpl* b, const StorageImpl* a, at::native::open
       toBuffer(b),
       op,
       getOpenCLKernelCastType(scalar_type)));
-  AT_OPENCL_CHECK(syncOpenCLPointer(b->data_ptr().get()));
-  AT_OPENCL_CHECK(stream.stream()->finish());
+  AT_OPENCL_CHECK(syncOpenCLPointer(b->data_ptr().get(), stream));
+  stream.synchronize();
 }
 
 Tensor & _abs_out_opencl(Tensor &result, const Tensor &self) {
@@ -191,6 +191,7 @@ Tensor & _zero_opencl(Tensor & self) {
     at::native::opencl::OpenCLPtrType::INT,
     getOpenCLKernelCastType(typeMetaToScalarType(self_->dtype()))));
   AT_OPENCL_CHECK(syncOpenCLPointer(self_->data(), stream));
+  stream.synchronize();
 
   return self;
 
