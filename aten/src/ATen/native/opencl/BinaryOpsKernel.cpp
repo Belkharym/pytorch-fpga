@@ -48,8 +48,8 @@ static void pointwise_op3s(const StorageImpl* a, const StorageImpl* b, StorageIm
       op,
       getOpenCLKernelCastType(T), 
       getOpenCLKernelCastType(T)));
-  AT_OPENCL_CHECK(syncOpenCLPointer(out->data_ptr().get()));
-  //AT_OPENCL_CHECK(stream.stream()->finish());
+  AT_OPENCL_CHECK(syncOpenCLPointer(out->data_ptr().get(), stream));
+  stream.synchronize();
 }
 
 
@@ -66,8 +66,8 @@ static void pointwise_op3(const StorageImpl* a, const StorageImpl* b, StorageImp
       op,
       getOpenCLKernelCastType(scalar_type)));
 
-  AT_OPENCL_CHECK(syncOpenCLPointer(out->data_ptr().get()));
-//   AT_OPENCL_CHECK(stream.stream()->finish());
+  AT_OPENCL_CHECK(syncOpenCLPointer(out->data_ptr().get(), stream));
+  stream.synchronize();
 }
 
 template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
@@ -86,8 +86,8 @@ static void pointwise_op2s(const StorageImpl* a, const Scalar b, StorageImpl* c,
       op,
       getOpenCLKernelCastType(T)));
 
-  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get()));
-//   AT_OPENCL_CHECK(stream.stream()->finish());
+  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get(), stream));
+  stream.synchronize();
 }
 
 // STUB

@@ -1,6 +1,11 @@
 #pragma once
 
 #include <c10/opencl/impl/opencl_cmake_macros.h>
+
+#ifndef _MSC_VER
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif
 //#define CL_HPP_ENABLE_EXCEPTIONS 1
 #define CL_HPP_CL_1_2_DEFAULT_BUILD 1
 #define CL_HPP_TARGET_OPENCL_VERSION 120
@@ -10,6 +15,9 @@
 #include <OpenCL/cl.hpp>
 #else
 #include <CL/cl2.hpp>
+#endif
+#ifndef _MSC_VER
+#pragma GCC diagnostic pop
 #endif
 
 // See c10/macros/Export.h for a detailed explanation of what the function

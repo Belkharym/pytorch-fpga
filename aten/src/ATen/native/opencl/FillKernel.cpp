@@ -32,6 +32,7 @@ void fill_kernel_opencl(TensorIterator& iter, Scalar value) {
   auto kernel = c10::opencl::opencl_kernel_func<OpenCLCastFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange((size_t)self_->numel()), 1});
   AT_OPENCL_CHECK(kernel(*toBuffer(scalar_tensor_->data()), *toBuffer(self_->data()), type, type));
   AT_OPENCL_CHECK(syncOpenCLPointer(self_->data(), stream));
+  stream.synchronize();
 }
 
 REGISTER_DISPATCH(fill_stub, &fill_kernel_opencl);
