@@ -433,7 +433,10 @@ void initDeviceProperty(DeviceIndex device_index) {
   C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_GLOBAL_MEM_CACHE_TYPE, &device_prop.globalMemCacheType));
   C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE, &device_prop.globalMemCachelineSize));
   C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_GLOBAL_MEM_SIZE, &device_prop.globalMemSize));
-  C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_HALF_FP_CONFIG, &device_prop.halfFpConfig));
+  device_prop.halfFpConfig = 0;
+  if (std::any_of(device_prop.extensions.cbegin(), device_prop.extensions.cend(), [](const std::string& s) {return s.compare("cl_khr_fp16") == 0;})) {
+    C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_HALF_FP_CONFIG, &device_prop.halfFpConfig));
+  }
   C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &device_prop.hostUnifiedMemory));
   C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_IMAGE_SUPPORT, &device_prop.imageSupport));
   C10_OPENCL_CHECK(device.getInfo(CL_DEVICE_IMAGE2D_MAX_HEIGHT, &device_prop.image2dMaxHeight));
