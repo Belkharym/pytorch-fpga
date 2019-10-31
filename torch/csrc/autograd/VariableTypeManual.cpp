@@ -30,6 +30,11 @@ std::vector<at::DeprecatedTypeProperties*> VariableType::allCUDATypes() {
   return allTypesForBackends({ Backend::CUDA, Backend::SparseCUDA });
 }
 
+std::vector<at::DeprecatedTypeProperties*> VariableType::allOpenCLTypes() {
+  at::globalContext().lazyInitCUDA();
+  return allTypesForBackends({ Backend::OpenCL, Backend::SparseOpenCL });
+}
+
 const Variable & VariableType::checked_cast_variable(const Tensor & t, const char * name, int pos) {
   if (!t.defined()) {
     AT_ERROR("Expected a Tensor of type Variable but found an undefined Tensor for argument #", pos, " '", name, "'");

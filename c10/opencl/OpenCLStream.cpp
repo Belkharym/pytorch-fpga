@@ -309,6 +309,17 @@ void setCurrentOpenCLStream(OpenCLStream stream) {
   current_streams[ptr->device_index] = ptr;
 }
 
+cl_int openclSynchronize() {
+  cl_int err = CL_SUCCESS;
+  for (size_t i = 0; i < num_devices; ++i) {
+    err = current_streams[i]->stream->flush();
+    if (err != CL_SUCCESS) return err;
+    err = current_streams[i]->stream->finish();
+    if (err != CL_SUCCESS) return err;
+  }
+  return err;
+}
+
 std::ostream& operator<<(std::ostream& stream, const OpenCLStream& s) {
   return stream << s.unwrap();
 }

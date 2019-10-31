@@ -29,6 +29,30 @@
 #define _OPENCL_KERNEL_DIR .
 #endif // !_OPENCL_KERNEL_DIR
 
+// This is taken directly from the CLEW library, but since we only
+// need to check for the availability of the OpenCL drivers, it is
+// the bare minimum we need
+// https://github.com/martijnberger/clew/blob/master/src/clew.c
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #define VC_EXTRALEAN
+    #include <windows.h>
+
+    typedef HMODULE             OPENCL_DYNLIB_HANDLE;
+
+    #define OPENCL_DYNLIB_OPEN    LoadLibrary
+    #define OPENCL_DYNLIB_CLOSE   FreeLibrary
+    #define OPENCL_DYNLIB_IMPORT  GetProcAddress
+#else // _WIN32
+    #include <dlfcn.h>
+    
+    typedef void*                   OPENCL_DYNLIB_HANDLE;
+
+    #define OPENCL_DYNLIB_OPEN(path)  dlopen(path, RTLD_NOW | RTLD_GLOBAL)
+    #define OPENCL_DYNLIB_CLOSE       dlclose
+    #define OPENCL_DYNLIB_IMPORT      dlsym
+#endif // _WIN32
+
 using namespace std::placeholders;
 
 static constexpr char kPathSeparator =
@@ -59,62 +83,67 @@ static bool endsWith(const std::string& str, const std::string& suffix) {
 static std::vector<std::string> listDirectory(std::string dirPath) {
     std::vector<std::string> entries;
 #ifdef C10_USE_FPGA
-            static const std::vector<std::string> ext = {".xclbin",".awsxclbin"};
+    static const std::vector<std::string> ext = {".xclbin",".awsxclbin"};
 #else
-            static const std::vector<std::string> ext = {".cl"};
+    static const std::vector<std::string> ext = {".cl"};
 #endif // C10_USE_FPGA
 
+    try {
 #ifndef _WIN32
-    DIR *dir;
-    struct dirent *ent;
-    // Open directory
-    if ((dir = opendir(dirPath.c_str())) != NULL) {
-        // Fetch every entry name.
-        while ((ent = readdir (dir)) != NULL) {
-            if (ent->d_type != DT_DIR && std::any_of(ext.begin(), ext.end(), std::bind(endsWith, ent->d_name, _1))) {
-                entries.emplace_back(dirPath + kPathSeparator + ent->d_name);
+        DIR *dir;
+        struct dirent *ent;
+        // Open directory
+        if ((dir = opendir(dirPath.c_str())) != NULL) {
+            // Fetch every entry name.
+            while ((ent = readdir (dir)) != NULL) {
+                if (ent->d_type != DT_DIR && std::any_of(ext.begin(), ext.end(), std::bind(endsWith, ent->d_name, _1))) {
+                    entries.emplace_back(dirPath + kPathSeparator + ent->d_name);
+                }
             }
+            closedir (dir);
         }
-        closedir (dir);
-    }
 #else
-    //open a directory the WIN32 way
-    HANDLE hFind = INVALID_HANDLE_VALUE;
-    WIN32_FIND_DATA fdata;
- 
-    if(dirPath[dirPath.size()-1] == '\\' || dirPath[dirPath.size()-1] == '/') {
-        dirPath = dirPath.substr(0,dirPath.size()-1);
-    }
- 
-    hFind = FindFirstFile(std::string(dirPath).append("\\*").c_str(), &fdata); 
-    if (hFind != INVALID_HANDLE_VALUE) {
-        do {
-            if (strncmp(fdata.cFileName, ".", sizeof(fdata.cFileName)) != 0 &&
-                strncmp(fdata.cFileName, "..", sizeof(fdata.cFileName)) != 0) {
-                if (fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY || !std::any_of(ext.begin(), ext.end(), std::bind(endsWith, fdata.cFileName, _1))) {
-                    continue; // a diretory
-                }
-                else {
-                    entries.push_back(dirPath + kPathSeparator + fdata.cFileName);
+        //open a directory the WIN32 way
+        HANDLE hFind = INVALID_HANDLE_VALUE;
+        WIN32_FIND_DATA fdata;
+
+        if(dirPath[dirPath.size()-1] == '\\' || dirPath[dirPath.size()-1] == '/') {
+            dirPath = dirPath.substr(0,dirPath.size()-1);
+        }
+
+        hFind = FindFirstFile(std::string(dirPath).append("\\*").c_str(), &fdata); 
+        if (hFind != INVALID_HANDLE_VALUE) {
+            do {
+                if (strncmp(fdata.cFileName, ".", sizeof(fdata.cFileName)) != 0 &&
+                    strncmp(fdata.cFileName, "..", sizeof(fdata.cFileName)) != 0) {
+                    if (fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY || !std::any_of(ext.begin(), ext.end(), std::bind(endsWith, fdata.cFileName, _1))) {
+                        continue; // a diretory
+                    }
+                    else {
+                        entries.push_back(dirPath + kPathSeparator + fdata.cFileName);
+                    }
                 }
             }
+            while (FindNextFile(hFind, &fdata) != 0);
+        } else {
+            // Can't open directory
+            TORCH_WARN("Can't open directory ", dirPath);
+            return entries;
         }
-        while (FindNextFile(hFind, &fdata) != 0);
-    } else {
-        // Can't open directory
-        TORCH_WARN("Can't open directory ", dirPath);
-        return entries;
-    }
- 
-    if (GetLastError() != ERROR_NO_MORE_FILES) {
+
+        if (GetLastError() != ERROR_NO_MORE_FILES) {
+            FindClose(hFind);
+            TORCH_WARN("some error with opening directory: ", GetLastError());
+            return entries;
+        }
+
         FindClose(hFind);
-        TORCH_WARN("some error with opening directory: ", GetLastError());
-        return entries;
-    }
- 
-    FindClose(hFind);
-    hFind = INVALID_HANDLE_VALUE;
+        hFind = INVALID_HANDLE_VALUE;
 #endif // _WIN32
+    }
+    catch (...) { // no throw
+    }
+
     return entries;
 }
 
@@ -152,8 +181,8 @@ static void initOpenCLKernels(cl_int* cl_err) {
                 fileContent_t fileContent{content.begin(), content.end()};
                 return fileContent;
             }
-        } catch(std::exception& ptr) {
-            TORCH_WARN(ptr.what());
+        } catch(std::exception& ex) {
+            TORCH_WARN(ex.what());
         }
         return fileContent_t{};
     });
@@ -249,6 +278,12 @@ static void initOpenCLContext(cl_int* cl_err) {
     const auto platform_id = 0;
     const auto device_id = 0;
 
+    if (!checkSystemHasOpenCL()) {
+        *cl_err = CL_INVALID_PLATFORM;
+        TORCH_WARN("Missing OpenCL drivers. (", clErrorString(*cl_err), ")");
+        return;
+    }
+
     auto platforms = std::vector<cl::Platform>();
     *cl_err = cl::Platform::get(&platforms);
     if (*cl_err == CL_SUCCESS && (platforms.size() == 0 || platform_id >= platforms.size())) {
@@ -285,11 +320,12 @@ static void initOpenCLContext(cl_int* cl_err) {
 
 } // namespace ::<unnamed>
 
-DeviceIndex device_count() noexcept {
+DeviceIndex device_count(cl_int* err) noexcept {
     int count;
     cl_int cl_err = CL_SUCCESS;
     // Lazy initialization of the global OpenCL context.
     std::call_once(init_flag, initOpenCLContext, &cl_err);
+    if (err) *err = cl_err;
     if (cl_err != CL_SUCCESS) {
         TORCH_WARN("OpenCL Error : Could not init the OpenCL Context (", clErrorString(cl_err), ")");
         return static_cast<DeviceIndex>(0);
@@ -353,8 +389,11 @@ std::once_flag device_init_flag;
 std::deque<std::once_flag> device_flags;
 std::vector<openclDeviceProp> device_properties;
 
-void initOpenCLContextVectors() {
-  num_devices = c10::opencl::device_count();
+void initOpenCLContextVectors(cl_int* err = NULL) {
+  num_devices = c10::opencl::device_count(err);
+  if (num_devices <= 0) {
+    return;
+  }
   device_flags.resize(num_devices);
   device_properties.resize(num_devices);
 }
@@ -470,17 +509,68 @@ void initDeviceProperty(DeviceIndex device_index) {
 
 } // anonymous namespace
 
-openclDeviceProp* getCurrentDeviceProperties() {
+openclDeviceProp* getCurrentDeviceProperties(cl_int* err) {
   auto device = c10::opencl::current_device();
-  return getDeviceProperties(device);
+  return getDeviceProperties(device, err);
 }
 
-openclDeviceProp* getDeviceProperties(int64_t device) {
-  std::call_once(device_init_flag, initOpenCLContextVectors);
+openclDeviceProp* getDeviceProperties(int64_t device, cl_int* err) {
+  if (err) *err = CL_SUCCESS;
+  std::call_once(device_init_flag, initOpenCLContextVectors, err);
+  if (err != CL_SUCCESS) {
+    return nullptr;
+  }
   if (device == -1) device = c10::opencl::current_device();
-  AT_ASSERT(device >= 0 && device < num_devices);
+  if (device < 0 || device >= num_devices) {
+    if (err) *err = CL_INVALID_DEVICE;
+    return nullptr;
+  }
   std::call_once(device_flags[device], initDeviceProperty, device);
   return &device_properties[device];
+}
+
+// This is taken directly from the CLEW library, but since we only
+// need to check for the availability of the OpenCL drivers, it is
+// the bare minimum we need
+// https://github.com/martijnberger/clew/blob/master/src/clew.c
+static OPENCL_DYNLIB_HANDLE dynamic_library_open_find(const char **paths) {
+  return NULL;
+}
+
+// This is taken directly from the CLEW library, but since we only
+// need to check for the availability of the OpenCL drivers, it is
+// the bare minimum we need.
+// https://github.com/martijnberger/clew/blob/master/src/clew.c
+// Based on the clewInit() function.
+bool checkSystemHasOpenCL() noexcept {
+#ifdef _WIN32
+    static constexpr const char *paths[] = {"OpenCL.dll", NULL};
+#elif defined(__APPLE__)
+    static constexpr const char *paths[] = {"/Library/Frameworks/OpenCL.framework/OpenCL", NULL};
+#else
+    static constexpr const char *paths[] = {"libOpenCL.so",
+                           "libOpenCL.so.0",
+                           "libOpenCL.so.1",
+                           "libOpenCL.so.2",
+                           NULL};
+#endif
+
+    try {
+        // Try to load library
+        int i = 0;
+        while (paths[i] != NULL) {
+            OPENCL_DYNLIB_HANDLE lib = OPENCL_DYNLIB_OPEN(paths[i]);
+            if (lib != NULL) {
+                OPENCL_DYNLIB_CLOSE(lib);
+                return true;
+            }
+            ++i;
+        }
+    }
+    catch(...) { // no throw
+        // Ignore errors.
+    }
+    return false;
 }
 
 }} // namespace c10::opencl

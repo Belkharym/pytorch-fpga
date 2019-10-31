@@ -46,6 +46,7 @@ using ConstQuantizerPtr = const c10::intrusive_ptr<Quantizer>&;
 using c10::optional;
 
 struct TORCH_API VariableType final {
+  static std::vector<at::DeprecatedTypeProperties*> allOpenCLTypes();
   static std::vector<at::DeprecatedTypeProperties*> allCUDATypes();
   static std::vector<at::DeprecatedTypeProperties*> allCPUTypes();
 

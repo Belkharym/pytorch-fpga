@@ -581,6 +581,15 @@ void initModule(PyObject *module);
 }} // namespace torch::cuda
 #endif
 
+#ifdef USE_OPENCL
+PyMethodDef* THOPModule_methods();
+namespace torch { namespace opencl {
+
+void initModule(PyObject *module);
+
+}} // namespace torch::opencl
+#endif
+
 bool THDPDoubleStorage_init(PyObject *module);
 bool THDPFloatStorage_init(PyObject *module);
 // TODO: fix
@@ -666,6 +675,9 @@ PyObject* initModule() {
 #ifdef USE_CUDNN
   THPUtils_addPyMethodDefs(methods, THCUDNN_methods());
 #endif
+#ifdef USE_OPENCL
+  THPUtils_addPyMethodDefs(methods, THOPModule_methods());
+#endif
 #ifdef USE_DISTRIBUTED
 #ifdef USE_C10D
   THPUtils_addPyMethodDefs(methods, torch::distributed::c10d::python_functions());
@@ -712,6 +724,9 @@ PyObject* initModule() {
   torch::python::init_bindings(module);
 #ifdef USE_CUDA
   torch::cuda::initModule(module);
+#endif
+#ifdef USE_OPENCL
+  torch::opencl::initModule(module);
 #endif
   ASSERT_TRUE(THPDoubleStorage_init(module));
   ASSERT_TRUE(THPFloatStorage_init(module));
@@ -783,7 +798,12 @@ PyObject* initModule() {
   PyObject *has_cuda = Py_False;
 #endif
   ASSERT_TRUE(set_module_attr("has_cuda", has_cuda));
-  ASSERT_TRUE(set_module_attr("has_opencl", at::hasOpenCL() ? Py_True : Py_False));
+#ifdef USE_OPENCL
+  PyObject *has_opencl = Py_True;
+#else
+  PyObject *has_opencl = Py_False;
+#endif
+  ASSERT_TRUE(set_module_attr("has_opencl", has_opencl));
 
   ASSERT_TRUE(set_module_attr("has_mkldnn", at::hasMKLDNN() ? Py_True : Py_False));
 

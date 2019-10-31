@@ -300,6 +300,7 @@ del BFloat16StorageBase
 ################################################################################
 
 import torch.cuda
+import torch.opencl
 import torch.autograd
 from torch.autograd import no_grad, enable_grad, set_grad_enabled  # noqa: F401
 import torch.nn
