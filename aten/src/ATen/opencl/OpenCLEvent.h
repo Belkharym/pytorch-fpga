@@ -41,7 +41,7 @@ struct AT_OPENCL_API OpenCLEvent {
     return *this;
   }
 
-  operator cl::Event() const { return event(); }
+  operator cl::Event() { return *event(); }
 
   // Less than operator (to allow use in sets)
   friend bool operator<(const OpenCLEvent& left, const OpenCLEvent& right) {
@@ -58,7 +58,7 @@ struct AT_OPENCL_API OpenCLEvent {
 
   bool isCreated() const { return is_created_; }
   DeviceIndex device_index() const {return device_index_;}
-  cl::Event event() const { return event_; }
+  cl::Event* event() { return &event_; }
 
   // Note: openclEventQuery can be safely called from any device
   bool query() const {

@@ -51,7 +51,7 @@ static cl::Buffer &toBuffer(const StorageImpl* s) {
 
 static void pointwise_op3(StorageImpl* c, const StorageImpl* a, const StorageImpl* b, at::native::opencl::OpenCLOperationsPointwise3 op, const ScalarType scalar_type) {
   // DONE Call OpenCL kernel.
-  auto kernel_name = "pointwise_op_3";
+  static constexpr const auto kernel_name = "pointwise_op_3";
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
   AT_OPENCL_CHECK(pointwise_op(
@@ -66,7 +66,7 @@ static void pointwise_op3(StorageImpl* c, const StorageImpl* a, const StorageImp
 
 template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
 static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b, at::native::opencl::OpenCLOperationsPointwise3 op) {
-  auto kernel_name = "pointwise_op_2s";
+  static constexpr const auto kernel_name = "pointwise_op_2s";
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
 
@@ -85,7 +85,7 @@ static void pointwise_op2_s(StorageImpl* c, const StorageImpl* a, const Scalar b
 
 static void pointwise_op2(StorageImpl* b, const StorageImpl* a, at::native::opencl::OpenCLOperationsPointwise2 op, const ScalarType scalar_type) {
   // DONE Call OpenCL kernel.
-  auto kernel_name = "pointwise_op_2";
+  static constexpr const auto kernel_name = "pointwise_op_2";
   auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise2Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
   AT_OPENCL_CHECK(pointwise_op(

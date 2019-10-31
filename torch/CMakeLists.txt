@@ -94,6 +94,7 @@ set(TORCH_PYTHON_SRCS
     ${TORCH_SRC_DIR}/csrc/tensor/python_tensor.cpp
     ${TORCH_SRC_DIR}/csrc/utils.cpp
     ${TORCH_SRC_DIR}/csrc/utils/cuda_lazy_init.cpp
+    ${TORCH_SRC_DIR}/csrc/utils/opencl_lazy_init.cpp
     ${TORCH_SRC_DIR}/csrc/utils/invalid_arguments.cpp
     ${TORCH_SRC_DIR}/csrc/utils/object_ptr.cpp
     ${TORCH_SRC_DIR}/csrc/utils/python_arg_parser.cpp
@@ -251,6 +252,19 @@ if (USE_NCCL)
       ${TORCH_SRC_DIR}/csrc/cuda/python_nccl.cpp)
     list(APPEND TORCH_PYTHON_COMPILE_DEFINITIONS USE_NCCL)
     list(APPEND TORCH_PYTHON_LINK_LIBRARIES __caffe2_nccl)
+endif()
+
+if (USE_OPENCL)
+    list(APPEND TORCH_PYTHON_SRCS
+      ${TORCH_SRC_DIR}/csrc/opencl/Module.cpp
+      ${TORCH_SRC_DIR}/csrc/opencl/Storage.cpp
+      ${TORCH_SRC_DIR}/csrc/opencl/Stream.cpp
+      ${TORCH_SRC_DIR}/csrc/opencl/Event.cpp
+      ${TORCH_SRC_DIR}/csrc/opencl/utils.cpp
+      ${TORCH_SRC_DIR}/csrc/opencl/python_comm.cpp
+      ${TORCH_SRC_DIR}/csrc/opencl/serialization.cpp
+      )
+    list(APPEND TORCH_PYTHON_COMPILE_DEFINITIONS USE_OPENCL)
 endif()
 
 # In the most recent CMake versions, a new 'TRANSFORM' subcommand of 'list' allows much of the boilerplate of defining the lists

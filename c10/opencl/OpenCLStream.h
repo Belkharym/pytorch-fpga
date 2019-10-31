@@ -128,6 +128,11 @@ CAFFE2_API void setCurrentOpenCLStream(OpenCLStream stream);
 
 C10_OPENCL_API std::ostream& operator<<(std::ostream& stream, const OpenCLStream& s);
 
+/**
+ * Force a synchronization of all command queues.
+ */
+C10_OPENCL_API cl_int openclSynchronize();
+
 } // namespace opencl
 } // namespace c10
 

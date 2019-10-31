@@ -13,6 +13,8 @@
 #include <torch/csrc/autograd/utils/wrap_outputs.h>
 #include <torch/csrc/utils/cuda_enabled.h>
 #include <torch/csrc/utils/cuda_lazy_init.h>
+#include <torch/csrc/utils/opencl_enabled.h>
+#include <torch/csrc/utils/opencl_lazy_init.h>
 #include <torch/csrc/utils/python_strings.h>
 #include <torch/csrc/utils/tensor_new.h>
 #include <torch/csrc/utils/tensor_types.h>
@@ -34,6 +36,7 @@ struct PyTensorType {
   THPDtype* dtype;
   THPLayout* layout;
   bool is_cuda;
+  bool is_opencl;
   char name[64];
   int backend;
   int scalar_type;
@@ -114,6 +117,14 @@ PyObject *Tensor_is_cuda(PyTensorType* self, void *unused) {
   }
 }
 
+PyObject *Tensor_is_opencl(PyTensorType* self, void *unused) {
+  if (self->is_opencl) {
+    Py_RETURN_TRUE;
+  } else {
+    Py_RETURN_FALSE;
+  }
+}
+
 PyObject *Tensor_is_sparse(PyTensorType *self, void *unused) {
   if (self->layout->layout == at::Layout::Strided) {
     Py_RETURN_FALSE;
@@ -133,6 +144,7 @@ static struct PyGetSetDef metaclass_properties[] = {
   {"dtype",        (getter)Tensor_dtype, nullptr, nullptr, nullptr},
   {"layout",       (getter)Tensor_layout, nullptr, nullptr, nullptr},
   {"is_cuda",      (getter)Tensor_is_cuda, nullptr, nullptr, nullptr},
+  {"is_opencl",    (getter)Tensor_is_opencl, nullptr, nullptr, nullptr},
   {"is_sparse",    (getter)Tensor_is_sparse, nullptr, nullptr, nullptr},
   {nullptr}
 };
@@ -179,8 +191,10 @@ static const char* get_module(Backend backend) {
   switch (backend) {
     case Backend::CPU: return "torch";
     case Backend::CUDA: return "torch.cuda";
+    case Backend::OpenCL: return "torch.opencl";
     case Backend::SparseCPU: return "torch.sparse";
     case Backend::SparseCUDA: return "torch.cuda.sparse";
+    case Backend::SparseOpenCL: return "torch.opencl.sparse";
     default: AT_ERROR("invalid backend: ", toString(backend));
   }
 }
@@ -211,6 +225,7 @@ static void set_type(PyTensorType& type_obj, Backend backend, ScalarType scalarT
   type_obj.layout = torch::getLayout(backend);
   type_obj.dtype = torch::getDtype(scalarType);
   type_obj.is_cuda = (backend == at::Backend::CUDA || backend == at::Backend::SparseCUDA);
+  type_obj.is_opencl = (backend == at::Backend::OpenCL || backend == at::Backend::SparseOpenCL);
 }
 
 static void set_name(PyTensorType& type_obj, const std::string& name) {
@@ -358,6 +373,9 @@ void py_set_default_tensor_type(PyObject* obj) {
     throw TypeError("invalid type object");
   }
   if (type->is_cuda && !torch::utils::cuda_enabled()) {
+    throw unavailable_type(*type);
+  }
+  if (type->is_opencl && !torch::utils::opencl_enabled()) {
     throw unavailable_type(*type);
   }
   set_default_tensor_type(type);

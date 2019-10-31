@@ -196,6 +196,12 @@ libtorch_cuda_sources = [
     "torch/csrc/autograd/functions/comm.cpp"
 ]
 
+libtorch_cuda_sources = [
+    "torch/csrc/opencl/comm.cpp",
+    "torch/csrc/autograd/profiler.cpp",
+    "torch/csrc/autograd/functions/comm.cpp"
+]
+
 
 def add_torch_libs():
     r = {}
@@ -209,6 +215,7 @@ def add_torch_libs():
 
     torch_cpp_srcs = [
         "torch/csrc/api/src/cuda.cpp",  # this just forwards stuff, no real CUDA
+        "torch/csrc/api/src/opencl.cpp",  # this just forwards stuff, no real OPENCL
         "torch/csrc/api/src/data/datasets/mnist.cpp",
         "torch/csrc/api/src/data/samplers/distributed.cpp",
         "torch/csrc/api/src/data/samplers/random.cpp",
@@ -365,6 +372,18 @@ def add_torch_libs():
         "torch/csrc/distributed/c10d/ddp.cpp",
     ]
 
+    libtorch_python_opencl_sources = [
+        "torch/csrc/opencl/Event.cpp",
+        "torch/csrc/opencl/Module.cpp",
+        "torch/csrc/opencl/Storage.cpp",
+        "torch/csrc/opencl/Stream.cpp",
+        "torch/csrc/opencl/Tensor.cpp",
+        "torch/csrc/opencl/python_comm.cpp",
+        "torch/csrc/opencl/python_nccl.cpp",
+        "torch/csrc/opencl/serialization.cpp",
+        "torch/csrc/opencl/utils.cpp",
+    ]
+
     compiler_flags_cpu = [
         "-DUSE_C10D",
         "-DUSE_DISTRIBUTED",
@@ -382,6 +401,9 @@ def add_torch_libs():
     compiler_flags_cuda = [
         "-DUSE_CUDNN",
         "-DUSE_NCCL",
+    ]
+    compiler_flags_opencl = [
+        # no aditionnal flag
     ]
     common_flags = {
         "compiler_specific_flags": {
@@ -455,12 +477,39 @@ def add_torch_libs():
         **common_flags
     )
 
+    cpp_library(
+        name="libtorch_opencl",
+        srcs=libtorch_opencl_sources,
+        link_whole=True,
+        # TODO: putting USE_OPENCL in propagated_pp_flags is error-prone
+        propagated_pp_flags=propagated_pp_flags + [
+            "-DUSE_OPENCL",
+        ],
+        deps=[
+            ":generated-autograd-headers",
+            ":generated-autograd-headers-bare",
+            ":generated-jit-headers",
+            ":libtorch",
+            "//caffe2/aten:ATen",
+            "//caffe2/aten:generated-aten-headers-opencl",
+            "//caffe2/caffe2:caffe2_cpu",
+            "//caffe2/caffe2:caffe2_opencl",
+            "//caffe2/torch/lib/libshm:libshm",
+        ],
+        external_deps=[
+            # no deps
+        ],
+        compiler_flags=compiler_flags_cpu + compiler_flags_opencl,
+        **common_flags
+    )
+
     # torch-cpp is still conditionally compiled based on USE_CUDA. Ideally we'd
     # separate it out as an additive library instead.
     gpu_library_selector(
         name="torch-cpp",
         deps_cpu=[":torch-cpp-cpu"],
         deps_cuda=[":torch-cpp-cuda"],
+        deps_opencl=[":torch-cpp-opencl"],
         merge_cpu_deps=False,
     )
 
@@ -477,6 +526,21 @@ def add_torch_libs():
         external_deps=[
             ("cuda", None, "cuda-lazy"),
             ("cudnn", None, "cudnn-lazy"),
+        ],
+    )
+
+    # USE_OPENCL flag is propagated through propagated_pp_flags on libtorch
+    cpp_library(
+        name="torch-cpp-opencl",
+        srcs=torch_cpp_srcs,
+        headers=torch_cpp_headers,
+        header_namespace="torch",
+        deps=[
+            ":libtorch_opencl",
+            "//caffe2/torch/fb/init:init",
+        ],
+        external_deps=[
+            ("opencl", None, "opencl-lazy"),
         ],
     )
 
@@ -498,6 +562,7 @@ def add_torch_libs():
         name="_C_impl",
         deps_cpu=[":_C_impl_cpu"],
         deps_cuda=[":_C_impl_cuda"],
+        deps_opencl=[":_C_impl_opencl"],
         merge_cpu_deps=False,
     )
 
@@ -536,6 +601,25 @@ def add_torch_libs():
             ("python", None),
         ],
         compiler_flags=compiler_flags_cpu + compiler_flags_cuda,
+        **common_flags
+    )
+
+    cpp_library(
+        name="_C_impl_opencl",
+        srcs=libtorch_python_sources + libtorch_python_opencl_sources,
+        link_whole=True,
+        deps=[
+            ":torch-cpp-opencl",
+            "//caffe2/torch/fb/init:init",
+            "//caffe2/torch/lib/c10d:c10d",
+            "//caffe2/torch/lib/libshm:libshm",
+        ],
+        external_deps=[
+            ("numpy", None, "cpp"),
+            ("pybind11", None),
+            ("python", None),
+        ],
+        compiler_flags=compiler_flags_cpu + compiler_flags_opencl,
         **common_flags
     )
 

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <type_traits>
+#include <stdlib.h>
 
 #include "OpenCLMacros.h"
 
@@ -111,14 +112,15 @@ struct unwrap_function<std::function<Func>> {
     typedef typename std::enable_if<std::is_function<Func>::value, Func>::type type;
 };
 
-C10_OPENCL_API DeviceIndex device_count() noexcept;
+//! \brief Never throws. On errors, returns 0. Errors can be retrieved from {\code err}.
+C10_OPENCL_API DeviceIndex device_count(cl_int* err = NULL) noexcept;
 // Returns the current device.
 C10_OPENCL_API DeviceIndex current_device() noexcept;
 // Sets the current device.
 C10_OPENCL_API void set_device(DeviceIndex device_id);
 
-C10_OPENCL_API openclDeviceProp* getCurrentDeviceProperties();
-C10_OPENCL_API openclDeviceProp* getDeviceProperties(int64_t device);
+C10_OPENCL_API openclDeviceProp* getCurrentDeviceProperties(cl_int* err = NULL);
+C10_OPENCL_API openclDeviceProp* getDeviceProperties(int64_t device, cl_int* err = NULL);
 
 // Returns the global OpenCL context.
 C10_OPENCL_API cl::Platform opencl_platform();
@@ -198,5 +200,7 @@ cl_int runKernel(cl::Kernel &kernel, const cl::EnqueueArgs &config, Args&& ...ar
     functor(config, std::forward<Args>(args)..., err);
     return err;
 }
+
+C10_OPENCL_API bool checkSystemHasOpenCL() noexcept;
 
 }} // namespace c10::opencl

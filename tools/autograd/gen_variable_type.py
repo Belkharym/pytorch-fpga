@@ -93,7 +93,7 @@ RENAME_ATTRIBUTES = {
 # These functions are not worth profiling because they are very cheap and may
 # be called very often.
 DONT_PROFILE = {
-    'data_ptr', 'get_device', 'is_contiguous', 'is_cuda', 'is_distributed',
+    'data_ptr', 'get_device', 'is_contiguous', 'is_cuda', 'is_opencl', 'is_distributed',
     'is_same_size', 'is_set_to', 'is_signed', 'is_sparse', 'numel',
     'size', 'storage_offset', 'stride',
 }

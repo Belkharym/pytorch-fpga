@@ -19,11 +19,14 @@ static const char* backend_to_string(const at::Backend& backend) {
   switch (backend) {
     case at::Backend::CPU: return "torch";
     case at::Backend::CUDA: return "torch.cuda";
+    case at::Backend::OpenCL: return "torch.opencl";
     case at::Backend::SparseCPU: return "torch.sparse";
     case at::Backend::SparseCUDA: return "torch.cuda.sparse";
+    case at::Backend::SparseOpenCL: return "torch.opencl.sparse";
     // We split complex into its own backend, but keeping it the same here for now
     case at::Backend::ComplexCPU: return "torch";
     case at::Backend::ComplexCUDA: return "torch.cuda";
+    // case at::Backend::ComplexOpenCL: return "torch.opencl"; // TODO
     default: AT_ERROR("Unimplemented backend ", backend);
   }
 }
@@ -36,10 +39,13 @@ std::string type_to_string(const at::DeprecatedTypeProperties& type) {
 
 at::DeprecatedTypeProperties* type_from_string(const std::string& str) {
   static std::string cuda_prefix("torch.cuda.");
+  static std::string opencl_prefix("torch.opencl.");
   static std::once_flag cpu_once;
   static std::once_flag cuda_once;
+  static std::once_flag opencl_once;
   static std::unordered_map<std::string, at::DeprecatedTypeProperties*> cpu_map;
   static std::unordered_map<std::string, at::DeprecatedTypeProperties*> cuda_map;
+  static std::unordered_map<std::string, at::DeprecatedTypeProperties*> opencl_map;
 
   const std::unordered_map<std::string, at::DeprecatedTypeProperties*>* map = nullptr;
 
@@ -57,6 +63,14 @@ at::DeprecatedTypeProperties* type_from_string(const std::string& str) {
       }
     });
     map = &cuda_map;
+  } else if (std::mismatch(opencl_prefix.begin(), opencl_prefix.end(), str.begin()).first == opencl_prefix.end()) {
+    // torch.opencl. is prefix of str
+    std::call_once(opencl_once, []() {
+      for (auto type : autograd::VariableType::allOpenCLTypes()) {
+        opencl_map.emplace(type_to_string(*type), type);
+      }
+    });
+    map = &opencl_map;
   } else {
     std::call_once(cpu_once, []() {
       for (auto type : autograd::VariableType::allCPUTypes()) {
@@ -76,14 +90,16 @@ at::DeprecatedTypeProperties* type_from_string(const std::string& str) {
 std::vector<std::pair<Backend, ScalarType>> all_declared_types() {
   std::vector<std::pair<Backend, ScalarType>> ret;
   // can't easily iterate over enum classes
-  std::vector<Backend> backends = { Backend::CPU, Backend::CUDA, Backend::SparseCPU, Backend::SparseCUDA };
+  std::vector<Backend> backends = { Backend::CPU, Backend::CUDA, Backend::OpenCL, Backend::SparseCPU, Backend::SparseCUDA,
+                                    Backend::SparseOpenCL };
   std::vector<ScalarType> scalar_types = { ScalarType::Byte, ScalarType::Char, ScalarType::Double, ScalarType::Float,
                                            ScalarType::Int, ScalarType::Long, ScalarType::Short, ScalarType::Half,
                                            ScalarType::Bool, ScalarType::BFloat16};
   for (auto& backend : backends) {
     for (auto& scalar_type : scalar_types) {
       // there is no sparse bool type.
-      if (scalar_type == ScalarType::Bool && (backend == Backend::SparseCUDA || backend == Backend::SparseCPU)) {
+      if (scalar_type == ScalarType::Bool && (backend == Backend::SparseCUDA || backend == Backend::SparseCPU ||
+          backend == Backend::SparseOpenCL)) {
         continue;
       }
       ret.emplace_back(std::make_pair(backend, scalar_type));
