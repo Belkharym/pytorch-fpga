@@ -119,7 +119,7 @@ def _check_capability():
         if capability == (1, 0) or (major < 1 and minor < 2):
             warnings.warn(old_device_warn % (d, name, major, capability[1]))
         elif OPENCL_VERSION <= 200 and major >= 2 and minor >= 0:
-            warnings.warn(incorrect_binary_warn % (d, name, 10000, OPENCL_VERSION))
+            warnings.warn(incorrect_binary_warn % (d, name, 120, OPENCL_VERSION))
 
 
 def _lazy_call(callable):
@@ -302,7 +302,7 @@ def get_device_capability(device=None):
         tuple(int, int): the major and minor opencl capability of the device
     """
     prop = get_device_properties(device)
-    versions = prop.driverVersion.split(".")
+    versions = prop.version.split(" ")[1].split(".")
     major = int(versions[0])
     minor = int(versions[1])
     return major, minor
