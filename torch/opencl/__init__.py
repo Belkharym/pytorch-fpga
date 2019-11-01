@@ -118,8 +118,8 @@ def _check_capability():
         name = get_device_name(d)
         if capability == (1, 0) or (major < 1 and minor < 2):
             warnings.warn(old_device_warn % (d, name, major, capability[1]))
-        elif OPENCL_VERSION <= 200 and major >= 2 and minor >= 0:
-            warnings.warn(incorrect_binary_warn % (d, name, 120, OPENCL_VERSION))
+        # elif OPENCL_VERSION <= 200 and major >= 2 and minor >= 0:
+        #     warnings.warn(incorrect_binary_warn % (d, name, 120, OPENCL_VERSION))
 
 
 def _lazy_call(callable):
