@@ -3133,6 +3133,7 @@
   dispatch:
     CPU: legacy::cpu::_th_addmm_out
     CUDA: legacy::cuda::_th_addmm_out
+    OpenCL: _opencl_addmm_out
     SparseCPU: addmm_out_sparse_dense_cpu
     SparseCUDA: addmm_out_sparse_dense_cuda
   supports_named_tensor: True
@@ -3143,6 +3144,7 @@
   dispatch:
     CPU: legacy::cpu::_th_addmm
     CUDA: legacy::cuda::_th_addmm
+    OpenCL: _opencl_addmm
     SparseCPU: addmm_sparse_dense_cpu
     SparseCUDA: addmm_sparse_dense_cuda
   supports_named_tensor: True
@@ -3153,6 +3155,7 @@
   dispatch:
     CPU: legacy::cpu::_th_addmm_
     CUDA: legacy::cuda::_th_addmm_
+    OpenCL: _opencl_addmm_
     # Warning!  For whatever reason, the inplace sparse addmm is NON
     # broadcasting
     SparseCPU: s_addmm_sparse_dense_cpu_
@@ -4285,6 +4288,7 @@
   dispatch:
     CPU: legacy::cpu::_th_uniform_
     CUDA: uniform_cuda_
+    OpenCL: uniform_opencl_ # We passthrough to CPU
   supports_named_tensor: True
 
 - func: normal_(Tensor(a!) self, float mean=0, float std=1, *, Generator? generator=None) -> Tensor(a!)
@@ -4292,6 +4296,7 @@
   dispatch:
     CPU: legacy::cpu::_th_normal_
     CUDA: normal_cuda_
+    OpenCL: normal_opencl_ # We passthrough to CPU
   supports_named_tensor: True
 
 - func: cauchy_(Tensor(a!) self, float median=0, float sigma=1, *, Generator? generator=None) -> Tensor(a!)
@@ -5117,6 +5122,7 @@
   dispatch:
     CPU: legacy::cpu::_th_unfold
     CUDA: legacy::cuda::_th_unfold
+    OpenCL: _opencl_unfold
 
 - func: equal(Tensor self, Tensor other) -> bool
   use_c10_dispatcher: full
