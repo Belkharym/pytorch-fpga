@@ -50,7 +50,7 @@ endif()
 # ---[ Dependency of c10_opencl
 target_link_libraries(c10_opencl PUBLIC c10)
 
-target_link_libraries(c10_opencl PUBLIC OpenCL::OpenCL)
+target_link_libraries(c10_opencl PUBLIC OpenCL)
 
 target_include_directories(
     c10_opencl PUBLIC
