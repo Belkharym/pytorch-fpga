@@ -4281,6 +4281,7 @@
   dispatch:
     CPU: legacy::cpu::_th_random_
     CUDA: random_cuda_
+    OpenCL: random_opencl_
   supports_named_tensor: True
 
 - func: uniform_(Tensor(a!) self, float from=0, float to=1, *, Generator? generator=None) -> Tensor(a!)

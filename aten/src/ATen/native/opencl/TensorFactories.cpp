@@ -81,6 +81,16 @@ Tensor& random_opencl_(Tensor& self, Generator* gen) {
   return self;
 }
 
+Tensor& normal_opencl_(Tensor& self, double mean, double std, Generator* gen) {
+  Backend backend = Backend::CPU;
+  if (detail::getCUDAHooks().hasCUDA()) {
+    backend = Backend::CUDA;
+  }
+  auto self_ = self.toBackend(backend);
+  self.copy_(self_.normal_(mean, std, gen));
+  return self;
+}
+
 static cl::Buffer &toBuffer(const StorageImpl* s) {
   return *toBuffer(s->data_ptr().get());
 }
