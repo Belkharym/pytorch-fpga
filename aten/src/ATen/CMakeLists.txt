@@ -144,7 +144,9 @@ IF(USE_OPENCL)
                        COMMENT "Linking kernels into an XCLBIN file..."
                        MAIN_DEPENDENCY ${tmp_all_kernel_objects}
                        COMMAND ${SDACCEL_XOCC} -l ${CMAKE_CL_FLAGS} --platform ${AWS_PLATFORM} -t ${FPGA_TARGET} -o ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin ${tmp_all_kernel_objects})
-    add_dependencies(aten_opencl_kernels ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin)
+    add_custom_target(aten_opencl_kernels_target DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin)
+    add_dependencies(aten_opencl_kernels aten_opencl_kernels_target)
+    add_dependencies(aten_opencl_kernels aten_opencl_kernels_target)
     list(APPEND ATen_OPENCL_DEPENDENCY_LIBS aten_opencl_kernels)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/aten_opencl_kernels.xclbin DESTINATION ${_OPENCL_KERNEL_DIR})
   else()

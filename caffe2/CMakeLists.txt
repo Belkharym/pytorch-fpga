@@ -1093,7 +1093,7 @@ if (USE_OPENCL)
       torch PRIVATE ${Caffe2_OPENCL_INCLUDE})
   target_link_libraries(
       torch PRIVATE ${Caffe2_OPENCL_DEPENDENCY_LIBS})
-  message("OpenCL include path: ${Caffe2_OPENCL_INCLUDE}")
+  message("Caffe2_OPENCL_DEPENDENCY_LIBS: ${Caffe2_OPENCL_DEPENDENCY_LIBS}")
 
   # These public dependencies must go after the previous dependencies, as the
   # order of the libraries in the linker call matters here when statically
