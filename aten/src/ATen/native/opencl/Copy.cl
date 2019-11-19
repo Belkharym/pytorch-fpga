@@ -9,10 +9,10 @@
       _(type1, short, SHORT) \
       _(type1, int, INT) \
       _(type1, long, LONG) \
-      _(type1, float, FLOAT) \
-      _(type1, double, DOUBLE) \
-      /* _(type1, int, FLOAT) */ \
-      /* _(type1, long, DOUBLE) */ \
+      /* _(type1, float, FLOAT) */ \
+      /* _(type1, double, DOUBLE) */ \
+      _(type1, int, FLOAT) \
+      _(type1, long, DOUBLE) \
     } \
     break; \
   }
@@ -30,10 +30,10 @@ __kernel void cast(__global const void *a, __global void *b, const enum OpenCLPt
     CAST_CASE_(short, SHORT, tb, CAST_CASE)
     CAST_CASE_(int, INT, tb, CAST_CASE)
     CAST_CASE_(long, LONG, tb, CAST_CASE)
-    CAST_CASE_(float, FLOAT, tb, CAST_CASE)
-    CAST_CASE_(double, DOUBLE, tb, CAST_CASE)
-    // CAST_CASE_(int, FLOAT, tb, CAST_CASE)
-    // CAST_CASE_(long, DOUBLE, tb, CAST_CASE)
+    // CAST_CASE_(float, FLOAT, tb, CAST_CASE)
+    // CAST_CASE_(double, DOUBLE, tb, CAST_CASE)
+    CAST_CASE_(int, FLOAT, tb, CAST_CASE)
+    CAST_CASE_(long, DOUBLE, tb, CAST_CASE)
   }
 }
 
@@ -51,9 +51,9 @@ __kernel void cast_s(__global const void *a, __global void *b, const enum OpenCL
     CAST_CASE_(short, SHORT, tb, CAST_CASE_S)
     CAST_CASE_(int, INT, tb, CAST_CASE_S)
     CAST_CASE_(long, LONG, tb, CAST_CASE_S)
-    CAST_CASE_(float, FLOAT, tb, CAST_CASE_S)
-    CAST_CASE_(double, DOUBLE, tb, CAST_CASE_S)
-    // CAST_CASE_(int, FLOAT, tb, CAST_CASE_S)
-    // CAST_CASE_(long, DOUBLE, tb, CAST_CASE_S)
+    // CAST_CASE_(float, FLOAT, tb, CAST_CASE_S)
+    // CAST_CASE_(double, DOUBLE, tb, CAST_CASE_S)
+    CAST_CASE_(int, FLOAT, tb, CAST_CASE_S)
+    CAST_CASE_(long, DOUBLE, tb, CAST_CASE_S)
   }
 }
