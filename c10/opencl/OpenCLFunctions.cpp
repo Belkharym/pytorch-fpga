@@ -67,6 +67,7 @@ namespace opencl {
 
 namespace {
 static cl::Platform platform;
+static std::vector<cl::Platform> platforms;
 static cl::Context context;
 static std::vector<cl::Device> devices;
 static DeviceIndex current_device_ = 0;
@@ -284,7 +285,7 @@ static void initOpenCLContext(cl_int* cl_err) {
         return;
     }
 
-    auto platforms = std::vector<cl::Platform>();
+    platforms = std::vector<cl::Platform>();
     *cl_err = cl::Platform::get(&platforms);
     if (*cl_err == CL_SUCCESS && (platforms.size() == 0 || platform_id >= platforms.size())) {
         *cl_err = CL_INVALID_PLATFORM;
@@ -296,13 +297,18 @@ static void initOpenCLContext(cl_int* cl_err) {
     platform = platforms[platform_id];
 
     devices = std::vector<cl::Device>();
-    *cl_err = platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
-    if (*cl_err == CL_SUCCESS && (devices.size() == 0 || device_id >= devices.size())) {
-        *cl_err = CL_DEVICE_NOT_FOUND;
-    }
-    if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN("Cannot find OpenCL compatible device. (", clErrorString(*cl_err),")");
-        return;
+    auto devices_buf = std::vector<cl::Device>();
+    for (auto ptfm : platforms) {
+        *cl_err = ptfm.getDevices(CL_DEVICE_TYPE_ALL, &devices_buf);
+        if (*cl_err == CL_SUCCESS && (devices_buf.size() == 0 || device_id >= devices_buf.size())) {
+            *cl_err = CL_DEVICE_NOT_FOUND;
+        }
+        if (*cl_err != CL_SUCCESS) {
+            TORCH_WARN("Cannot find OpenCL compatible device. (", clErrorString(*cl_err),")");
+            return;
+        }
+        std::copy(devices_buf.cbegin(), devices_buf.cend(), std::back_inserter(devices));
+        devices_buf.clear();
     }
     set_device(device_id);
 

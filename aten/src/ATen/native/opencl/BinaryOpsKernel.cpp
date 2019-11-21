@@ -133,7 +133,7 @@ void add_kernel_opencl(TensorIterator& iter, Scalar alpha) {
             } \
             break; \
         }
-        AT_FORALL_INTEGER_TYPES(DEFINE_OPENCL_ADD_CASE)
+        AT_FORALL_SCALAR_TYPES(DEFINE_OPENCL_ADD_CASE)
 #undef DEFINE_OPENCL_ADD_CASE
 
     default:
@@ -153,7 +153,7 @@ static void op_scalar_opencl(const StorageImpl* a, Scalar b, StorageImpl* out, a
     case ScalarType::name: \
         pointwise_op2s<ScalarType::name, type>(a, b, out, op); \
         break;
-        AT_FORALL_INTEGER_TYPES(DEFINE_OPENCL_ARITH_OP)
+        AT_FORALL_SCALAR_TYPES(DEFINE_OPENCL_ARITH_OP)
 #undef DEFINE_OPENCL_ARITH_OP
     default:
         TORCH_CHECK(false, op, " not supported on OpenCLType for ", scalar_type);
@@ -167,7 +167,7 @@ void mul_kernel_opencl(TensorIterator& iter) {
     auto self_ = checked_tensor_unwrap(iter.tensor(1), "self", 2, "mul_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
     auto out_ = checked_tensor_unwrap(iter.tensor(0), "out", 3, "mul_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
 
-    TORCH_CHECK(c10::isIntegralType(scalar_type, true), "mul_kernel_opencl does not support non integral types");
+    // TORCH_CHECK(c10::isIntegralType(scalar_type, true), "mul_kernel_opencl does not support non integral types");
 
     if (iter.is_scalar(1)) {
         AT_OPENCL_CHECK(syncOpenCLPointer(iter.tensor(1).data_ptr()));
@@ -190,7 +190,7 @@ void div_kernel_opencl(TensorIterator& iter) {
     auto self_ = checked_tensor_unwrap(iter.tensor(1), "self", 2, "div_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
     auto out_ = checked_tensor_unwrap(iter.tensor(0), "out", 3, "div_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
 
-    TORCH_CHECK(c10::isIntegralType(scalar_type, true), "div_kernel_opencl does not support non integral types");
+    // TORCH_CHECK(c10::isIntegralType(scalar_type, true), "div_kernel_opencl does not support non integral types");
 
     if (iter.is_scalar(1)) {
         AT_OPENCL_CHECK(syncOpenCLPointer(iter.tensor(1).data_ptr()));
@@ -213,7 +213,7 @@ void logical_xor_kernel_opencl(TensorIterator& iter) {
     auto self_ = checked_tensor_unwrap(iter.tensor(1), "self", 2, "logical_xor_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
     auto out_ = checked_tensor_unwrap(iter.tensor(0), "out", 3, "logical_xor_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
 
-    TORCH_CHECK(c10::isIntegralType(scalar_type, true), "logical_xor_kernel_opencl does not support non integral types");
+    // TORCH_CHECK(c10::isIntegralType(scalar_type, true), "logical_xor_kernel_opencl does not support non integral types");
 
     if (iter.is_scalar(1)) {
         AT_OPENCL_CHECK(syncOpenCLPointer(iter.tensor(1).data_ptr()));
@@ -236,7 +236,7 @@ void atan2_kernel_opencl(TensorIterator& iter) {
     auto self_ = checked_tensor_unwrap(iter.tensor(1), "self", 2, "atan2_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
     auto out_ = checked_tensor_unwrap(iter.tensor(0), "out", 3, "atan2_kernel_opencl", false, c10::Backend::OpenCL, scalar_type);
 
-    TORCH_CHECK(c10::isIntegralType(scalar_type, true), "atan2_kernel_opencl does not support non integral types");
+    // TORCH_CHECK(c10::isIntegralType(scalar_type, true), "atan2_kernel_opencl does not support non integral types");
 
     if (iter.is_scalar(1)) {
         AT_OPENCL_CHECK(syncOpenCLPointer(iter.tensor(1).data_ptr()));

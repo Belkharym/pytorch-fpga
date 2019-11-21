@@ -146,7 +146,7 @@ static void pointwise_op2(StorageImpl* b, const StorageImpl* a, at::native::open
 Tensor & _abs_out_opencl(Tensor &result, const Tensor &self) {
   auto result_ = checked_tensor_unwrap(result, "result", 1, "_abs_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   auto self_ = checked_tensor_unwrap(self, "self", 2, "_abs_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_abs_out_opencl does not support non integral types");
+  // TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_abs_out_opencl does not support non integral types");
   opencl_resize(result_, self_->sizes(), {});
   TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
   pointwise_op2(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise2::ABS, self.scalar_type());
@@ -170,7 +170,7 @@ Tensor _and_opencl(const Tensor & self, const Tensor & other) {
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_and_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   auto other_ = checked_tensor_unwrap(other, "other", 2, "_and_opencl", false, c10::Backend::OpenCL, self.scalar_type());
 
-  TORCH_CHECK(isIntegralType(self.scalar_type(), true) && isIntegralType(other.scalar_type(), true), "_and_opencl operation is undefined for floating point scalar types (", self.scalar_type(), ", ", other.scalar_type(), ").");
+  // TORCH_CHECK(isIntegralType(self.scalar_type(), true) && isIntegralType(other.scalar_type(), true), "_and_opencl operation is undefined for floating point scalar types (", self.scalar_type(), ", ", other.scalar_type(), ").");
 
   opencl_resize(result_, self_->sizes(), {});
   TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
@@ -187,7 +187,7 @@ Tensor _and_opencl(const Tensor & self, Scalar other) {
   auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_and_opencl", false, c10::Backend::OpenCL, self.scalar_type());
 
-  TORCH_CHECK(isIntegralType(self.scalar_type(), true), "_and_opencl operation is undefined for floating point scalar types (", self.scalar_type(), ").");
+  // TORCH_CHECK(isIntegralType(self.scalar_type(), true), "_and_opencl operation is undefined for floating point scalar types (", self.scalar_type(), ").");
 
   opencl_resize(result_, self_->sizes(), {});
   TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
@@ -218,7 +218,7 @@ Tensor masked_select_opencl(const Tensor & self, const Tensor & mask) {
 Tensor & _ceil_out_opencl(Tensor &out, const Tensor &self) {
   auto result_ = checked_tensor_unwrap(out, "out", 1, "_ceil_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
   auto self_ = checked_tensor_unwrap(self, "self", 2, "_ceil_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_ceil_out_opencl does not support non integral types");
+  // TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_ceil_out_opencl does not support non integral types");
   opencl_resize(result_, self_->sizes(), {});
   pointwise_op2(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise2::CEIL, self.scalar_type());
 
@@ -253,7 +253,7 @@ Tensor & _opencl_min_out(Tensor &result, const Tensor &self, const Tensor &other
   auto result_ = checked_tensor_unwrap(result, "result", 0, "_opencl_min_out", false, Backend::OpenCL, self.scalar_type());
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_min_out", false, Backend::OpenCL, self.scalar_type());
   auto other_ = checked_tensor_unwrap(other, "other", 2, "_opencl_min_out", false, Backend::OpenCL, self.scalar_type());
-  TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_opencl_min_out does not support non integral types");
+  // TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_opencl_min_out does not support non integral types");
   AT_OPENCL_CHECK(opencl_nElement(self_) ==
                   opencl_nElement(other_), "sizes do not match");
 
@@ -271,7 +271,7 @@ Tensor _opencl_min(const Tensor &self, const Tensor &other) {
   auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_min", false, c10::Backend::OpenCL, self.scalar_type());
   auto other_ = checked_tensor_unwrap(other, "other", 2, "_opencl_min", false, c10::Backend::OpenCL, self.scalar_type());
-  TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_opencl_min does not support non integral types");
+  // TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_opencl_min does not support non integral types");
 
   opencl_resize(result_, self_->sizes(), {});
   TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
@@ -289,7 +289,7 @@ Tensor & _opencl_max_out(Tensor &result, const Tensor &self, const Tensor &other
   auto result_ = checked_tensor_unwrap(result, "result", 0, "_opencl_max_out", false, Backend::OpenCL, self.scalar_type());
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_max_out", false, Backend::OpenCL, self.scalar_type());
   auto other_ = checked_tensor_unwrap(other, "other", 2, "_opencl_max_out", false, Backend::OpenCL, self.scalar_type());
-  TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_opencl_max_out does not support non integral types");
+  // TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_opencl_max_out does not support non integral types");
   AT_OPENCL_CHECK(opencl_nElement(self_) ==
                   opencl_nElement(other_), "sizes do not match");
 
@@ -307,7 +307,7 @@ Tensor _opencl_max(const Tensor &self, const Tensor &other) {
   auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_max", false, c10::Backend::OpenCL, self.scalar_type());
   auto other_ = checked_tensor_unwrap(other, "other", 2, "_opencl_max", false, c10::Backend::OpenCL, self.scalar_type());
-  TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_opencl_max does not support non integral types");
+  // TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_opencl_max does not support non integral types");
 
   opencl_resize(result_, self_->sizes(), {});
   TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
@@ -405,7 +405,7 @@ Tensor & _opencl_remainder_out(Tensor & result, const Tensor & self, Scalar othe
     case ScalarType::name: \
       pointwise_op2_s<ScalarType::name, type>(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), other, at::native::opencl::OpenCLOperationsPointwise3::REM); \
       break;
-    AT_FORALL_INTEGER_TYPES(DEFINE_OPENCL_AND_CASE)
+    AT_FORALL_SCALAR_TYPES(DEFINE_OPENCL_AND_CASE)
 #undef DEFINE_OPENCL_AND_CASE
 
   default:
@@ -434,7 +434,7 @@ Tensor _opencl_remainder(const Tensor & self, Scalar other) {
     case ScalarType::name: \
       pointwise_op2_s<ScalarType::name, type>(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), other, at::native::opencl::OpenCLOperationsPointwise3::REM); \
       break;
-    AT_FORALL_INTEGER_TYPES(DEFINE_OPENCL_AND_CASE)
+    AT_FORALL_SCALAR_TYPES(DEFINE_OPENCL_AND_CASE)
 #undef DEFINE_OPENCL_AND_CASE
 
   default:
@@ -451,7 +451,7 @@ Tensor & _opencl_remainder_out(Tensor & result, const Tensor & self, const Tenso
   auto result_ = checked_tensor_unwrap(result, "result", 0, "_opencl_remainder_out", false, Backend::OpenCL, scalar_type);
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_remainder_out", false, Backend::OpenCL, scalar_type);
   auto other_ = checked_tensor_unwrap(other, "other", 2, "_opencl_remainder_out", false, Backend::OpenCL, scalar_type);
-  TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_opencl_remainder_out does not support non integral types");
+  // TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_opencl_remainder_out does not support non integral types");
 
   TORCH_CHECK(opencl_nElement(result_) == opencl_nElement(self_), "sizes don't match");
   opencl_resizeAs(result_, self_);
@@ -468,7 +468,7 @@ Tensor _opencl_remainder(const Tensor & self, const Tensor & other) {
   auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
   auto self_ = checked_tensor_unwrap(self, "self", 1, "_opencl_remainder", false, Backend::OpenCL, scalar_type);
   auto other_ = checked_tensor_unwrap(self, "other", 2, "_opencl_remainder", false, Backend::OpenCL, scalar_type);
-  TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_opencl_remainder does not support non integral types");
+  // TORCH_CHECK(c10::isIntegralType(self.scalar_type(), true), "_opencl_remainder does not support non integral types");
 
   // The implementation applies fmod to the floating point types.
   //TORCH_CHECK(isIntegralType(self.scalar_type(), true), "Remainder only applies to integral types");

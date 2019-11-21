@@ -27,10 +27,10 @@ switch(op) { \
       _(type1, short, SHORT) \
       _(type1, int, INT) \
       _(type1, long, LONG) \
-      /* _(type1, float, FLOAT)   */ \
-      /* _(type1, double, DOUBLE) */ \
-      _(type1, int, FLOAT)   \
-      _(type1, long, DOUBLE) \
+      _(type1, float, FLOAT)   \
+      _(type1, double, DOUBLE) \
+      /* _(type1, int, FLOAT) */   \
+      /* _(type1, long, DOUBLE) */ \
     } \
     break; \
   }
@@ -44,10 +44,10 @@ __kernel void operation_3_s(__global const void* a, __global const void* other, 
     OPERATION_CASE_(short, SHORT, typeAlpha, OPERATION_CASE)
     OPERATION_CASE_(int, INT, typeAlpha, OPERATION_CASE)
     OPERATION_CASE_(long, LONG, typeAlpha, OPERATION_CASE)
-    // OPERATION_CASE_(float, FLOAT, typeAlpha, OPERATION_CASE)
-    // OPERATION_CASE_(double, DOUBLE, typeAlpha, OPERATION_CASE)
-    OPERATION_CASE_(int, FLOAT, typeAlpha, OPERATION_CASE)
-    OPERATION_CASE_(long, DOUBLE, typeAlpha, OPERATION_CASE)
+    OPERATION_CASE_(float, FLOAT, typeAlpha, OPERATION_CASE)
+    OPERATION_CASE_(double, DOUBLE, typeAlpha, OPERATION_CASE)
+    // OPERATION_CASE_(int, FLOAT, typeAlpha, OPERATION_CASE)
+    // OPERATION_CASE_(long, DOUBLE, typeAlpha, OPERATION_CASE)
   }
 }
 
