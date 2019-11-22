@@ -29,6 +29,7 @@ switch(op) { \
       _(type1, long, LONG) \
       _(type1, float, FLOAT)   \
       DEF_IF_DOUBLE(_(type1, double, DOUBLE)) \
+      DEF_IF_NOT_DOUBLE(case DOUBLE: {break;}) \
       /* _(type1, int, FLOAT) */   \
       /* _(type1, long, DOUBLE) */ \
     } \

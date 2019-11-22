@@ -55,6 +55,7 @@ __kernel void cast_s(__global const void *a, __global void *b, const enum OpenCL
     CAST_CASE_(long, LONG, tb, CAST_CASE_S)
     CAST_CASE_(float, FLOAT, tb, CAST_CASE_S)
     DEF_IF_DOUBLE(CAST_CASE_(double, DOUBLE, tb, CAST_CASE_S))
+    DEF_IF_NOT_DOUBLE(case DOUBLE: {break;})
     // CAST_CASE_(int, FLOAT, tb, CAST_CASE_S)
     // CAST_CASE_(long, DOUBLE, tb, CAST_CASE_S)
   }
