@@ -46,6 +46,7 @@ __kernel void operation_3_s(__global const void* a, __global const void* other, 
     OPERATION_CASE_(long, LONG, typeAlpha, OPERATION_CASE)
     OPERATION_CASE_(float, FLOAT, typeAlpha, OPERATION_CASE)
     DEF_IF_DOUBLE(OPERATION_CASE_(double, DOUBLE, typeAlpha, OPERATION_CASE))
+    DEF_IF_NOT_DOUBLE(case DOUBLE: {break;})
     // OPERATION_CASE_(int, FLOAT, typeAlpha, OPERATION_CASE)
     // OPERATION_CASE_(long, DOUBLE, typeAlpha, OPERATION_CASE)
   }
