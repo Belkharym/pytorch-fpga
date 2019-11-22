@@ -1,16 +1,28 @@
 #ifdef DOUBLE_PRECISION
     #ifdef cl_khr_fp64
     #pragma OPENCL EXTENSION cl_khr_fp64 : enable
-    #else
+    #define DEF_IF_DOUBLE(_, ...) _(##__VA_ARGS__)
+    #elif defined(cl_amd_fp64)
     #pragma OPENCL EXTENSION cl_amd_fp64 : enable
+    #define DEF_IF_DOUBLE(_, ...) _(##__VA_ARGS__)
+    #else
+    #define DEF_IF_DOUBLE(_, ...)
     #endif
+#else
+#define DEF_IF_DOUBLE(_, ...)
 #endif
 #ifdef HALF_PRECISION
     #ifdef cl_khr_fp16
     #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+    #define DEF_IF_HALF(_, ...) _(##__VA_ARGS__)
     #else
     #pragma OPENCL EXTENSION cl_amd_fp16 : enable
+    #define DEF_IF_HALF(_, ...) _(##__VA_ARGS__)
+    #else
+    #define DEF_IF_HALF(_, ...)
     #endif
+#else
+#define DEF_IF_HALF(_, ...)
 #endif
 #ifndef OPENCL_KERNEL_MACROS_CLH
 #define OPENCL_KERNEL_MACROS_CLH
@@ -48,7 +60,7 @@
 
 #define DEFINE_KERNEL_FOR_FLOATS(KERNEL_MACRO_) \
 KERNEL_MACRO_(f, float)    \
-KERNEL_MACRO_(d, double)
+DEF_IF_DOUBLE(KERNEL_MACRO_, d, double)
 
 #define DEFINE_KERNEL_FOR_INTS(KERNEL_MACRO_) \
 KERNEL_MACRO_(c, char)     \
