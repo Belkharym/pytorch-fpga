@@ -52,7 +52,7 @@ inline __attribute__((always_inline)) rettype comp##suffix(const type a, const t
 }
 
 DECLARE_FP_COMP(float, int, f)
-DEF_IF_DOUBLE(DECLARE_FP_COMP, double, long, d)
+DEF_IF_DOUBLE(DECLARE_FP_COMP(double, long, d))
 DECLARE_INT_COMP(char, char, b)
 DECLARE_INT_COMP(char, char, c)
 DECLARE_INT_COMP(short, short, s)
@@ -86,7 +86,7 @@ __kernel void pointwise_op_comp_3(__global const void* a, __global const void* b
         POINTWISE_OP_COMP_CASE_(i, int, INT, POINTWISE_OP_COMP_3)
         POINTWISE_OP_COMP_CASE_(l, long, LONG, POINTWISE_OP_COMP_3)
         POINTWISE_OP_COMP_CASE_(f, float, FLOAT, POINTWISE_OP_COMP_3)
-        DEF_IF_DOUBLE(POINTWISE_OP_COMP_CASE_, d, double, DOUBLE, POINTWISE_OP_COMP_3)
+        DEF_IF_DOUBLE(POINTWISE_OP_COMP_CASE_(d, double, DOUBLE, POINTWISE_OP_COMP_3))
         // case FLOAT: // passthrough
         // case DOUBLE: // passthrough
         //     break;
@@ -101,7 +101,7 @@ __kernel void pointwise_op_comp_2s(__global const void* a, __global const void* 
         POINTWISE_OP_COMP_CASE_(i, int, INT, POINTWISE_OP_COMP_2S)
         POINTWISE_OP_COMP_CASE_(l, long, LONG, POINTWISE_OP_COMP_2S)
         POINTWISE_OP_COMP_CASE_(f, float, FLOAT, POINTWISE_OP_COMP_2S)
-        DEF_IF_DOUBLE(POINTWISE_OP_COMP_CASE_, d, double, DOUBLE, POINTWISE_OP_COMP_2S)
+        DEF_IF_DOUBLE(POINTWISE_OP_COMP_CASE_(d, double, DOUBLE, POINTWISE_OP_COMP_2S))
         // case FLOAT: // passthrough
         // case DOUBLE: // passthrough
         //     break;
@@ -318,7 +318,7 @@ __kernel void pointwise_op_3(__global const void* a, __global const void* b, __g
         POINTWISE_OP_CASE_(int, INT, POINTWISE_OP_3_INT)
         POINTWISE_OP_CASE_(long, LONG, POINTWISE_OP_3_INT)
         POINTWISE_OP_CASE_(float, FLOAT, POINTWISE_OP_3_FLOAT)
-        DEF_IF_DOUBLE(POINTWISE_OP_CASE_, double, DOUBLE, POINTWISE_OP_3_FLOAT)
+        DEF_IF_DOUBLE(POINTWISE_OP_CASE_(double, DOUBLE, POINTWISE_OP_3_FLOAT))
         // case FLOAT: // passthrough
         // case DOUBLE: // passthrough
         //     break;
@@ -333,7 +333,7 @@ __kernel void pointwise_op_2s(__global const void* a, __global const void* b, __
         POINTWISE_OP_CASE_(int, INT, POINTWISE_OP_2S_INT)
         POINTWISE_OP_CASE_(long, LONG, POINTWISE_OP_2S_INT)
         POINTWISE_OP_CASE_(float, FLOAT, POINTWISE_OP_2S_FLOAT)
-        DEF_IF_DOUBLE(POINTWISE_OP_CASE_, double, DOUBLE, POINTWISE_OP_2S_FLOAT)
+        DEF_IF_DOUBLE(POINTWISE_OP_CASE_(double, DOUBLE, POINTWISE_OP_2S_FLOAT))
         // case FLOAT: // passthrough
         // case DOUBLE: // passthrough
         //     break;
@@ -360,14 +360,14 @@ __kernel void pointwise_op_2s(__global const void* a, __global const void* b, __
             break; \
         } \
         case CEIL: { \
-            switch (typeTensor) {                                                                                            \
+            switch (typeTensor) {                                                                                           \
                 OP_CASE(bool, BOOL, POINTWISE_CEIL_INT)                                                                     \
                 OP_CASE(char, CHAR, POINTWISE_CEIL_INT)                                                                     \
                 OP_CASE(short, SHORT, POINTWISE_CEIL_INT)                                                                   \
                 OP_CASE(int, INT, POINTWISE_CEIL_INT)                                                                       \
                 OP_CASE(long, LONG, POINTWISE_CEIL_INT)                                                                     \
                 OP_CASE(float, FLOAT, POINTWISE_CEIL_FLOAT)                                                                 \
-                DEF_IF_DOUBLE(OP_CASE, double, DOUBLE, POINTWISE_CEIL_FLOAT)                                                               \
+                DEF_IF_DOUBLE(OP_CASE(double, DOUBLE, POINTWISE_CEIL_FLOAT))                                                \
                 /* case FLOAT: */ \
                 /* case DOUBLE: */ \
                 /*     break;  */\
@@ -384,7 +384,7 @@ __kernel void pointwise_op_2(__global const void* a, __global void* out, const e
         POINTWISE_OP_CASE_(int, INT, POINTWISE_OP_2)
         POINTWISE_OP_CASE_(long, LONG, POINTWISE_OP_2)
         POINTWISE_OP_CASE_(float, FLOAT, POINTWISE_OP_2)
-        DEF_IF_DOUBLE(POINTWISE_OP_CASE_, double, DOUBLE, POINTWISE_OP_2)
+        DEF_IF_DOUBLE(POINTWISE_OP_CASE_(double, DOUBLE, POINTWISE_OP_2))
         // case FLOAT: // passthrough
         // case DOUBLE: // passthrough
         //     break;

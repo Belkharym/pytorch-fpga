@@ -28,7 +28,7 @@ switch(op) { \
       _(type1, int, INT) \
       _(type1, long, LONG) \
       _(type1, float, FLOAT)   \
-      DEF_IF_DOUBLE(_, type1, double, DOUBLE) \
+      DEF_IF_DOUBLE(_(type1, double, DOUBLE)) \
       /* _(type1, int, FLOAT) */   \
       /* _(type1, long, DOUBLE) */ \
     } \
@@ -45,7 +45,7 @@ __kernel void operation_3_s(__global const void* a, __global const void* other, 
     OPERATION_CASE_(int, INT, typeAlpha, OPERATION_CASE)
     OPERATION_CASE_(long, LONG, typeAlpha, OPERATION_CASE)
     OPERATION_CASE_(float, FLOAT, typeAlpha, OPERATION_CASE)
-    DEF_IF_DOUBLE(OPERATION_CASE_, double, DOUBLE, typeAlpha, OPERATION_CASE)
+    DEF_IF_DOUBLE(OPERATION_CASE_(double, DOUBLE, typeAlpha, OPERATION_CASE))
     // OPERATION_CASE_(int, FLOAT, typeAlpha, OPERATION_CASE)
     // OPERATION_CASE_(long, DOUBLE, typeAlpha, OPERATION_CASE)
   }
