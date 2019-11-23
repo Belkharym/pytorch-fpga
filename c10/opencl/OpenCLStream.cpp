@@ -169,6 +169,7 @@ static void initGlobalStreamState() {
 
   // Initializes default streams
   for (auto i = decltype(num_devices){0}; i < num_devices; ++i) {
+    OpenCLGuard guard{i};
     default_streams[i].device_index = i;
     default_streams[i].stream_id = 0;
     default_streams[i].stream = new cl::CommandQueue(opencl_context(), opencl_device(i));
