@@ -4,10 +4,12 @@
 #include <torch/csrc/autograd/functions/utils.h>
 #include <torch/csrc/autograd/variable.h>
 #include <torch/csrc/cuda/comm.h>
+#include <torch/csrc/opencl/comm.h>
 #include <ATen/core/functional.h>
 
 #include <ATen/ATen.h>
 #include <ATen/cuda/CUDAContext.h>
+#include <ATen/opencl/OpenCLContext.h>
 #include <c10/util/Optional.h>
 
 #include <cstddef>
@@ -21,6 +23,18 @@ Scatter::Scatter(
     const c10::optional<std::vector<int64_t>>& chunk_sizes,
     int64_t dim,
     const c10::optional<std::vector<c10::optional<at::cuda::CUDAStream>>>& streams,
+    bool unsqueeze_scalars)
+    : devices_(std::move(devices)),
+      chunk_sizes_(chunk_sizes),
+      dim_(dim),
+      streams_(streams),
+      unsqueeze_scalars_(unsqueeze_scalars) {}
+
+Scatter::Scatter(
+    std::vector<at::Device> devices,
+    const c10::optional<std::vector<int64_t>>& chunk_sizes,
+    int64_t dim,
+    const c10::optional<std::vector<c10::optional<at::opencl::OpenCLStream>>>& streams,
     bool unsqueeze_scalars)
     : devices_(std::move(devices)),
       chunk_sizes_(chunk_sizes),
@@ -44,8 +58,15 @@ variable_list Scatter::apply(variable_list&& inputs) {
   auto device_indices = fmap(devices_, [](const at::Device& device) -> int64_t {
     return device.index();
   });
-  auto tensors = torch::cuda::scatter(
-      std::move(input), device_indices, chunk_sizes_, dim_, streams_);
+  std::vector<at::Tensor> tensors;
+  if (devices_.front().is_cuda()) {
+    tensors = torch::cuda::scatter(
+        std::move(input), device_indices, chunk_sizes_, dim_, streams_);
+  }
+  else {
+    tensors = torch::opencl::scatter(
+        std::move(input), device_indices, chunk_sizes_, dim_, streams_);
+  }
 
   std::vector<Variable> variables;
   variables.reserve(tensors.size());
@@ -73,10 +94,11 @@ Gather::~Gather() {}
 
 variable_list Gather::apply(variable_list&& inputs) {
   bool all_are_zero_dim = true;
+  const bool front_is_cuda = inputs.front().is_cuda();
   for (const auto& input : inputs) {
     TORCH_CHECK(
-        input.is_cuda(),
-        "All inputs to Gather must be CUDA tensors, got ",
+        front_is_cuda ? input.is_cuda() : input.is_opencl(),
+        "All inputs to Gather must be ", front_is_cuda ? "CUDA" : "OpenCL", " tensors, got ",
         input.type());
     if (input.dim() > 0) {
       all_are_zero_dim = false;
@@ -121,7 +143,13 @@ variable_list Gather::apply(variable_list&& inputs) {
   // This is special logic for torch::cuda::gather!
   const auto destination_index =
       destination_device_.is_cpu() ? -1 : destination_device_.index();
-  auto variable = torch::cuda::gather(tensors, dim_, destination_index);
+  at::Tensor variable;
+  if (front_is_cuda) {
+    variable = torch::cuda::gather(tensors, dim_, destination_index);
+  }
+  else {
+    variable = torch::opencl::gather(tensors, dim_, destination_index);
+  }
   if (grad_fn) {
     set_history(variable, grad_fn);
   }

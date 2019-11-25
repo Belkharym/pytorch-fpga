@@ -31,7 +31,7 @@ std::vector<at::DeprecatedTypeProperties*> VariableType::allCUDATypes() {
 }
 
 std::vector<at::DeprecatedTypeProperties*> VariableType::allOpenCLTypes() {
-  at::globalContext().lazyInitCUDA();
+  at::globalContext().lazyInitOpenCL();
   return allTypesForBackends({ Backend::OpenCL, Backend::SparseOpenCL });
 }
 

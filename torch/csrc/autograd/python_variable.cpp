@@ -19,6 +19,7 @@
 #include <torch/csrc/tensor/python_tensor.h>
 #include <torch/csrc/utils/auto_gil.h>
 #include <torch/csrc/utils/cuda_lazy_init.h>
+#include <torch/csrc/utils/opencl_lazy_init.h>
 #include <torch/csrc/utils/pybind.h>
 #include <torch/csrc/utils/python_strings.h>
 #include <torch/csrc/utils/python_arg_parser.h>
@@ -277,7 +278,7 @@ int THPVariable_set_grad(THPVariable *self, PyObject *py_grad, void *unused)
                        grad.layout() == kSparse);
   THPUtils_assertRet(-1, grad.type() == var.type() || gradIsSparse,
       "assigned grad has data of a different type");
-  if (var.is_cuda()) {
+  if (var.is_cuda() || var.is_opencl()) {
     THPUtils_assertRet(-1, grad.get_device() == var.get_device(),
         "assigned grad has data located on a different device");
   }
@@ -442,6 +443,14 @@ PyObject *THPVariable_is_cuda(THPVariable *self, void *unused)
   END_HANDLE_TH_ERRORS
 }
 
+PyObject *THPVariable_is_opencl(THPVariable *self, void *unused)
+{
+  HANDLE_TH_ERRORS
+  auto& self_ = self->cdata;
+  return torch::autograd::utils::wrap(self_.is_opencl());
+  END_HANDLE_TH_ERRORS
+}
+
 PyObject *THPVariable_is_sparse(THPVariable *self, void *unused)
 {
   HANDLE_TH_ERRORS
@@ -505,6 +514,7 @@ static struct PyGetSetDef THPVariable_properties[] = {
   {"name", (getter)THPVariable_get_name, nullptr, nullptr, nullptr},
   {"shape", (getter)THPVariable_get_shape, nullptr, nullptr, nullptr},
   {"is_cuda", (getter)THPVariable_is_cuda, nullptr, nullptr, nullptr},
+  {"is_opencl", (getter)THPVariable_is_opencl, nullptr, nullptr, nullptr},
   {"is_sparse", (getter)THPVariable_is_sparse, nullptr, nullptr, nullptr},
   {"is_mkldnn", (getter)THPVariable_is_mkldnn, nullptr, nullptr, nullptr},
   {"is_quantized", (getter)THPVariable_is_quantized, nullptr, nullptr, nullptr},

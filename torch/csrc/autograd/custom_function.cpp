@@ -107,14 +107,11 @@ void check_variable_result(const Variable& original, const Variable& result, std
     throw std::runtime_error(ss.str());
   }
 
-  if (original.is_cuda() != result.is_cuda()) {
+  if (original.device().type() != result.device().type()) {
     std::stringstream ss;
-    ss << "hook '" << hook_name << "' has changed the type of value";
-    if (original.is_cuda()) {
-      ss << " (was CUDA tensor got CPU tensor)";
-    } else {
-      ss << " (was CPU tensor got CUDA tensor)";
-    }
+    ss << "hook '" << hook_name << "' has changed the type of value (";
+    ss << " (was " << c10::DeviceTypeName(original.device().type()) << " tensor got ";
+    ss << c10::DeviceTypeName(result.device().type()) << " tensor)";
     throw std::runtime_error(ss.str());
   }
 

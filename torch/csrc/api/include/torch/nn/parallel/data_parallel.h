@@ -1,6 +1,7 @@
 #pragma once
 
 #include <torch/cuda.h>
+#include <torch/opencl.h>
 #include <torch/nn/module.h>
 #include <torch/nn/pimpl.h>
 #include <torch/types.h>
@@ -9,6 +10,9 @@
 #include <torch/csrc/autograd/functions/utils.h>
 #ifdef USE_CUDA
 #include <torch/csrc/cuda/comm.h>
+#endif
+#ifdef USE_OPENCL
+#include <torch/csrc/opencl/comm.h>
 #endif
 #include <ATen/core/functional.h>
 
@@ -253,13 +257,14 @@ Tensor data_parallel(
     optional<Device> output_device = nullopt,
     int64_t dim = 0) {
   if (!devices) {
-    const auto device_count = torch::cuda::device_count();
+    const bool has_cuda = torch::cuda::device_count() > 0;
+    const auto device_count = has_cuda ? torch::cuda::device_count() : torch::opencl::device_count();
     TORCH_CHECK(
-        device_count > 0, "Expected at least one CUDA device to be available");
+        device_count > 0, "Expected at least one CUDA / OpenCL device to be available");
     devices = std::vector<Device>();
     devices->reserve(device_count);
     for (size_t index = 0; index < device_count; ++index) {
-      devices->emplace_back(kCUDA, index);
+      devices->emplace_back(has_cuda ? kCUDA : kOPENCL, index);
     }
   }
   if (!output_device) {
@@ -272,7 +277,7 @@ Tensor data_parallel(
     return module->forward(std::move(input)).to(*output_device);
   }
 
-#ifdef USE_CUDA
+#if defined(USE_CUDA) || defined(USE_OPENCL)
   autograd::Scatter scatter(*devices, /*chunk_sizes=*/nullopt, dim);
   auto scattered_inputs = fmap<Tensor>(scatter.apply({std::move(input)}));
 
@@ -282,7 +287,7 @@ Tensor data_parallel(
       .apply(fmap<autograd::Variable>(std::move(outputs)))
       .front();
 #else
-  AT_ERROR("data_parallel not supported without CUDA");
+  AT_ERROR("data_parallel not supported without CUDA / OpenCL");
   return Tensor();
 #endif
 }
