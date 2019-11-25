@@ -28,7 +28,7 @@ void fill_kernel_opencl(TensorIterator& iter, Scalar value) {
   Tensor scalar_tensor = at::native::scalar_tensor_opencl(value, self.options());
   auto scalar_tensor_ = scalar_tensor.storage().unsafeGetStorageImpl();
 
-  auto kernel_name = "cast_s";
+  static const std::string kernel_name = "cast_s";
   auto kernel = c10::opencl::opencl_kernel_func<OpenCLCastFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange((size_t)self_->numel()), 1});
   AT_OPENCL_CHECK(kernel(*toBuffer(scalar_tensor_->data()), *toBuffer(self_->data()), type, type));
   AT_OPENCL_CHECK(syncOpenCLPointer(self_->data(), stream));

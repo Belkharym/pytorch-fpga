@@ -2,6 +2,7 @@
 
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <stdlib.h>
 
 #include "OpenCLMacros.h"
@@ -11,6 +12,26 @@
 #include <c10/core/Device.h>
 #include <c10/util/function_traits>
 
+
+namespace c10 {
+template<int N>
+struct variadic_placeholder { };
+
+template <typename Func, size_t... Is, typename... Args>
+auto __bind_variadic(c10::guts::index_sequence<Is...>, Func fptr, Args&&... args) -> decltype(bind(std::declval<Func>(), std::declval<Args>()..., std::declval<variadic_placeholder<Is + 1>>()...)) {
+    return std::bind(fptr, std::forward<Args>(args)..., variadic_placeholder<Is + 1>{}...);
+}
+
+template <typename Func, typename... Args>
+auto bind_variadic(Func fptr, Args&&... args) -> decltype(__bind_variadic(c10::guts::make_index_sequence<c10::function_traits<Func>::arity - sizeof...(Args) - 1>{}, fptr, std::declval<Args>()...)) {
+    return __bind_variadic(c10::guts::make_index_sequence<c10::function_traits<Func>::arity - sizeof...(Args) - 1>{}, fptr, std::forward<Args>(args)...);
+}
+} // namespace c10
+
+namespace std {
+    template<int N>
+    struct is_placeholder<::c10::variadic_placeholder<N>> : std::integral_constant<int, N> { };
+} // namespace std
 
 namespace c10 {
 namespace opencl {
@@ -104,12 +125,12 @@ struct is_std_function<std::function<Func>> : std::is_function<Func> {};
 
 template<typename Func>
 struct unwrap_function {
-    typedef typename std::enable_if<std::is_function<Func>::value, Func>::type type;
+    typedef typename std::enable_if<!is_std_function<Func>::value && std::is_function<Func>::value, Func>::type type;
 };
 
 template<typename Func>
 struct unwrap_function<std::function<Func>> {
-    typedef typename std::enable_if<std::is_function<Func>::value, Func>::type type;
+    typedef typename std::enable_if<std::is_function<Func>::value, typename unwrap_function<Func>::type>::type type;
 };
 
 //! \brief Never throws. On errors, returns 0. Errors can be retrieved from {\code err}.
@@ -137,12 +158,12 @@ namespace {
  * This function is similar to {@code opencl_kernel} in the sense where it
  * fetches a kernel with the given name {@code kernel_func_name}, but instead
  * of returning a {@code cl::Kernel} instance, it returns a functor which can
- * be called to run the kernel with with the given function signature.
+ * be called to run the kernel with the given function signature.
  */
-template<typename Func, typename... Args, typename std::enable_if<std::integral_constant<bool, (::c10::function_traits<Func>::arity == sizeof...(Args))>::value && std::is_function<Func>::value, int>::type = 0>
-std::function<typename unwrap_function<Func>::type> opencl_kernel_func(const std::string& kernel_func_name, cl::EnqueueArgs config, cl::Event *event) {
-    return static_cast<std::function<typename unwrap_function<Func>::type>>(
-        [kernel_func_name, config, event](Args&&... args) -> cl_int {
+template<typename Func, typename... Args, typename std::enable_if<::c10::function_traits<Func>::arity == sizeof...(Args), int>::type = 0>
+auto opencl_kernel_func_(const std::string& kernel_func_name, cl::EnqueueArgs config, cl::Event *event) -> std::function<typename unwrap_function<Func>::type> {
+    static_assert(std::is_function<typename unwrap_function<Func>::type>::value, "The Func template argument must be a callable type.");
+    return static_cast<std::function<typename unwrap_function<Func>::type>>(bind_variadic([](const std::string kernel_func_name, cl::EnqueueArgs config, cl::Event *event, Args&&... args) -> cl_int {
             cl_int cl_err;
             auto kern = opencl_kernel(kernel_func_name, &cl_err);
             if (kern.has_value()) {
@@ -153,27 +174,21 @@ std::function<typename unwrap_function<Func>::type> opencl_kernel_func(const std
                 }
             }
             return cl_err;
-        }
-    );
+        }, kernel_func_name, config, event));
 }
 
-template<typename Func, typename... Args, size_t N = sizeof...(Args), typename std::enable_if<(c10::function_traits<Func>::arity > N) && std::is_function<Func>::value, int>::type = 0>
-std::function<typename unwrap_function<Func>::type> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl::Event* err) {
+template<typename Func, typename... Args, size_t M = c10::function_traits<Func>::arity, size_t N = sizeof...(Args), typename std::enable_if<(M > N), int>::type = 0>
+auto opencl_kernel_func_(const std::string &kernel_func_name, cl::EnqueueArgs config, cl::Event* err) -> std::function<typename unwrap_function<Func>::type> {
+    static_assert(std::is_function<typename unwrap_function<Func>::type>::value, "The Func template argument must be a callable type.");
     typedef typename c10::function_traits<Func>::template argument<N>::type NewArg;
-    return opencl_kernel_func<typename unwrap_function<Func>::type, Args..., NewArg>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl::Event*>(err));
+    return opencl_kernel_func_<Func, Args..., NewArg>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl::Event*>(err));
 }
 
 } // namespace
 
-template<typename Func, typename std::enable_if<(c10::function_traits<Func>::arity > 0) && std::is_function<Func>::value, int>::type = 0>
-std::function<typename unwrap_function<Func>::type> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl::Event* err = NULL) {
-    typedef typename c10::function_traits<Func>::template argument<0>::type NewArg;
-    return opencl_kernel_func<typename unwrap_function<Func>::type, NewArg>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl::Event*>(err));
-}
-
-template<typename Func, typename std::enable_if<(c10::function_traits<Func>::arity == 0) && std::is_function<Func>::value, int>::type = 0>
-std::function<typename unwrap_function<Func>::type> opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl::Event* err = NULL) {
-    return opencl_kernel_func<typename unwrap_function<Func>::type>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl::Event*>(err));
+template<typename Func, typename std::enable_if<std::is_function<typename unwrap_function<Func>::type>::value, int>::type = 0, size_t M = c10::function_traits<Func>::arity>
+auto opencl_kernel_func(const std::string &kernel_func_name, cl::EnqueueArgs config, cl::Event* err = NULL) -> std::function<typename unwrap_function<Func>::type> {
+    return opencl_kernel_func_<Func>(std::forward<const std::string&>(kernel_func_name), std::forward<cl::EnqueueArgs>(config), std::forward<cl::Event*>(err));
 }
 
 C10_OPENCL_API std::string clRemoveNullChars(const std::string &str);

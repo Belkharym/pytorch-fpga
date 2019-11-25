@@ -233,7 +233,7 @@ struct DefaultOpenCLAllocator final : public at::Allocator {
 
         if (nbytes != 0) {
             cl_int err;
-            ctx->data = ALIGNED_MALLOC(nbytes, alignof(max_align_t) * 16);
+            ctx->data = ALIGNED_MALLOC(nbytes, alignof(cl_long16));
             TORCH_INTERNAL_ASSERT(ctx->data, "Cannot allocate ", nbytes, " byte(s) of memory for OpenCL buffer.");
             ctx->buf = new cl::Buffer{c10::opencl::opencl_context(), CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, nbytes, ctx->data, &err};
             TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : Cannot allocate Buffer of ", nbytes, " byte(s). (", ::c10::opencl::clErrorString(err), ")");
@@ -261,14 +261,14 @@ private:
         auto it = buffers.find(ctx->data);
         // Sync data
         // If memory pool is not set up, use simple free.
-        if (ctx->data) ::free(ctx->data);
-        if (ctx->buf) delete ctx->buf;
         if (it != buffers.end()) {
+            if (ctx->buf) delete ctx->buf;
+            ctx->buf = NULL;
             buffers.erase(it);
         }
-        else {
-            delete ctx;
-        }
+        if (ctx->data) ::free(ctx->data);
+        ctx->data = NULL;
+        delete ctx;
     }
     friend cl::Buffer* caffe2::opencl::getBufferFromPtr(void *ptr);
 };
