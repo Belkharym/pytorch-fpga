@@ -159,9 +159,11 @@ static void copy_kernel_opencl(TensorIterator& iter, bool non_blocking) {
   at::opencl::OptionalOpenCLGuard device_guard;
   if (dst_device.is_opencl() && src_device.is_cpu()) {
     device_guard.set_device(dst_device);
-    AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer((*toBuffer(dst)), !non_blocking, 0, nbytes, src));
+    stream = getCurrentOpenCLStream();
+    AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer((*toBuffer(dst)), !non_blocking, 0, nbytes, src), "Cannot write from opencl buffer [device #", dst_device, ";", c10::opencl::opencl_platform().getInfo<CL_PLATFORM_NAME>(), "]");
   } else if (dst_device.is_cpu() && src_device.is_opencl()) {
     device_guard.set_device(src_device);
+    stream = getCurrentOpenCLStream();
     AT_OPENCL_CHECK(stream.stream()->enqueueReadBuffer((*toBuffer(src)), !non_blocking, 0, nbytes, dst));
   } else {
     TORCH_INTERNAL_ASSERT(false, "unsupported devices in OpenCL copy_()");
