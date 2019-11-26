@@ -4292,6 +4292,7 @@
   dispatch:
     CPU: ne_out
     CUDA: ne_out
+    OpenCL: ne_out
     QuantizedCPU: ne_out_quantized_cpu
 
 - func: ne.Scalar(Tensor self, Scalar other) -> Tensor
@@ -4309,6 +4310,7 @@
   dispatch:
     CPU: ne_out
     CUDA: ne_out
+    OpenCL: ne_out
     QuantizedCPU: ne_out_quantized_cpu
 
 - func: ne.Tensor(Tensor self, Tensor other) -> Tensor
@@ -4326,6 +4328,7 @@
   dispatch:
     CPU: eq_out
     CUDA: eq_out
+    OpenCL: eq_out
     QuantizedCPU: eq_out_quantized_cpu
 
 - func: eq.Scalar(Tensor self, Scalar other) -> Tensor
@@ -4343,6 +4346,7 @@
   dispatch:
     CPU: eq_out
     CUDA: eq_out
+    OpenCL: eq_out
     QuantizedCPU: eq_out_quantized_cpu
 
 - func: eq.Tensor(Tensor self, Tensor other) -> Tensor
@@ -4360,6 +4364,7 @@
   dispatch:
     CPU: ge_out
     CUDA: ge_out
+    OpenCL: ge_out
     QuantizedCPU: ge_out_quantized_cpu
 
 - func: ge.Scalar(Tensor self, Scalar other) -> Tensor
@@ -4369,6 +4374,7 @@
   dispatch:
     CPU: ge
     CUDA: ge
+    OpenCL: ge
     QuantizedCPU: ge_quantized_cpu
 
 - func: ge.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4376,6 +4382,7 @@
   dispatch:
     CPU: ge_out
     CUDA: ge_out
+    OpenCL: ge_out
     QuantizedCPU: ge_out_quantized_cpu
 
 - func: ge.Tensor(Tensor self, Tensor other) -> Tensor
@@ -4385,6 +4392,7 @@
   dispatch:
     CPU: ge
     CUDA: ge
+    OpenCL: ge
     QuantizedCPU: ge_quantized_cpu
 
 - func: le.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4392,6 +4400,7 @@
   dispatch:
     CPU: le_out
     CUDA: le_out
+    OpenCL: le_out
     QuantizedCPU: le_out_quantized_cpu
 
 - func: le.Scalar(Tensor self, Scalar other) -> Tensor
@@ -4401,6 +4410,7 @@
   dispatch:
     CPU: le
     CUDA: le
+    OpenCL: le
     QuantizedCPU: le_quantized_cpu
 
 - func: le.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4408,6 +4418,7 @@
   dispatch:
     CPU: le_out
     CUDA: le_out
+    OpenCL: le_out
     QuantizedCPU: le_out_quantized_cpu
 
 - func: le.Tensor(Tensor self, Tensor other) -> Tensor
@@ -4417,6 +4428,7 @@
   dispatch:
     CPU: le
     CUDA: le
+    OpenCL: le
     QuantizedCPU: le_quantized_cpu
 
 - func: gt.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4424,6 +4436,7 @@
   dispatch:
     CPU: gt_out
     CUDA: gt_out
+    OpenCL: gt_out
     QuantizedCPU: gt_out_quantized_cpu
 
 - func: gt.Scalar(Tensor self, Scalar other) -> Tensor
@@ -4433,6 +4446,7 @@
   dispatch:
     CPU: gt
     CUDA: gt
+    OpenCL: gt
     QuantizedCPU: gt_quantized_cpu
 
 - func: gt.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4440,6 +4454,7 @@
   dispatch:
     CPU: gt_out
     CUDA: gt_out
+    OpenCL: gt_out
     QuantizedCPU: gt_out_quantized_cpu
 
 - func: gt.Tensor(Tensor self, Tensor other) -> Tensor
@@ -4449,6 +4464,7 @@
   dispatch:
     CPU: gt
     CUDA: gt
+    OpenCL: gt
     QuantizedCPU: gt_quantized_cpu
 
 - func: lt.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4456,6 +4472,7 @@
   dispatch:
     CPU: lt_out
     CUDA: lt_out
+    OpenCL: lt_out
     QuantizedCPU: lt_out_quantized_cpu
 
 - func: lt.Scalar(Tensor self, Scalar other) -> Tensor
@@ -4465,6 +4482,7 @@
   dispatch:
     CPU: lt
     CUDA: lt
+    OpenCL: lt
     QuantizedCPU: lt_quantized_cpu
 
 - func: lt.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -4472,6 +4490,7 @@
   dispatch:
     CPU: lt_out
     CUDA: lt_out
+    OpenCL: lt_out
     QuantizedCPU: lt_out_quantized_cpu
 
 - func: lt.Tensor(Tensor self, Tensor other) -> Tensor
@@ -4481,6 +4500,7 @@
   dispatch:
     CPU: lt
     CUDA: lt
+    OpenCL: lt
     QuantizedCPU: lt_quantized_cpu
 
 - func: take.out(Tensor self, Tensor index, *, Tensor(a!) out) -> Tensor(a!)
@@ -4837,6 +4857,7 @@
   dispatch:
     CPU: sign_out
     CUDA: sign_out
+    OpenCL: sign_out
 
 - func: dist(Tensor self, Tensor other, Scalar p=2) -> Tensor
   use_c10_dispatcher: full
@@ -5077,6 +5098,7 @@
   dispatch:
     CPU: pow_out
     CUDA: pow_out
+    OpenCL: pow_out
 
 - func: pow.Tensor_Tensor(Tensor self, Tensor exponent) -> Tensor
   use_c10_dispatcher: full
@@ -5085,12 +5107,14 @@
   dispatch:
     CPU: pow
     CUDA: pow
+    OpenCL: pow
 
 - func: pow.Scalar_out(Scalar self, Tensor exponent, *, Tensor(a!) out) -> Tensor(a!)
   supports_named_tensor: True
   dispatch:
     CPU: pow_out
     CUDA: pow_out
+    OpenCL: pow_out
 
 - func: pow.Scalar(Scalar self, Tensor exponent) -> Tensor
   use_c10_dispatcher: full
@@ -5098,6 +5122,7 @@
   dispatch:
     CPU: pow
     CUDA: pow
+    OpenCL: pow
 
 - func: normal.Tensor_float_out(Tensor mean, float std=1, *, Generator? generator=None, Tensor(a!) out) -> Tensor(a!)
   dispatch:

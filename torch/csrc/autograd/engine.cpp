@@ -551,7 +551,9 @@ void Engine::evaluate_function(
   }
 
   // Switches to a function's CUDA stream (if applicable) before calling it
-  const auto opt_parent_stream = (*func).stream(c10::DeviceType::CUDA);
+  const auto opt_parent_stream_cuda = (*func).stream(c10::DeviceType::CUDA);
+  const auto opt_parent_stream_opencl = (*func).stream(c10::DeviceType::OPENCL);
+  const auto opt_parent_stream = opt_parent_stream_cuda ? opt_parent_stream_cuda : opt_parent_stream_opencl;
   c10::OptionalStreamGuard parent_stream_guard{opt_parent_stream};
 
   auto outputs = call_function(graph_task, func, inputs);
@@ -619,7 +621,9 @@ void Engine::evaluate_function(
       InputBuffer input_buffer(next.function->num_inputs());
 
       // Accumulates into buffer
-      const auto opt_next_stream = next.function->stream(c10::DeviceType::CUDA);
+      const auto opt_next_stream_cuda = next.function->stream(c10::DeviceType::CUDA);
+      const auto opt_next_stream_opencl = next.function->stream(c10::DeviceType::OPENCL);
+      const auto opt_next_stream = opt_next_stream_cuda ? opt_next_stream_cuda : opt_next_stream_opencl;
       input_buffer.add(next.input_nr,
                        std::move(output),
                        opt_parent_stream,
@@ -637,7 +641,9 @@ void Engine::evaluate_function(
       auto &input_buffer = not_ready_it->second;
 
       // Accumulates into buffer
-      const auto opt_next_stream = next.function->stream(c10::DeviceType::CUDA);
+      const auto opt_next_stream_cuda = next.function->stream(c10::DeviceType::CUDA);
+      const auto opt_next_stream_opencl = next.function->stream(c10::DeviceType::OPENCL);
+      const auto opt_next_stream = opt_next_stream_cuda ? opt_next_stream_cuda : opt_next_stream_opencl;
       input_buffer.add(next.input_nr,
                        std::move(output),
                        opt_parent_stream,
@@ -790,10 +796,10 @@ variable_list Engine::execute_with_graph_task(
   // Syncs leaf streams with default streams (if necessary)
   // See note "Streaming backwards"
   for (const auto& leaf_stream : graph_task->leaf_streams) {
-    const auto guard = c10::impl::VirtualGuardImpl{c10::DeviceType::CUDA};
+    const auto guard = c10::impl::VirtualGuardImpl{leaf_stream.device_type()};
     const auto default_stream = guard.getDefaultStream(leaf_stream.device());
     if (leaf_stream != default_stream) {
-      auto event = c10::Event{c10::DeviceType::CUDA};
+      auto event = c10::Event{leaf_stream.device_type()};
       event.record(leaf_stream);
       default_stream.wait(event);
     }

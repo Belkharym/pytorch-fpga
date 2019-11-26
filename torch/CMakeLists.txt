@@ -267,6 +267,19 @@ if (USE_OPENCL)
     list(APPEND TORCH_PYTHON_COMPILE_DEFINITIONS USE_OPENCL)
 endif()
 
+if (USE_OPENCL)
+    list(APPEND TORCH_PYTHON_SRCS
+      ${TORCH_SRC_DIR}/csrc/opencl/Module.cpp
+      ${TORCH_SRC_DIR}/csrc/opencl/Storage.cpp
+      ${TORCH_SRC_DIR}/csrc/opencl/Stream.cpp
+      ${TORCH_SRC_DIR}/csrc/opencl/Event.cpp
+      ${TORCH_SRC_DIR}/csrc/opencl/utils.cpp
+      ${TORCH_SRC_DIR}/csrc/opencl/python_comm.cpp
+      ${TORCH_SRC_DIR}/csrc/opencl/serialization.cpp
+      )
+    list(APPEND TORCH_PYTHON_COMPILE_DEFINITIONS USE_OPENCL)
+endif()
+
 # In the most recent CMake versions, a new 'TRANSFORM' subcommand of 'list' allows much of the boilerplate of defining the lists
 # of type stub files to be omitted.
 # For comptability with older CMake versions, we omit it for now, but leave it as a comment in case comptability with the older

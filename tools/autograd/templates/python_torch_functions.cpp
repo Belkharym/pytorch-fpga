@@ -82,6 +82,7 @@ inline Tensor dispatch_arange(Scalar end, Tensor result) {
 
 inline Tensor dispatch_arange(Scalar end, const TensorOptions& options) {
   torch::utils::maybe_initialize_cuda(options);
+  torch::utils::maybe_initialize_opencl(options);
   AutoNoGIL no_gil;
   return torch::arange(end, options);
 }
@@ -93,6 +94,7 @@ inline Tensor dispatch_arange(Scalar start, Scalar end, Scalar step, Tensor resu
 
 inline Tensor dispatch_arange(Scalar start, Scalar end, Scalar step, const TensorOptions& options) {
   torch::utils::maybe_initialize_cuda(options);
+  torch::utils::maybe_initialize_opencl(options);
   AutoNoGIL no_gil;
   return torch::arange(start, end, step, options);
 }
@@ -159,6 +161,7 @@ inline Tensor dispatch_range(Scalar start, Scalar end, Scalar step, Tensor resul
 
 inline Tensor dispatch_range(Scalar start, Scalar end, Scalar step, const TensorOptions& options) {
   torch::utils::maybe_initialize_cuda(options);
+  torch::utils::maybe_initialize_opencl(options);
   AutoNoGIL no_gil;
   DeviceGuard device_guard(options.device());
   return torch::range(start, end, step, options);
@@ -201,6 +204,7 @@ inline Tensor dispatch_randint(int64_t high, IntArrayRef size, Generator * gener
 }
 inline Tensor dispatch_randint(int64_t high, IntArrayRef size, Generator * generator, const TensorOptions & options) {
   torch::utils::maybe_initialize_cuda(options);
+  torch::utils::maybe_initialize_opencl(options);
   AutoNoGIL no_gil;
   return torch::randint(high, size, generator, options);
 }
@@ -210,6 +214,7 @@ inline Tensor dispatch_randint(int64_t high, IntArrayRef size, Tensor result) {
 }
 inline Tensor dispatch_randint(int64_t high, IntArrayRef size, const TensorOptions & options) {
   torch::utils::maybe_initialize_cuda(options);
+  torch::utils::maybe_initialize_opencl(options);
   AutoNoGIL no_gil;
   return torch::randint(high, size, options);
 }
@@ -219,6 +224,7 @@ inline Tensor dispatch_randint(int64_t low, int64_t high, IntArrayRef size, Gene
 }
 inline Tensor dispatch_randint(int64_t low, int64_t high, IntArrayRef size, Generator * generator, const TensorOptions & options) {
   torch::utils::maybe_initialize_cuda(options);
+  torch::utils::maybe_initialize_opencl(options);
   AutoNoGIL no_gil;
   return torch::randint(low, high, size, generator, options);
 }
@@ -228,6 +234,7 @@ inline Tensor dispatch_randint(int64_t low, int64_t high, IntArrayRef size, Tens
 }
 inline Tensor dispatch_randint(int64_t low, int64_t high, IntArrayRef size, const TensorOptions & options) {
   torch::utils::maybe_initialize_cuda(options);
+  torch::utils::maybe_initialize_opencl(options);
   AutoNoGIL no_gil;
   return torch::randint(low, high, size, options);
 }

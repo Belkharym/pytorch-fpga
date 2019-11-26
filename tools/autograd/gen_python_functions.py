@@ -17,7 +17,7 @@ except ImportError:
 
 # These functions require manual Python bindings or are not exposed to Python
 SKIP_PYTHON_BINDINGS = [
-    'alias', 'contiguous', 'is_cuda', 'is_cuda', 'is_sparse', 'size', 'stride',
+    'alias', 'contiguous', 'is_cuda', 'is_opencl', 'is_sparse', 'size', 'stride',
     '.*_backward', '.*_backward_(out|input|weight|bias)', '.*_forward',
     '.*_forward_out', '_unsafe_view', 'tensor', '_?sparse_coo_tensor.*',
     '_arange.*', '_range.*', '_linspace.*', '_logspace.*',
@@ -134,6 +134,7 @@ return wrap(${namedtuple_return_type}${call_dispatch});""")
 PY_VARIABLE_DISPATCH = CodeTemplate("""\
 inline ${simple_return_type} ${dispatch_name}(${formal_args}) {
   ${initialize_cuda}
+  ${initialize_opencl}
   ${AutoNoGIL}
   return ${dispatch_call}(${dispatch_args});
 }
@@ -524,8 +525,10 @@ def create_python_bindings(python_functions, has_self, is_module=False):
 
         if has_tensor_options:
             env['initialize_cuda'] = 'torch::utils::maybe_initialize_cuda(options);'
+            env['initialize_opencl'] = 'torch::utils::maybe_initialize_opencl(options);'
         else:
             env['initialize_cuda'] = ''
+            env['initialize_opencl'] = ''
 
         if 'call_args' in declaration:
             env['dispatch_args'] = declaration['call_args']

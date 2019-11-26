@@ -15,7 +15,13 @@
 #include "torch/csrc/cuda/Stream.h"
 #include "torch/csrc/cuda/Event.h"
 #endif
+#ifdef USE_OPENCL
+#include "torch/csrc/opencl/Stream.h"
+#include "torch/csrc/opencl/Event.h"
+#include <c10/opencl/OpenCLCachingAllocator.h>
+#endif
 #include "torch/csrc/utils/cuda_lazy_init.h"
+#include "torch/csrc/utils/opencl_lazy_init.h"
 #include "torch/csrc/utils/object_ptr.h"
 #include "torch/csrc/utils/python_arg_parser.h"
 #include "torch/csrc/utils/python_numbers.h"
@@ -418,6 +424,23 @@ static PyObject * THPVariable_cuda(PyObject* self, PyObject* args, PyObject* kwa
   END_HANDLE_TH_ERRORS
 }
 
+static PyObject * THPVariable_opencl(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  static PythonArgParser parser({
+    "opencl(Device? device=None, bool non_blocking=False)",
+    "opencl(Device? device=None, bool async=False)|deprecated"
+  });
+  auto& self_ = reinterpret_cast<THPVariable*>(self)->cdata;
+  ParsedArgs<2> parsed_args;
+  auto r = parser.parse(args, kwargs, parsed_args);
+  auto device = r.isNone(0) ? at::Device(at::DeviceType::OPENCL) : r.device(0);
+  TORCH_CHECK(device.is_opencl(), "Invalid device, must be opencl device");
+  torch::utils::opencl_lazy_init();
+  return THPVariable_Wrap(dispatch_to(self_, device, r.toBool(1), false));
+  END_HANDLE_TH_ERRORS
+}
+
 static PyObject * THPVariable_to_type(PyObject* self, ScalarType scalarType, c10::optional<c10::MemoryFormat> optional_memory_format) {
   HANDLE_TH_ERRORS
   auto& self_ = reinterpret_cast<THPVariable*>(self)->cdata;
@@ -574,8 +597,16 @@ static PyObject * THPVariable_record_stream(PyObject* self, PyObject* arg)
   void* data = self_.storage().data_ptr().get();
   c10::cuda::CUDACachingAllocator::recordStream(data, at::cuda::CUDAStream::unpack(((THCPStream*)arg)->cdata));
   Py_RETURN_NONE;
+#elif defined(USE_OPENCL)
+  auto& self_ = reinterpret_cast<THPVariable*>(self)->cdata;
+  if (!THOPStream_Check(arg)) {
+    return PyErr_Format(PyExc_TypeError, "expected Stream object");
+  }
+  void* data = self_.data_ptr();
+  c10::opencl::OpenCLCachingAllocator::recordStream(data, at::opencl::OpenCLStream::unpack(((THOPStream*)arg)->cdata));
+  Py_RETURN_NONE;
 #else
-  throw std::runtime_error("PyTorch compiled without CUDA support");
+  throw std::runtime_error("PyTorch compiled without CUDA / OpenCL support");
 #endif
   END_HANDLE_TH_ERRORS
 }
@@ -732,6 +763,9 @@ static PyObject * THPVariable_to(PyObject* self, PyObject* args, PyObject* kwarg
   if (device && device->is_cuda()) {
     torch::utils::cuda_lazy_init();
   }
+  if (device && device->is_opencl()) {
+    torch::utils::opencl_lazy_init();
+  }
   if (!device && !scalarType && !copy) {
     Py_INCREF(self);
     return self;
@@ -800,6 +834,9 @@ static PyObject * THPVariable_type(PyObject* self, PyObject* args, PyObject* kwa
   if (device.is_cuda()) {
     torch::utils::cuda_lazy_init();
   }
+  if (device.is_opencl()) {
+    torch::utils::opencl_lazy_init();
+  }
   return THPVariable_Wrap(dispatch_to(self_, device, scalar_type, /*non_blocking=*/ r.toBool(1), /*copy=*/ false, opt_memory_format));
   END_HANDLE_TH_ERRORS
 }
@@ -856,6 +893,7 @@ PyMethodDef variable_methods[] = {
   {"copy_", (PyCFunction)(void(*)(void))THPVariable_copy_, METH_VARARGS | METH_KEYWORDS, NULL},
   {"cpu", (PyCFunction)(void(*)(void))THPVariable_cpu, METH_VARARGS | METH_KEYWORDS, NULL},
   {"cuda", (PyCFunction)(void(*)(void))THPVariable_cuda, METH_VARARGS | METH_KEYWORDS, NULL},
+  {"opencl", (PyCFunction)(void(*)(void))THPVariable_opencl, METH_VARARGS | METH_KEYWORDS, NULL},
   {"data_ptr", (PyCFunction)THPVariable_data_ptr, METH_NOARGS, NULL},
   {"dim", (PyCFunction)THPVariable_dim, METH_NOARGS, NULL},
 #ifdef BUILD_NAMEDTENSOR

@@ -154,15 +154,6 @@ Tensor & _abs_out_opencl(Tensor &result, const Tensor &self) {
   return result;
 }
 
-Tensor & _ceil_out_opencl(Tensor &out, const Tensor &self) {
-  auto result_ = checked_tensor_unwrap(out, "out", 1, "_ceil_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  auto self_ = checked_tensor_unwrap(self, "self", 2, "_ceil_out_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  opencl_resize(result_, self_->sizes(), {});
-  pointwise_op(result_->storage().unsafeGetStorageImpl(), self_->storage().unsafeGetStorageImpl(), at::native::opencl::OpenCLOperationsPointwise::CEIL, self.scalar_type());
-
-  return out;
-}
-
 Tensor _and_opencl(const Tensor & self, const Tensor & other) {
   auto allocator = c10::GetAllocator(DeviceType::OPENCL);
   auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 0, allocator, true),TensorTypeId::OpenCLTensorId).release();
@@ -242,11 +233,6 @@ Tensor & _zero_opencl(Tensor & self) {
   stream.synchronize();
 
   return self;
-
-Tensor empty_strided_opencl(IntArrayRef size, IntArrayRef stride, const TensorOptions& options) {
-  auto t = at::native::empty_opencl({0}, options);
-  at::native::resize_impl_opencl_(t.unsafeGetTensorImpl(), size, stride);
-  return t;
 }
 
 Tensor & _opencl_min_out(Tensor &result, const Tensor &self, const Tensor &other) {

@@ -36,7 +36,7 @@ C10_EXPORT std::vector<at::DeprecatedTypeProperties*> allCUDATypes() {
 }
 
 C10_EXPORT std::vector<at::DeprecatedTypeProperties*> allOpenCLTypes() {
-  at::globalContext().lazyInitCUDA();
+  at::globalContext().lazyInitOpenCL();
   return allTypesForBackends({ Backend::OpenCL, Backend::SparseOpenCL });
 }
 

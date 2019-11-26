@@ -68,11 +68,10 @@ namespace opencl {
 namespace {
 static cl::Platform platform;
 static std::vector<cl::Platform> platforms;
-static cl::Context context;
+static std::vector<cl::Context> contexts; // 1 context per platform
 static std::vector<cl::Device> devices;
 static DeviceIndex current_device_ = 0;
-static cl::Program program;
-static std::map<std::string, cl::Kernel> kernels;
+static std::vector<std::map<std::string, cl::Kernel>> kernels;
 
 static std::once_flag init_flag;
 
@@ -193,86 +192,93 @@ static void initOpenCLKernels(cl_int* cl_err) {
     });
     std::swap(contents, tmp);
 
-#ifdef C10_USE_FPGA
-    // Only get the first binary, and apply it to all devices
-    cl::Program::Binaries binaries(devices.size(), contents[0]);
-    std::vector<cl_int> binaryStatus;
-    program = cl::Program{context, devices, binaries, &binaryStatus, cl_err};
-#else
-    program = cl::Program{context, contents, cl_err};
-#endif // C10_USE_FPGA
-    if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN("OpenCL Error : cannot create OpenCL Program (", clErrorString(*cl_err), ") {dir:\"", kernel_dir_path,"\"; content.size:", contents.size(), "}");
-#ifdef C10_USE_FPGA
-        TORCH_WARN("Device status:");
-        for (size_t i = 0; i < binaryStatus.size(); ++i) {
-            TORCH_WARN("  Device #", i, " [", devices[i].getInfo<CL_DEVICE_NAME>(), "]: ", clErrorString(binaryStatus[i]));
+    for (size_t i = 0; i < contexts.size(); ++i) {
+        auto devices_ = contexts[i].getInfo<CL_CONTEXT_DEVICES>();
+        if (devices_.size() == 0) {
+            continue;
         }
-#endif // C10_USE_FPGA
-        return;
-    }
 
-    std::stringstream build_params;
-    cl_bitfield min_fp_config;
-    cl_bitfield device_fp_config;
+#ifdef C10_USE_FPGA
+        // Only get the first binary, and apply it to all devices
+        cl::Program::Binaries binaries(devices_.size(), contents[0]);
+        std::vector<cl_int> binaryStatus;
+        cl::Program program = cl::Program{context, devices_, binaries, &binaryStatus, cl_err};
+#else
+        cl::Program program = cl::Program{contexts[i], contents, cl_err};
+#endif // C10_USE_FPGA
+        if (*cl_err != CL_SUCCESS) {
+            TORCH_WARN("OpenCL Error : cannot create OpenCL Program (", clErrorString(*cl_err), ") {dir:\"", kernel_dir_path,"\"; content.size:", contents.size(), "}");
+#ifdef C10_USE_FPGA
+            TORCH_WARN("Device status:");
+            for (size_t i = 0; i < binaryStatus.size(); ++i) {
+                TORCH_WARN("  Device #", i, " [", devices_[i].getInfo<CL_DEVICE_NAME>(), "]: ", clErrorString(binaryStatus[i]));
+            }
+#endif // C10_USE_FPGA
+            return;
+        }
+
+        std::stringstream build_params;
+        cl_bitfield min_fp_config;
+        cl_bitfield device_fp_config;
 
 #define CHECK_FP_CONFIG(FP, MIN_FP_CONFIG) \
-    min_fp_config = MIN_FP_CONFIG; \
-    device_fp_config = devices[0].getInfo<CL_DEVICE_##FP##_FP_CONFIG>(cl_err); \
-    if (*cl_err != CL_SUCCESS) { \
-        TORCH_WARN("OpenCL Error : cannot get device property of device #0 (", clErrorString(*cl_err), ")"); \
-        return; \
-    } \
-    if ((device_fp_config & min_fp_config) == min_fp_config) { \
-        build_params << " -D" #FP "_PRECISION"; \
-    }
-
-    CHECK_FP_CONFIG(DOUBLE, CL_FP_FMA | CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO | CL_FP_ROUND_TO_INF | CL_FP_INF_NAN | CL_FP_DENORM);
-    std::string extensions = devices[0].getInfo<CL_DEVICE_EXTENSIONS>(cl_err);
-    if (std::regex_match(extensions, std::regex{"cl_khr_fp16"})) {
-        CHECK_FP_CONFIG(HALF, CL_FP_ROUND_TO_INF | CL_FP_INF_NAN);
-        if ((device_fp_config & min_fp_config) != min_fp_config) {
-            CHECK_FP_CONFIG(HALF, CL_FP_ROUND_TO_ZERO | CL_FP_INF_NAN);
+        min_fp_config = MIN_FP_CONFIG; \
+        device_fp_config = devices_[0].getInfo<CL_DEVICE_##FP##_FP_CONFIG>(cl_err); \
+        if (*cl_err != CL_SUCCESS) { \
+            TORCH_WARN("OpenCL Error : cannot get device property of device #0 (", clErrorString(*cl_err), ")"); \
+            return; \
+        } \
+        if ((device_fp_config & min_fp_config) == min_fp_config) { \
+            build_params << " -D" #FP "_PRECISION"; \
         }
-    }
-    CHECK_FP_CONFIG(SINGLE, CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN);
+
+        CHECK_FP_CONFIG(DOUBLE, CL_FP_FMA | CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO | CL_FP_ROUND_TO_INF | CL_FP_INF_NAN | CL_FP_DENORM);
+        std::string extensions = devices_[0].getInfo<CL_DEVICE_EXTENSIONS>(cl_err);
+        if (std::regex_match(extensions, std::regex{"cl_khr_fp16"})) {
+            CHECK_FP_CONFIG(HALF, CL_FP_ROUND_TO_INF | CL_FP_INF_NAN);
+            if ((device_fp_config & min_fp_config) != min_fp_config) {
+                CHECK_FP_CONFIG(HALF, CL_FP_ROUND_TO_ZERO | CL_FP_INF_NAN);
+            }
+        }
+        CHECK_FP_CONFIG(SINGLE, CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN);
 #undef CHECK_FP_CONFIG
 
 #ifndef C10_USE_FPGA
-    *cl_err = program.build(devices, std::string{"-I" + kernels_dir + build_params.str()}.c_str());
-    if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN("OpenCL Error : cannot build OpenCL Program (", clErrorString(*cl_err), ")");
-        if (*cl_err == CL_BUILD_PROGRAM_FAILURE) {
-            for (auto& device : devices) {
-                auto build_status = program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device);
-                if (build_status != CL_BUILD_SUCCESS) {
-                    auto device_name = device.getInfo<CL_DEVICE_NAME>();
-                    auto device_type = device.getInfo<CL_DEVICE_TYPE>();
-                    auto build_log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
-                    TORCH_WARN("- Device [", clDeviceTypeString(device_type), "] ", device_name);
-                    TORCH_WARN("  Build logs: \n", build_log, "\n");
+        *cl_err = program.build(devices_, std::string{"-I" + kernels_dir + build_params.str()}.c_str());
+        if (*cl_err != CL_SUCCESS) {
+            TORCH_WARN("OpenCL Error : cannot build OpenCL Program (", clErrorString(*cl_err), ")");
+            if (*cl_err == CL_BUILD_PROGRAM_FAILURE) {
+                for (auto& device : devices_) {
+                    auto build_status = program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device);
+                    if (build_status != CL_BUILD_SUCCESS) {
+                        auto device_name = device.getInfo<CL_DEVICE_NAME>();
+                        auto device_type = device.getInfo<CL_DEVICE_TYPE>();
+                        auto build_log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
+                        TORCH_WARN("- Device [", clDeviceTypeString(device_type), "] ", device_name);
+                        TORCH_WARN("  Build logs: \n", build_log, "\n");
+                    }
                 }
             }
+            return;
         }
-        return;
-    }
 #endif // !C10_USE_FPGA
 
-    std::vector<cl::Kernel> kernels_;
-    *cl_err = program.createKernels(&kernels_);
-    if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN("OpenCL Error : cannot fetch OpenCL kernels (", clErrorString(*cl_err), ")");
-        return;
-    }
-
-    std::transform(kernels_.cbegin(), kernels_.cend(), std::inserter(kernels, kernels.end()),
-        [](const cl::Kernel& kernel) -> std::pair<std::string,cl::Kernel> {
-            auto name = kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
-            // There can be a null character left at the end of the string, which mess with the comparison in the map.
-            name = clRemoveNullChars(name);
-            return std::make_pair(name, kernel);
+        std::vector<cl::Kernel> kernels_;
+        *cl_err = program.createKernels(&kernels_);
+        if (*cl_err != CL_SUCCESS) {
+            TORCH_WARN("OpenCL Error : cannot fetch OpenCL kernels (", clErrorString(*cl_err), ")");
+            return;
         }
-    );
+
+        std::transform(kernels_.cbegin(), kernels_.cend(), std::inserter(kernels[i], kernels[i].end()),
+            [](const cl::Kernel& kernel) -> std::pair<std::string,cl::Kernel> {
+                auto name = kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
+                // There can be a null character left at the end of the string, which mess with the comparison in the map.
+                name = clRemoveNullChars(name);
+                return std::make_pair(name, kernel);
+            }
+        );
+    }
 }
 
 static void initOpenCLContext(cl_int* cl_err) {
@@ -295,32 +301,39 @@ static void initOpenCLContext(cl_int* cl_err) {
         return;
     }
     platform = platforms[platform_id];
+    contexts.resize(platforms.size());
+    kernels.resize(platforms.size());
 
     devices = std::vector<cl::Device>();
     auto devices_buf = std::vector<cl::Device>();
-    for (auto ptfm : platforms) {
+    cl::Platform ptfm;
+    for (size_t i = 0; i < platforms.size(); ++i, devices_buf.clear(), ptfm = platforms[i]) {
         *cl_err = ptfm.getDevices(CL_DEVICE_TYPE_ALL, &devices_buf);
-        if (*cl_err == CL_SUCCESS && (devices_buf.size() == 0 || device_id >= devices_buf.size())) {
+        if (*cl_err == CL_SUCCESS && (devices_buf.size() == 0)) {
             *cl_err = CL_DEVICE_NOT_FOUND;
         }
         if (*cl_err != CL_SUCCESS) {
-            TORCH_WARN("Cannot find OpenCL compatible device. (", clErrorString(*cl_err),")");
+            std::string ptfm_name = ptfm.getInfo<CL_PLATFORM_NAME>();
+            TORCH_WARN("Cannot find OpenCL compatible device on platform ", ptfm_name, ". (", clErrorString(*cl_err),")");
+            continue;
+        }
+        contexts[i] = cl::Context(devices_buf, NULL, NULL, NULL, cl_err);
+        if (*cl_err != CL_SUCCESS) {
+            // Clear device list on errors, because device count is used as an initilization check
+            devices.clear();
+            std::string ptfm_name = ptfm.getInfo<CL_PLATFORM_NAME>();
+            TORCH_WARN("Cannot create OpenCL context for platform ", ptfm_name, ". (", clErrorString(*cl_err),")");
             return;
         }
         std::copy(devices_buf.cbegin(), devices_buf.cend(), std::back_inserter(devices));
-        devices_buf.clear();
     }
     set_device(device_id);
 
-    context = cl::Context(devices, NULL, NULL, NULL, cl_err);
-    if (*cl_err != CL_SUCCESS) {
-        TORCH_WARN("Cannot create OpenCL context. (", clErrorString(*cl_err),")");
-        return;
-    }
-
     initOpenCLKernels(cl_err);
     if (*cl_err != CL_SUCCESS) {
-      TORCH_WARN("Cannot initialize OpenCL kernels. (", clErrorString(*cl_err), ")");
+        // Clear device list on errors, because device count is used as an initilization check
+        devices.clear();
+        TORCH_WARN("Cannot initialize OpenCL kernels. (", clErrorString(*cl_err), ")");
     }
 }
 
@@ -354,11 +367,25 @@ void set_device(DeviceIndex device_id) {
 }
 
 cl::Platform opencl_platform() {
+    if (devices.size() > 0) {
+        cl::Device device = devices[current_device()];
+        auto platform_id = device.getInfo<CL_DEVICE_PLATFORM>();
+        return cl::Platform(platform_id, true);
+    }
     return platform;
 }
 
 cl::Context opencl_context() {
-    return context;
+    cl::Device device = devices[current_device()];
+    auto platform_id = device.getInfo<CL_DEVICE_PLATFORM>();
+    size_t idx = 0;
+    auto iter = std::find_if(platforms.cbegin(), platforms.cend(), [=](const cl::Platform& p) {
+        return p() == platform_id;
+    });
+    if (iter != platforms.cend()) {
+        idx = std::distance(platforms.cbegin(), iter);
+    }
+    return contexts[idx];
 }
 
 cl::Device opencl_device(DeviceIndex device_id) {
@@ -369,11 +396,28 @@ cl::Device opencl_device(DeviceIndex device_id) {
 }
 
 c10::optional<cl::Kernel> opencl_kernel(const std::string& kernel_func_name, cl_int *err) {
-    const auto& it = kernels.find(kernel_func_name);
+    if (devices.size() == 0) {
+        if (err) {
+            *err = CL_DEVICE_NOT_FOUND;
+        }
+        return {};
+    }
+    // Get platform index from current device.
+    cl::Device device = devices[current_device()];
+    auto platform_id = device.getInfo<CL_DEVICE_PLATFORM>();
+    size_t idx = 0;
+    auto iter = std::find_if(platforms.cbegin(), platforms.cend(), [=](const cl::Platform& p) {
+        return p() == platform_id;
+    });
+    if (iter != platforms.cend()) {
+        idx = std::distance(platforms.cbegin(), iter);
+    }
+
+    const auto& it = kernels[idx].find(kernel_func_name);
     if (err) {
         *err = CL_SUCCESS;
     }
-    if (it == kernels.cend()) {
+    if (it == kernels[idx].cend()) {
         if (err) {
             *err = CL_INVALID_KERNEL_NAME;
         }

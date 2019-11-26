@@ -7,6 +7,8 @@
 #include <ATen/ATen.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/cuda/ATenCUDAGeneral.h>
+#include <ATen/opencl/OpenCLContext.h>
+#include <ATen/opencl/ATenOpenCLGeneral.h>
 
 #include <cstddef>
 #include <vector>
@@ -22,6 +24,13 @@ struct TORCH_CUDA_API Scatter : public Node {
       const c10::optional<std::vector<c10::optional<at::cuda::CUDAStream>>>& streams =
           c10::nullopt,
       bool unsqueeze_scalars = false);
+  explicit Scatter(
+      std::vector<at::Device> devices,
+      const c10::optional<std::vector<int64_t>>& chunk_sizes = c10::nullopt,
+      int64_t dim = 0,
+      const c10::optional<std::vector<c10::optional<at::opencl::OpenCLStream>>>& streams =
+          c10::nullopt,
+      bool unsqueeze_scalars = false);
   ~Scatter() override;
 
   variable_list apply(variable_list&& inputs) override;
@@ -29,7 +38,7 @@ struct TORCH_CUDA_API Scatter : public Node {
   std::vector<at::Device> devices_;
   c10::optional<std::vector<int64_t>> chunk_sizes_;
   int64_t dim_;
-  c10::optional<std::vector<c10::optional<at::cuda::CUDAStream>>> streams_;
+  c10::optional<std::vector<c10::optional<at::Stream>>> streams_;
   bool unsqueeze_scalars_;
 };
 

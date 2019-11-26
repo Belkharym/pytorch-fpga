@@ -4,6 +4,7 @@
 
 #include <torch/csrc/utils/auto_gil.h>
 #include <torch/csrc/utils/cuda_lazy_init.h>
+#include <torch/csrc/utils/opencl_lazy_init.h>
 
 #include <ATen/ATen.h>
 
