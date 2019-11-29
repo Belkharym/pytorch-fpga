@@ -435,9 +435,10 @@ static PyObject * THPVariable_opencl(PyObject* self, PyObject* args, PyObject* k
   ParsedArgs<2> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
   auto device = r.isNone(0) ? at::Device(at::DeviceType::OPENCL) : r.device(0);
+  auto opt_memory_format = r.memoryformatOptional(2);
   TORCH_CHECK(device.is_opencl(), "Invalid device, must be opencl device");
   torch::utils::opencl_lazy_init();
-  return THPVariable_Wrap(dispatch_to(self_, device, r.toBool(1), false));
+  return THPVariable_Wrap(dispatch_to(self_, device, r.toBool(1), false, opt_memory_format));
   END_HANDLE_TH_ERRORS
 }
 

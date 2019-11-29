@@ -1,8 +1,10 @@
 #include <c10/core/ScalarType.h>
+#include <ATen/opencl/Exceptions.h>
 #include <caffe2/opencl/context.h>
 #include <ATen/ATen.h>
 #include <ATen/opencl/PinnedMemoryAllocator.h>
 #include <ATen/native/opencl/OpenCLOperations.h>
+#include <c10/opencl/OpenCLGuard.h>
 
 #include <string>
 
@@ -17,6 +19,7 @@ namespace native {
 typedef cl_int(OpenCLCastFunctor)(cl::Buffer, cl::Buffer, at::native::opencl::OpenCLPtrType, at::native::opencl::OpenCLPtrType);
 
 typedef cl_int(OpenCLPointwise2Functor)(cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsPointwise2, at::native::opencl::OpenCLPtrType);
+typedef cl_int(OpenCLPointwise2sFunctor)(cl::Buffer, cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsPointwise3, at::native::opencl::OpenCLPtrType, bool);
 typedef cl_int(OpenCLComp3Functor)(cl::Buffer, cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsComp3, at::native::opencl::OpenCLPtrType);
 typedef cl_int(OpenCLPointwise3Functor)(cl::Buffer, cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsPointwise3, at::native::opencl::OpenCLPtrType);
 typedef cl_int(OpenCLPointwise3sFunctor)(cl::Buffer, cl::Buffer, cl::Buffer, cl::Buffer, at::native::opencl::OpenCLOperationsPointwise3s, at::native::opencl::OpenCLPtrType, at::native::opencl::OpenCLPtrType);
@@ -185,38 +188,25 @@ inline cl_int syncOpenCLPointer(void *ptr, c10::optional<c10::opencl::OpenCLStre
 
 namespace {
 
-template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
-at::Tensor scalar_tensor_opencl_impl(c10::Scalar s, c10::optional<c10::TensorOptions> options = c10::nullopt) {
-  auto stream = at::opencl::getCurrentOpenCLStream(options ? options->device().index() : -1);
-  c10::ScalarType type = (T == c10::ScalarType::Undefined ? c10::typeMetaToScalarType(options->dtype()) : T);
+template <typename S>
+at::Tensor scalar_buffer_opencl_impl(c10::Scalar s, c10::optional<c10::DeviceIndex> deviceId = c10::nullopt) {
+  c10::opencl::OpenCLGuard guard{c10::Device{c10::DeviceType::OPENCL, deviceId ? *deviceId : -1}};
+  auto stream = at::opencl::getCurrentOpenCLStream();
 
-  at::Tensor scalar_tensor = at::native::empty_opencl({1}, c10::TensorOptions{type}.merge_in(options ? *options : c10::TensorOptions{}));
-  auto scalar_tensor_ = scalar_tensor.storage().unsafeGetStorageImpl();
+  cl_int err = CL_SUCCESS;
+  constexpr const auto scalar_size = sizeof(S);
+  auto tensor = at::native::empty_opencl({1}, c10::TensorOptions{caffe2::TypeMeta::Make<S>()}.device(DeviceType::OPENCL, deviceId ? *deviceId : -1));
   S value_s = s.to<S>();
-  memcpy(scalar_tensor_->data(), &value_s, sizeof(S));
-  AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer(*toBuffer(scalar_tensor_->data()), CL_TRUE, 0, sizeof(S), &value_s));
+  AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer(*toBuffer(tensor.data_ptr()), CL_TRUE, 0, sizeof(S), &value_s));
 
-  return scalar_tensor;
+  return std::move(tensor);
 }
 
 } // namespace
 
-template <c10::ScalarType T, typename std::enable_if<T != c10::ScalarType::Undefined, int>::type = 0>
-at::Tensor scalar_tensor_opencl(c10::Scalar s, c10::optional<c10::TensorOptions> options) {
-  TORCH_CHECK(!options || options->dtype() == T, "[scalar_tensor_opencl] Type mismatch");
-
-  return scalar_tensor_opencl_impl<T>(s, options);
-}
-
-template <c10::ScalarType T = c10::ScalarType::Undefined, typename std::enable_if<T == c10::ScalarType::Undefined, int>::type = 0>
-at::Tensor scalar_tensor_opencl(c10::Scalar s, c10::optional<c10::TensorOptions> options) {
-  TORCH_CHECK(options && options->has_dtype(),
-    "scalar_tensor_opencl need a type to be provided, either from a template parameter, or through the TensorOptions.");
-
-  return AT_DISPATCH_ALL_TYPES_AND3(
-  at::ScalarType::Half, at::ScalarType::Bool, at::ScalarType::BFloat16, c10::typeMetaToScalarType(options->dtype()), "scalar_tensor_opencl", [&] {
-    return scalar_tensor_opencl_impl<c10::ScalarType::Undefined, scalar_t>(s, options);
-  });
+template <typename S>
+at::Tensor scalar_buffer_opencl(c10::Scalar s, c10::optional<c10::DeviceIndex> deviceId = c10::nullopt) {
+  return std::move(scalar_buffer_opencl_impl<S>(s, deviceId));
 }
 
 }} // namespace at::native

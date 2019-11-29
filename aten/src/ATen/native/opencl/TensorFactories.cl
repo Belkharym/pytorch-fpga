@@ -237,7 +237,7 @@ __kernel void pointwise_op_comp_2s(__global const void* a, __global const void* 
             break;                                                                                                          \
         }                                                                                                                   \
         case SUB: {                                                                                                         \
-            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] - ((__global type*)b)[0];       \
+            ((__global type*)out)[get_global_id(0)] = invert ? -(((__global type*)b)[0] - ((__global type*)a)[get_global_id(0)]) : ((__global type*)a)[get_global_id(0)] - ((__global type*)b)[0];       \
             break;                                                                                                          \
         }                                                                                                                   \
         case MUL: {                                                                                                         \
@@ -245,7 +245,7 @@ __kernel void pointwise_op_comp_2s(__global const void* a, __global const void* 
             break;                                                                                                          \
         }                                                                                                                   \
         case DIV: {                                                                                                         \
-            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] / ((__global type*)b)[0];       \
+            ((__global type*)out)[get_global_id(0)] = invert ? ((__global type*)b)[0] / ((__global type*)a)[get_global_id(0)] : ((__global type*)a)[get_global_id(0)] / ((__global type*)b)[0];       \
             break;                                                                                                          \
         }                                                                                                                   \
         case REM: {                                                                                                         \
@@ -280,7 +280,7 @@ __kernel void pointwise_op_comp_2s(__global const void* a, __global const void* 
             break;                                                                                                          \
         }                                                                                                                   \
         case SUB: {                                                                                                         \
-            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] - ((__global type*)b)[0];                                              \
+            ((__global type*)out)[get_global_id(0)] = invert ? -(((__global type*)b)[0] - ((__global type*)a)[get_global_id(0)]) : ((__global type*)a)[get_global_id(0)] - ((__global type*)b)[0];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
         case MUL: {                                                                                                         \
@@ -288,7 +288,7 @@ __kernel void pointwise_op_comp_2s(__global const void* a, __global const void* 
             break;                                                                                                          \
         }                                                                                                                   \
         case DIV: {                                                                                                         \
-            ((__global type*)out)[get_global_id(0)] = ((__global type*)a)[get_global_id(0)] / ((__global type*)b)[0];                                              \
+            ((__global type*)out)[get_global_id(0)] = invert ? ((__global type*)b)[0] / ((__global type*)a)[get_global_id(0)] : ((__global type*)a)[get_global_id(0)] / ((__global type*)b)[0];                                              \
             break;                                                                                                          \
         }                                                                                                                   \
         case REM: {                                                                                                         \
@@ -328,7 +328,7 @@ __kernel void pointwise_op_3(__global const void* a, __global const void* b, __g
     }
 }
 
-__kernel void pointwise_op_2s(__global const void* a, __global const void* b, __global void* out, const enum OpenCLOperationsPointwise3 op, const enum OpenCLPtrType typeTensor) {
+__kernel void pointwise_op_2s(__global const void* a, __global const void* b, __global void* out, const enum OpenCLOperationsPointwise3 op, const enum OpenCLPtrType typeTensor, unsigned char invert) {
     switch(typeTensor) {
         POINTWISE_OP_CASE_(bool, BOOL, POINTWISE_OP_2S_INT)
         POINTWISE_OP_CASE_(char, CHAR, POINTWISE_OP_2S_INT)

@@ -84,10 +84,10 @@ void opencl_resizeAs(c10::TensorImpl *self, c10::TensorImpl *src) {
     opencl_resizeNd(self, src->dim(), opencl_getSizePtr(src), NULL);
 }
 
-Tensor& resize_opencl_(Tensor& self, IntArrayRef size) {
+Tensor& resize_opencl_(Tensor& self, IntArrayRef size, c10::optional<c10::MemoryFormat> mem_format) {
 #ifdef BUILD_NAMEDTENSOR
   if (self.has_names()) {
-    return resize_named_tensor_(self, size);
+    return resize_named_tensor_(self, size, mem_format);
   }
 #endif
   auto* self_ = self.unsafeGetTensorImpl();

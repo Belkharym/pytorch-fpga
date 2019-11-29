@@ -27,12 +27,12 @@ inline void maybe_resize_storage_opencl(TensorImpl* self, int64_t new_size) {
   // new_size is 0, so just bail in that case
   // (same comment is in Resize.h)
   if (new_size > 0) {
-    if (!opencl_getStoragePtr(self)) {
+    if (!opencl_getStoragePtr(*self)) {
       AT_ERROR("Tensor: invalid null storage");
     }
     if (new_size + self->storage_offset() > self->storage().numel()) {
       opencl_resize(
-          opencl_getStoragePtr(self),
+          opencl_getStoragePtr(*self),
           new_size + self->storage_offset());
     }
   }
@@ -74,5 +74,7 @@ inline TensorImpl* resize_impl_opencl_(
 
   return self;
 }
+
+Tensor& resize_opencl_(Tensor& self, IntArrayRef size, c10::optional<c10::MemoryFormat> mem_format);
 
 }}

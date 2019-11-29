@@ -23,6 +23,8 @@ enum OpenCLOperationsPointwise3 {
     // Bitwise operations
     BAND, // Bitwise AND
     BXOR, // Bitwise XOR
+    MIN,  // MINimum
+    MAX,  // MAXimum
     ADD,  // ADDition
     SUB,  // SUBtract
     MUL,  // MULtiply

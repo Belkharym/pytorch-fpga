@@ -3,126 +3,105 @@
 #include <c10/util/Exception.h>
 #include <ATen/Backend.h>
 #include <ATen/Utils.h>
-#include <ATen/native/opencl/Resize.h>
-#include <ATen/NamedTensorUtils.h>
+
+#include <aten/src/ATen/opencl/Exceptions.h> // This include must be before ATen/native/DispatchStub.h
+
+#include <ATen/Dispatch.h>
+#include <ATen/native/DispatchStub.h>
+#include <ATen/native/TensorIterator.h>
+#include <ATen/native/BinaryOps.h>
 
 #include <c10/opencl/OpenCLFunctions.h>
-#include <aten/src/ATen/opencl/Exceptions.h>
 #include <aten/src/ATen/native/opencl/OpenCLOperations.h>
 #include <aten/src/ATen/native/opencl/Utils.h>
 
 namespace at {
 namespace native {
 
-static cl::Buffer &toBuffer(const StorageImpl*s) {
-  return (*toBuffer(s->data_ptr().get()));
+static cl::Buffer &toBuffer(const Tensor& s) {
+  return (*toBuffer(s.storage().data()));
 }
 
-static void pointwise_op_comp3(StorageImpl* c, const StorageImpl* a, const StorageImpl* b, at::native::opencl::OpenCLOperationsComp3 op, const ScalarType scalar_type) {
+static void pointwise_op_comp3(Tensor& c, const Tensor& a, const Tensor& b, at::native::opencl::OpenCLOperationsComp3 op, const ScalarType scalar_type) {
   // DONE Call OpenCL kernel.
   static const std::string kernel_name = "pointwise_op_comp_3";
-  auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
+  auto stream = at::opencl::getCurrentOpenCLStream(a.device().index());
+  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a.storage_offset()}, cl::NDRange{(size_t)a.numel()}, 1});
   AT_OPENCL_CHECK(pointwise_op(
       toBuffer(a),
       toBuffer(b),
       toBuffer(c),
       op,
       getOpenCLKernelCastType(scalar_type)));
-  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get(), stream));
+  AT_OPENCL_CHECK(syncOpenCLPointer(c.data_ptr(), stream));
   stream.synchronize();
 }
 
-template <c10::ScalarType T, typename S = decltype(c10::impl::ScalarTypeToCPPType<T>::t)>
-static void pointwise_op_comp2_s(StorageImpl* c, const StorageImpl* a, const Scalar b, at::native::opencl::OpenCLOperationsComp3 op) {
+template <typename S>
+static void pointwise_op_comp2_s(Tensor& c, const Tensor& a, const Scalar b, at::native::opencl::OpenCLOperationsComp3 op, c10::ScalarType T) {
   static const std::string kernel_name = "pointwise_op_comp_2s";
-  auto stream = at::opencl::getCurrentOpenCLStream(a->device().index());
-  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a->numel()}, 1});
-  
-  Tensor scalar_tensor = at::native::scalar_tensor_opencl<T>(b, TensorOptions{T}.merge_in({a->device()}));
-  auto scalar_tensor_ = scalar_tensor.storage().unsafeGetStorageImpl();
+  auto stream = at::opencl::getCurrentOpenCLStream(a.device().index());
+  auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLComp3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a.storage_offset()}, cl::NDRange{(size_t)a.numel()}, 1});
+
+  auto scalar_buffer = at::native::scalar_buffer_opencl<S>(b, a.device().index());
 
   AT_OPENCL_CHECK(pointwise_op(
       toBuffer(a),
-      toBuffer(scalar_tensor_),
+      toBuffer(scalar_buffer),
       toBuffer(c),
       op,
       getOpenCLKernelCastType(T)));
-  AT_OPENCL_CHECK(syncOpenCLPointer(c->data_ptr().get(), stream));
+  AT_OPENCL_CHECK(syncOpenCLPointer(c.data_ptr(), stream));
   stream.synchronize();
 }
 
-// See THC_logicalTensor in aten/src/THC/THCTensorMathCompareT.cuh for implementation details
-static void logical_tensor(TensorImpl *self_, const TensorImpl *t1, const TensorImpl *t2, opencl::OpenCLOperationsComp3 op) {
-  opencl_resize(self_, t1->sizes(), {});
-  TORCH_CHECK(opencl_nElement(t1) == opencl_nElement(t2), "sizes don't match");
-  // TORCH_CHECK(!(op == opencl::OpenCLOperationsPointwise3::BAND && (
-  //                 isFloatingType(typeMetaToScalarType(t1->dtype())) ||
-  //                 isFloatingType(typeMetaToScalarType(t2->dtype()))
-  //             )), "BitWise operation not supported on floating point types.");
-  pointwise_op_comp3(self_->storage().unsafeGetStorageImpl(), t1->storage().unsafeGetStorageImpl(), t2->storage().unsafeGetStorageImpl(), op, typeMetaToScalarType(t1->dtype()));
+static void logical_tensor(TensorIterator& iter, const std::string &op_name, opencl::OpenCLOperationsComp3 op, opencl::OpenCLOperationsComp3 op_inv_order) {
+    AT_DISPATCH_ALL_TYPES_AND3(kHalf, kBool, kBFloat16, iter.common_dtype(), op_name, [&]() {
+        if (iter.is_scalar(1)) {
+            auto stream = at::opencl::getCurrentOpenCLStream(iter.device(1).index());
+            AT_OPENCL_CHECK(syncOpenCLPointer(iter.data_ptr(1), stream));
+            AT_OPENCL_CHECK(stream.stream()->finish());
+            pointwise_op_comp2_s<scalar_t>(iter.tensor(0), iter.tensor(2), iter.tensor(1).item(), op_inv_order, iter.common_dtype());
+        } else if (iter.is_scalar(2)) {
+            auto stream = at::opencl::getCurrentOpenCLStream(iter.device(2).index());
+            AT_OPENCL_CHECK(syncOpenCLPointer(iter.data_ptr(2), stream));
+            AT_OPENCL_CHECK(stream.stream()->finish());
+            pointwise_op_comp2_s<scalar_t>(iter.tensor(0), iter.tensor(1), iter.tensor(2).item(), op, iter.common_dtype());
+        } else {
+            pointwise_op_comp3(iter.tensor(0), iter.tensor(1), iter.tensor(2), op, iter.common_dtype());
+        }
+    });
 }
 
-static void logical_tensor(TensorImpl *self_, const TensorImpl *t1, const Scalar t2, opencl::OpenCLOperationsComp3 op) {
-  opencl_resize(self_, t1->sizes(), {});
-  auto scalar_type = typeMetaToScalarType(t1->dtype());
-  switch (scalar_type)
-  {
-#define DEFINE_OPENCL_LOGICAL_TENSOR_CASE(type, name) \
-  case ScalarType::name: \
-    pointwise_op_comp2_s<ScalarType::name, type>(self_->storage().unsafeGetStorageImpl(), t1->storage().unsafeGetStorageImpl(), t2, op); \
-    break;
-  AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(DEFINE_OPENCL_LOGICAL_TENSOR_CASE)
-#undef DEFINE_OPENCL_LOGICAL_TENSOR_CASE
-
-  default:
-    TORCH_CHECK(false, "logical_tensor not supported on OpenCLType for ", scalar_type);
-    break;
-  }
+void lt_kernel_opencl(TensorIterator& iter) {
+  logical_tensor(iter, "lt_opencl", at::native::opencl::OpenCLOperationsComp3::LT, at::native::opencl::OpenCLOperationsComp3::GT);
 }
 
-Tensor _eq_opencl(const Tensor &self, const Tensor& other) {
-  // TODO Implement this function for every scalar_type
-  auto allocator = c10::GetAllocator(DeviceType::OPENCL);
-  auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 0, allocator, true),TensorTypeId::OpenCLTensorId).release();
-  auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
-  auto self_ = checked_tensor_unwrap(self, "self", 1, "_eq_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  auto other_ = checked_tensor_unwrap(other, "other", 2, "_eq_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  logical_tensor(result_, self_, other_, at::native::opencl::OpenCLOperationsComp3::EQ);
-  result_->maybe_zero_dim(self_->dim() == 0 && other_->dim() == 0);
-  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool);
+void le_kernel_opencl(TensorIterator& iter) {
+  logical_tensor(iter, "le_opencl", at::native::opencl::OpenCLOperationsComp3::LE, at::native::opencl::OpenCLOperationsComp3::GE);
 }
 
-Tensor _eq_opencl(const Tensor &self, Scalar other) {
-  auto allocator = c10::GetAllocator(DeviceType::OPENCL);
-  auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 0, allocator, true),TensorTypeId::OpenCLTensorId).release();
-  auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
-  auto self_ = checked_tensor_unwrap(self, "self", 1, "_eq_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  logical_tensor(result_, self_, other, at::native::opencl::OpenCLOperationsComp3::EQ);
-  result_->maybe_zero_dim(self_->dim() == 0);
-  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool);
+void gt_kernel_opencl(TensorIterator& iter) {
+  logical_tensor(iter, "gt_opencl", at::native::opencl::OpenCLOperationsComp3::GT, at::native::opencl::OpenCLOperationsComp3::LT);
 }
 
-Tensor _ne_opencl(const Tensor &self, const Tensor& other) {
-  auto allocator = c10::GetAllocator(DeviceType::OPENCL);
-  auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 0, allocator, true),TensorTypeId::OpenCLTensorId).release();
-  auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
-  auto self_ = checked_tensor_unwrap(self, "self", 1, "_ne_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  auto other_ = checked_tensor_unwrap(other, "other", 2, "_ne_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  logical_tensor(result_, self_, other_, at::native::opencl::OpenCLOperationsComp3::NE);
-  result_->maybe_zero_dim(self_->dim() == 0 && other_->dim() == 0);
-  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool);
+void ge_kernel_opencl(TensorIterator& iter) {
+  logical_tensor(iter, "ge_opencl", at::native::opencl::OpenCLOperationsComp3::GE, at::native::opencl::OpenCLOperationsComp3::LE);
 }
 
-Tensor _ne_opencl(const Tensor &self, Scalar other) {
-  // TODO Implement this function for every scalar_type
-  auto allocator = c10::GetAllocator(DeviceType::OPENCL);
-  auto result_ = c10::make_intrusive<TensorImpl, UndefinedTensorImpl>(c10::Storage(scalarTypeToTypeMeta(self.scalar_type()), 0, allocator, true),TensorTypeId::OpenCLTensorId).release();
-  auto result = Tensor(c10::intrusive_ptr<TensorImpl, UndefinedTensorImpl>::reclaim(result_));
-  auto self_ = checked_tensor_unwrap(self, "self", 1, "_ne_opencl", false, c10::Backend::OpenCL, self.scalar_type());
-  logical_tensor(result_, self_, other, at::native::opencl::OpenCLOperationsComp3::NE);
-  result_->maybe_zero_dim(self_->dim() == 0);
-  return result.to(getIntEquivalentOfFloat(result.scalar_type())).to(ScalarType::Bool);
+void eq_kernel_opencl(TensorIterator& iter) {
+  logical_tensor(iter, "eq_opencl", at::native::opencl::OpenCLOperationsComp3::EQ, at::native::opencl::OpenCLOperationsComp3::EQ);
 }
+
+void ne_kernel_opencl(TensorIterator& iter) {
+  logical_tensor(iter, "ne_opencl", at::native::opencl::OpenCLOperationsComp3::NE, at::native::opencl::OpenCLOperationsComp3::NE);
+}
+
+REGISTER_OPENCL_DISPATCH(lt_stub, &lt_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(le_stub, &le_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(gt_stub, &gt_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(ge_stub, &ge_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(eq_stub, &eq_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(ne_stub, &ne_kernel_opencl);
 
 }} // namespace at::native

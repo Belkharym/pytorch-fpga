@@ -9,7 +9,6 @@
 #include <ATen/native/Copy.h>
 #include <ATen/native/TensorIterator.h>
 #include <ATen/native/opencl/Utils.h>
-#include <ATen/native/opencl/OpenCLOperations.h>
 
 namespace at {
 namespace native {
@@ -68,7 +67,7 @@ static void copy_device_to_device(TensorIterator& iter, bool non_blocking) {
         getOpenCLKernelCastType(iter.dtype(1)),
         getOpenCLKernelCastType(iter.dtype(0))));
   }
-  AT_OPENCL_CHECK(syncOpenCLPointer(iter.data_ptr(0)));
+  AT_OPENCL_CHECK(syncOpenCLPointer(iter.data_ptr(0), copy_stream));
 
   if (src_device != dst_device) {
     // dst waits on src barrier (dst already waits on dst). We cannot
@@ -170,12 +169,12 @@ static void copy_kernel_opencl(TensorIterator& iter, bool non_blocking) {
   }
 
   if (non_blocking) {
-    void* ptr = (dst_device == kCPU ? dst : src);
+    void* ptr = (dst_device != kOPENCL ? dst : src);
     // TODO find a way to ensure that, when we try to access to the host pointer (when dst is host),
     // we block until the read is done.
     AT_OPENCL_CHECK(OpenCLCachingHostAllocator_recordEvent(ptr, stream));
-    // TODO Find how CUDA do to ensure that when we use the tensors, everything is synchronized.
-    if (dst_device == kCPU) stream.synchronize();
+    // TODO Find how CUDA do to ensure that, when we use the tensors, everything is synchronized.
+    if (dst_device != kOPENCL) stream.synchronize();
   } else {
     stream.synchronize();
   }
