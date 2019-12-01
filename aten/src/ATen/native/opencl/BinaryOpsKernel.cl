@@ -4,11 +4,11 @@
 #define OPERATION(type1, type2) \
 switch(op) { \
   case ADDS: { \
-    ((__global type1*)out)[get_global_id(0)] = ((__global type1*)a)[get_global_id(0)] + ((__global type1*)other)[get_global_id(0)] * ((__global type2*)alpha)[get_global_id(0)]; \
+    ((__global type1*)out)[get_global_id(0)] = ((__global type1*)a)[get_global_id(0)] + ((__global type1*)other)[get_global_id(0)] * ((__global type2*)alpha)[0]; \
     break; \
   } \
   case SUBS: { \
-    ((__global type1*)out)[get_global_id(0)] = ((__global type1*)a)[get_global_id(0)] - ((__global type1*)other)[get_global_id(0)] * ((__global type2*)alpha)[get_global_id(0)]; \
+    ((__global type1*)out)[get_global_id(0)] = ((__global type1*)a)[get_global_id(0)] - ((__global type1*)other)[get_global_id(0)] * ((__global type2*)alpha)[0]; \
     break; \
   } \
 }
