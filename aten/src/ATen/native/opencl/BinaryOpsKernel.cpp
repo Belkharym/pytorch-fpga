@@ -175,11 +175,11 @@ void atan2_kernel_opencl(TensorIterator& iter) {
 }
 
 
-REGISTER_DISPATCH(add_stub, &add_kernel_opencl);
-REGISTER_DISPATCH(sub_stub, &sub_kernel_opencl);
-REGISTER_DISPATCH(div_stub, &div_kernel_opencl);
-REGISTER_DISPATCH(mul_stub, &mul_kernel_opencl);
-REGISTER_DISPATCH(atan2_stub, &atan2_kernel_opencl);
-REGISTER_DISPATCH(logical_xor_stub, &logical_xor_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(add_stub, &add_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(sub_stub, &sub_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(div_stub, &div_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(mul_stub, &mul_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(atan2_stub, &atan2_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(logical_xor_stub, &logical_xor_kernel_opencl);
 
 }} // namespace at::native

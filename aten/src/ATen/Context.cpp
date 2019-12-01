@@ -162,7 +162,7 @@ struct LegacyDeviceTypeInit : public LegacyDeviceTypeInitInterface {
     globalContext().lazyInitHIP();
   }
   void initOpenCL() const override {
-    globalContext();
+    globalContext().lazyInitOpenCL();
   }
 };
 REGISTER_LEGACY_TYPE_INIT(LegacyDeviceTypeInit);

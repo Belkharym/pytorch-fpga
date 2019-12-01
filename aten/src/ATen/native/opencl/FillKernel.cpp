@@ -38,7 +38,7 @@ void fill_kernel_opencl(TensorIterator& iter, Scalar value) {
   stream.synchronize();
 }
 
-REGISTER_DISPATCH(fill_stub, &fill_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(fill_stub, &fill_kernel_opencl);
 
 } // namespace native
 } // namespace at

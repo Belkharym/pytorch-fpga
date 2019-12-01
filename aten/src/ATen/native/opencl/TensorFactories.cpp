@@ -430,7 +430,7 @@ Tensor _opencl_remainder(const Tensor & self, const Tensor & other) {
   return result;
 }
 
-REGISTER_DISPATCH(abs_stub, &abs_kernel_opencl);
-REGISTER_DISPATCH(ceil_stub, &ceil_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(abs_stub, &abs_kernel_opencl);
+REGISTER_OPENCL_DISPATCH(ceil_stub, &ceil_kernel_opencl);
 
 }} // namespace at::native
