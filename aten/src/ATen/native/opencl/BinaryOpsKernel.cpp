@@ -53,13 +53,14 @@ static void pointwise_op3s(const Tensor& a, const Tensor& b, Tensor& out, const 
   TORCH_WARN("size a: ", a.numel(), "; size b: ", b.numel(), "; size out: ", out.numel());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3sFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a.storage_offset()}, cl::NDRange{(size_t)a.numel()}, cl::NDRange{1}});
   
-  at::Tensor scalar_buffer = at::native::scalar_buffer_opencl<S>(alpha, a.device().index());
+  at::Tensor scalar_tensor = at::native::scalar_buffer_opencl<S>(alpha, a.device().index());
 
+  auto buf_a = toBuffer(a), buf_b = toBuffer(b), buf_out = toBuffer(out), buf_scalar = toBuffer(scalar_tensor);
   AT_OPENCL_CHECK(pointwise_op(
-      toBuffer(a),
-      toBuffer(b),
-      toBuffer(out),
-      toBuffer(scalar_buffer),
+      buf_a,
+      buf_b,
+      buf_out,
+      buf_scalar,
       op,
       getOpenCLKernelCastType(T), 
       getOpenCLKernelCastType(T)));
@@ -74,10 +75,11 @@ static void pointwise_op3(const Tensor& a, const Tensor& b, Tensor& out, at::nat
   auto stream = at::opencl::getCurrentOpenCLStream(a.device().index());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a.storage_offset()}, cl::NDRange{(size_t)a.numel()}, 1});
 
+  auto buf_a = toBuffer(a), buf_b = toBuffer(b), buf_out = toBuffer(out);
   AT_OPENCL_CHECK(pointwise_op(
-      toBuffer(a),
-      toBuffer(b),
-      toBuffer(out),
+      buf_a,
+      buf_b,
+      buf_out,
       op,
       getOpenCLKernelCastType(scalar_type)));
 
@@ -91,12 +93,13 @@ static void pointwise_op2s(const Tensor& a, const Scalar b, Tensor& c, at::nativ
   auto stream = at::opencl::getCurrentOpenCLStream(a.device().index());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise2sFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a.storage_offset()}, cl::NDRange{(size_t)a.numel()}, 1});
 
-  auto scalar_buffer = at::native::scalar_buffer_opencl<S>(b, a.device().index());
+  auto scalar_tensor = at::native::scalar_buffer_opencl<S>(b, a.device().index());
 
+  auto buf_a = toBuffer(a), buf_scalar = toBuffer(scalar_tensor), buf_c = toBuffer(c);
   AT_OPENCL_CHECK(pointwise_op(
-      toBuffer(a),
-      toBuffer(scalar_buffer),
-      toBuffer(c),
+      buf_a,
+      buf_scalar,
+      buf_c,
       op,
       getOpenCLKernelCastType(T),
       invert));

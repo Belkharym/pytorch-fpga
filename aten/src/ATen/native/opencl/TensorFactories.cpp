@@ -44,7 +44,7 @@ Tensor empty_opencl(IntArrayRef size, const TensorOptions& options, c10::optiona
     allocator,
     /*resizeable=*/true);
 
-  auto&& tensor = at::detail::make_tensor<TensorImpl>(storage_impl, TensorTypeId::OpenCLTensorId);
+  auto tensor = at::detail::make_tensor<TensorImpl>(storage_impl, TensorTypeId::OpenCLTensorId);
   // Default TensorImpl has size [0]
   if (size.size() != 1 || size[0] != 0) {
     tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
@@ -94,10 +94,11 @@ static void pointwise_op3(Tensor& c, const Tensor& a, const Tensor& b, at::nativ
   static const std::string kernel_name = "pointwise_op_3";
   auto stream = at::opencl::getCurrentOpenCLStream(a.device().index());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise3Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a.storage_offset()}, cl::NDRange{(size_t)a.numel()}, 1});
+  cl::Buffer buf_a = toBuffer(a), buf_b = toBuffer(b), buf_c = toBuffer(c);
   AT_OPENCL_CHECK(pointwise_op(
-      toBuffer(a),
-      toBuffer(b),
-      toBuffer(c),
+      buf_a,
+      buf_b,
+      buf_c,
       op,
       getOpenCLKernelCastType(scalar_type)));
   AT_OPENCL_CHECK(syncOpenCLPointer(c.data_ptr(), stream));
@@ -110,12 +111,13 @@ static void pointwise_op2_s(Tensor& c, const Tensor& a, const Scalar b, at::nati
   auto stream = at::opencl::getCurrentOpenCLStream(a.device().index());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise2sFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a.storage_offset()}, cl::NDRange{(size_t)a.numel()}, 1});
 
-  auto scalar_buffer = at::native::scalar_buffer_opencl<S>(b, a.device().index());
+  auto scalar_tensor = at::native::scalar_buffer_opencl<S>(b, a.device().index());
 
+  cl::Buffer buf_a = toBuffer(a), buf_scalar = toBuffer(scalar_tensor), buf_c = toBuffer(c);
   AT_OPENCL_CHECK(pointwise_op(
-      toBuffer(a),
-      toBuffer(scalar_buffer),
-      toBuffer(c),
+      buf_a,
+      buf_scalar,
+      buf_c,
       op,
       getOpenCLKernelCastType(T),
       invert));
@@ -128,9 +130,10 @@ static void pointwise_op2(Tensor& b, const Tensor& a, at::native::opencl::OpenCL
   static const std::string kernel_name = "pointwise_op_2";
   auto stream = at::opencl::getCurrentOpenCLStream(a.device().index());
   auto pointwise_op = c10::opencl::opencl_kernel_func<OpenCLPointwise2Functor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)a.storage_offset()}, cl::NDRange{(size_t)a.numel()}, 1});
+  cl::Buffer buf_a = toBuffer(a), buf_b = toBuffer(b);
   AT_OPENCL_CHECK(pointwise_op(
-      toBuffer(a),
-      toBuffer(b),
+      buf_a,
+      buf_b,
       op,
       getOpenCLKernelCastType(scalar_type)));
   AT_OPENCL_CHECK(syncOpenCLPointer(b.data_ptr(), stream));

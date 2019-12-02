@@ -153,34 +153,28 @@ inline at::native::opencl::OpenCLPtrType getOpenCLKernelCastType(const ScalarTyp
   }
 }
 
-inline cl::Buffer* toBuffer(void *ptr, bool *is_host = nullptr) {
-  cl::Buffer* ret = caffe2::opencl::getBufferFromPtr(ptr);
+inline cl::Buffer* toBuffer(void *ptr, bool *is_host = nullptr, size_t * size = nullptr) {
+  auto ret = caffe2::opencl::getBufferFromPtr(ptr, size);
   if (is_host) {
     *is_host = false;
   }
-  if (ret == nullptr) {
-    ret = at::opencl::OpenCLCachingHostAllocator_getBuffer(ptr);
+  if (!ret) {
+    ret = at::opencl::OpenCLCachingHostAllocator_getBuffer(ptr, size);
     if (is_host) {
-      *is_host = ret != nullptr;
+      *is_host = ret.has_value();
     }
   }
-  return ret;
+  return static_cast<cl::Buffer*>(ret ? &ret.value().get() : nullptr);
 }
 
 inline cl_int syncOpenCLPointer(void *ptr, c10::optional<c10::opencl::OpenCLStream> stream_opt = c10::nullopt) {
-  bool is_host;
-  cl::Buffer* buffer = toBuffer(ptr, &is_host);
-  if (buffer == nullptr) {
+  size_t buffer_size = 0;
+  auto buffer = toBuffer(ptr, nullptr, &buffer_size);
+  if (!buffer) {
     return CL_INVALID_ARG_VALUE;
   }
   cl_int err;
   auto stream = stream_opt ? *stream_opt : c10::opencl::getCurrentOpenCLStream();
-
-  size_t buffer_size;
-  err = buffer->getInfo(CL_MEM_SIZE, &buffer_size);
-  if (err != CL_SUCCESS) {
-    return err;
-  }
 
   err = stream.stream()->enqueueReadBuffer(*buffer, CL_FALSE, /*offset=*/0, buffer_size, ptr, NULL, NULL);
   return err;

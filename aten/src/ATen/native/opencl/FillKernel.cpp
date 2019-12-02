@@ -33,7 +33,8 @@ void fill_kernel_opencl(TensorIterator& iter, Scalar value) {
 
   static const std::string kernel_name = "cast_s";
   auto kernel = c10::opencl::opencl_kernel_func<OpenCLCastFunctor>(kernel_name, cl::EnqueueArgs{*stream.stream(), cl::NDRange{(size_t)self.storage_offset()}, cl::NDRange((size_t)self.numel()), 1});
-  AT_OPENCL_CHECK(kernel(*toBuffer(scalar_buffer.data_ptr()), *toBuffer(self.data_ptr()), type, type));
+  cl::Buffer buf_scalar = *toBuffer(scalar_buffer.data_ptr()), buf_self = *toBuffer(self.data_ptr());
+  AT_OPENCL_CHECK(kernel(buf_scalar, buf_self, type, type));
   AT_OPENCL_CHECK(syncOpenCLPointer(self.data_ptr(), stream));
   stream.synchronize();
 }

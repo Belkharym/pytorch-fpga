@@ -51,19 +51,21 @@ static void copy_device_to_device(TensorIterator& iter, bool non_blocking) {
   }
 
   if (memcpy_eligible) {
+    auto buf_1 = *toBuffer(iter.data_ptr(1)), buf_0 = *toBuffer(iter.data_ptr(0));
     // Perform the copy
     AT_OPENCL_CHECK(copy_stream.stream()->enqueueCopyBuffer(
-        *toBuffer(iter.data_ptr(1)),
-        *toBuffer(iter.data_ptr(0)),
+        buf_1,
+        buf_0,
         0,
         0,
         numel));
   } else {
     auto kernel_name = "cast";
     auto cast_kernel = opencl_kernel_func<OpenCLCastFunctor>(kernel_name, cl::EnqueueArgs{*copy_stream.stream(), cl::NDRange{(size_t)numel}, 1});
+    auto buf_1 = *toBuffer(iter.data_ptr(1)), buf_0 = *toBuffer(iter.data_ptr(0));
     AT_OPENCL_CHECK(cast_kernel(
-        *toBuffer(iter.data_ptr(1)),
-        *toBuffer(iter.data_ptr(0)),
+        buf_1,
+        buf_0,
         getOpenCLKernelCastType(iter.dtype(1)),
         getOpenCLKernelCastType(iter.dtype(0))));
   }
@@ -159,11 +161,13 @@ static void copy_kernel_opencl(TensorIterator& iter, bool non_blocking) {
   if (dst_device.is_opencl() && src_device.is_cpu()) {
     device_guard.set_device(dst_device);
     stream = getCurrentOpenCLStream();
-    AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer((*toBuffer(dst)), !non_blocking, 0, nbytes, src), "Cannot write from opencl buffer [device #", dst_device, ";", c10::opencl::opencl_platform().getInfo<CL_PLATFORM_NAME>(), "]");
+    auto buf_dst = (*toBuffer(dst));
+    AT_OPENCL_CHECK(stream.stream()->enqueueWriteBuffer(buf_dst, !non_blocking, 0, nbytes, src), "Cannot write from opencl buffer [device #", dst_device, ";", c10::opencl::opencl_platform().getInfo<CL_PLATFORM_NAME>(), "]");
   } else if (dst_device.is_cpu() && src_device.is_opencl()) {
     device_guard.set_device(src_device);
     stream = getCurrentOpenCLStream();
-    AT_OPENCL_CHECK(stream.stream()->enqueueReadBuffer((*toBuffer(src)), !non_blocking, 0, nbytes, dst));
+    auto buf_src = (*toBuffer(src));
+    AT_OPENCL_CHECK(stream.stream()->enqueueReadBuffer(buf_src, !non_blocking, 0, nbytes, dst));
   } else {
     TORCH_INTERNAL_ASSERT(false, "unsupported devices in OpenCL copy_()");
   }

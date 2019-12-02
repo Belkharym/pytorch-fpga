@@ -104,7 +104,7 @@ struct HostAllocator
 
     // We allign the memory to 16 * MAX_SIZE_COMPONENT to meet the requirement of OpenCL alignement rull.
     // See https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
-    *ptr = ALIGNED_MALLOC(size, alignof(max_align_t) * 16);
+    *ptr = ALIGNED_MALLOC(size, alignof(cl_long16));
     TORCH_INTERNAL_ASSERT(*ptr, "Could not allocate memory for Host pointer.");
 
     cl::Buffer buffer{at::opencl::opencl_context(), CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE, size, *ptr, &err};
@@ -298,12 +298,15 @@ at::Allocator* getPinnedMemoryAllocator() {
   return &opencl_caching_host_allocator;
 }
 
-cl::Buffer* OpenCLCachingHostAllocator_getBuffer(void *ptr) {
-    auto it = allocator.blocks.find(ptr);
+c10::optional<std::reference_wrapper<cl::Buffer>> OpenCLCachingHostAllocator_getBuffer(void *ptr, size_t * size) {
+    auto it = std::find_if(allocator.blocks.begin(), allocator.blocks.end(), [&](std::pair<void*, Block> p) {
+        return ptr >= p.second.ptr && (intptr_t)ptr < ((intptr_t)p.second.ptr) + (intptr_t)p.second.size;
+    });
     if (it == allocator.blocks.end()) {
-      return nullptr;
+      return c10::nullopt;
     }
-    return &it->second.buf;
+    if (size) *size = it->second.size;
+    return c10::optional<std::reference_wrapper<cl::Buffer>>{it->second.buf};
 }
 
 }} // namespace at::opencl

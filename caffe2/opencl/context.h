@@ -160,7 +160,7 @@ public:
 
 };
 
-CAFFE2_API cl::Buffer* getBufferFromPtr(void *ptr);
+CAFFE2_API c10::optional<std::reference_wrapper<cl::Buffer>> getBufferFromPtr(void *ptr, size_t * size = nullptr);
 
 } // namespace opencl
 } // namespace caffe2

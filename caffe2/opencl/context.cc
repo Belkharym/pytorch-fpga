@@ -73,11 +73,11 @@ std::mutex& OpenCLContext::mutex() {
 }
 
 static inline cl::Buffer* toBuffer(void *ptr) {
-  cl::Buffer* ret = caffe2::opencl::getBufferFromPtr(ptr);
-  if (ret == nullptr) {
+  auto ret = caffe2::opencl::getBufferFromPtr(ptr);
+  if (!ret) {
     ret = at::opencl::OpenCLCachingHostAllocator_getBuffer(ptr);
   }
-  return ret;
+  return static_cast<cl::Buffer*>(ret ? &ret.value().get() : nullptr);
 }
 
 void OpenCLContext::CopyBytesSameDevice(
@@ -226,22 +226,35 @@ struct DefaultOpenCLAllocator final : public at::Allocator {
     DefaultOpenCLAllocator() {}
     ~DefaultOpenCLAllocator() override {}
     at::DataPtr allocate(size_t nbytes) const override {
-        // Lock the mutex
-        std::lock_guard<std::mutex> lock(opencl::OpenCLContext::mutex());
-        OpenCLPtrContext* ctx = new OpenCLPtrContext();
-        ctx->data = nullptr;
-        ctx->buf = nullptr;
-        ctx->nbytes = nbytes;
+        OpenCLPtrContext* ctx;
 
         if (nbytes != 0) {
+            ctx = new OpenCLPtrContext();
+            ctx->data = nullptr;
+            ctx->buf = nullptr;
+            ctx->nbytes = nbytes;
+
             cl_int err;
             ctx->data = ALIGNED_MALLOC(nbytes, alignof(cl_long16));
             TORCH_INTERNAL_ASSERT(ctx->data, "Cannot allocate ", nbytes, " byte(s) of memory for OpenCL buffer.");
-            ctx->buf = new cl::Buffer{c10::opencl::opencl_context(), CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, nbytes, ctx->data, &err};
+            ctx->buf = new cl::Buffer{c10::opencl::opencl_context(), CL_MEM_READ_WRITE, nbytes, NULL, &err};
             TORCH_CHECK(err == CL_SUCCESS, "OpenCL Error : Cannot allocate Buffer of ", nbytes, " byte(s). (", ::c10::opencl::clErrorString(err), ")");
-            buffers.emplace(ctx->data, ctx);
+            {
+                // Lock the mutex
+                std::lock_guard<std::mutex> lock(opencl::OpenCLContext::mutex());
+                if (buffers.find(ctx->data) != buffers.end()) {
+                    TORCH_WARN("Address ", ctx->data, " was reallocated an other time. This shouldn't be happening... "
+                    "The reallocation was dropped.");
+                    ::free(ctx->data);
+                    delete ctx->buf;
+                    delete ctx;
+                    return {nullptr, nullptr, &Delete, at::Device(OPENCL, c10::opencl::current_device())};
+                }
+                auto res = buffers.emplace(ctx->data, ctx);
+            }
+            return {ctx->data, ctx->data, &Delete, at::Device(OPENCL, c10::opencl::current_device())};
         }
-        return {ctx->data, ctx, &Delete, at::Device(OPENCL, c10::opencl::current_device())};
+        return {nullptr, nullptr, &Delete, at::Device(OPENCL, c10::opencl::current_device())};
     }
 
     at::DeleterFnPtr raw_deleter() const override {
@@ -250,29 +263,32 @@ struct DefaultOpenCLAllocator final : public at::Allocator {
 
 private:
     static std::unordered_map<void*, OpenCLPtrContext*> buffers;
-    static void Delete(void* ctxPtr) {
-        TORCH_INTERNAL_ASSERT(ctxPtr != nullptr);
-        OpenCLPtrContext* ctx = reinterpret_cast<OpenCLPtrContext*>(ctxPtr);
+    static void Delete(void* ptr) {
+        if (ptr == nullptr) return;
 
-        at::native::syncOpenCLPointer(ctx->data);
-        c10::opencl::getCurrentOpenCLStream().synchronize();
-
-        // lock the mutex
-        std::lock_guard<std::mutex> lock(opencl::OpenCLContext::mutex());
-
-        auto it = buffers.find(ctx->data);
-        // Sync data
-        // If memory pool is not set up, use simple free.
-        if (it != buffers.end()) {
-            if (ctx->buf) delete ctx->buf;
-            ctx->buf = NULL;
-            buffers.erase(it);
+        OpenCLPtrContext* ctx = nullptr;
+        {
+            // lock the mutex
+            std::lock_guard<std::mutex> lock(opencl::OpenCLContext::mutex());
+            auto it = std::find_if(buffers.begin(), buffers.end(), [&](std::pair<void*, OpenCLPtrContext*> p) {
+                return ptr >= p.second->data && (intptr_t)ptr < ((intptr_t)p.second->data) + (intptr_t)p.second->nbytes;
+            });
+            if (it != buffers.end()) {
+                ctx = it->second;
+                buffers.erase(it);
+            }
         }
-        if (ctx->data) ::free(ctx->data);
-        ctx->data = NULL;
-        delete ctx;
+        if (ctx != nullptr) {
+            at::native::syncOpenCLPointer(ctx->data);
+            c10::opencl::getCurrentOpenCLStream().synchronize();
+            if (ctx->buf) delete ctx->buf;
+            ctx->buf = nullptr;
+            if (ctx->data) ::free(ctx->data);
+            ctx->data = nullptr;
+            delete ctx;
+        }
     }
-    friend cl::Buffer* caffe2::opencl::getBufferFromPtr(void *ptr);
+    friend c10::optional<std::reference_wrapper<cl::Buffer>> caffe2::opencl::getBufferFromPtr(void *ptr, size_t * size);
 };
 
 std::unordered_map<void*, OpenCLPtrContext*> DefaultOpenCLAllocator::buffers;
@@ -281,16 +297,16 @@ REGISTER_ALLOCATOR(OPENCL, &g_opencl_alloc);
 
 namespace opencl {
 
-cl::Buffer* getBufferFromPtr(void *ptr) {
+c10::optional<std::reference_wrapper<cl::Buffer>> getBufferFromPtr(void *ptr, size_t * size) {
     std::lock_guard<std::mutex> lock(opencl::OpenCLContext::mutex());
     auto it = std::find_if(DefaultOpenCLAllocator::buffers.begin(), DefaultOpenCLAllocator::buffers.end(), [&](std::pair<void*, OpenCLPtrContext*> p) {
         return ptr >= p.second->data && (intptr_t)ptr < ((intptr_t)p.second->data) + (intptr_t)p.second->nbytes;
     });
-    // auto it = DefaultOpenCLAllocator::buffers.find(ptr);
     if (it == DefaultOpenCLAllocator::buffers.end()) {
-        return nullptr;
+        return c10::nullopt;
     }
-    return it->second->buf;
+    if (size) *size = it->second->nbytes;
+    return {*it->second->buf};
 }
 
 }

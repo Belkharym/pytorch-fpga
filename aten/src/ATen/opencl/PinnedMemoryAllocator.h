@@ -31,7 +31,7 @@ CAFFE2_API void OpenCLCachingHostAllocator_emptyCache(void);
 
 CAFFE2_API bool OpenCLCachingHostAllocator_isPinnedPtr(void *ptr);
 
-CAFFE2_API cl::Buffer* OpenCLCachingHostAllocator_getBuffer(void *ptr);
+CAFFE2_API c10::optional<std::reference_wrapper<cl::Buffer>> OpenCLCachingHostAllocator_getBuffer(void *ptr, size_t * size = nullptr);
 
 
 }} // namespace at::opencl
