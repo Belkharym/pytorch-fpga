@@ -12,6 +12,58 @@ https://github.com/pytorch/pytorch/wiki/Software-Architecture-for-c10
 
 # ATen
 
+ATen has some calcul functions.
+
+## BinaryOpsKernel
+
+This file contains some simple functions of math. Actually, you can find function to add, sub, div, mul, atan2, logical_xor
+
+## Copy
+
+This file contains one functions which let to copy a TensorIterator in CPU to device
+
+## FileKernel
+
+This file contains one functions which let to fill a Tensor in device with a value
+
+## MathBlas
+
+This file contains some functions to call when you want to use MathBlas. MathBlas is a library that optimizes linear algebra calculations.
+Currently we don't have implement any functions. We just have dispatch them to cuda if it's available or cpu.
+
+## OpenCLComparison
+
+This file contains some functions of comparisation, as equal.
+
+## OpenCLScalar
+
+## OpenCLTensor
+
+This file contains some functions to apply to Tensor.
+
+## Resize
+
+This file contains some functions to let user resize a Tensor in the memory
+
+## TensorFactories
+
+This file contains advances calcul function. 
+You can find the list here: 
+- empty
+- uniform
+- random
+- normal
+- abs
+- and
+- masked
+- ceil
+- zero
+- min
+- max
+- set
+- cat
+- remainder
+
 
 # Caffe2
 
