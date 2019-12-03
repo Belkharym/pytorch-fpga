@@ -1,10 +1,8 @@
 # Dataflow
 
-https://github.com/pytorch/pytorch/wiki/PyTorch-Data-Flow-and-Interface-Diagram
+[![PyTorch Data Flow and Interface Diagram](https://raw.githubusercontent.com/wiki/pytorch/pytorch/images/pytorch_wiki_dataflow_interface_diagram.png)](https://github.com/pytorch/pytorch/wiki/PyTorch-Data-Flow-and-Interface-Diagram)
 
-# C10 Architecture
-
-https://github.com/pytorch/pytorch/wiki/Software-Architecture-for-c10   
+# [C10 Architecture](https://github.com/pytorch/pytorch/wiki/Software-Architecture-for-c10)
 
 
 # C10
@@ -66,7 +64,7 @@ Sometimes, there won't even be a dispatch dictionnary:
 For this case, the dispatch is the same, wether the tensor is sparse or not.
 
 In the first case, you only have to add an entry in the `dispatch` dictionnary for the Backend for which you want to add an operation.\
-For the second case, you don't have to modify the `.yaml` file.
+For the second case, you don't have to modify the `.yaml` file at all.
 
 In any case, you have to implement in a file from `ATen/native/opencl/` a *kernel* function for the operation. Afterward, you can simply register the kernel with the macro `REGISTER_DISPATCH(add_stub, add_kernel_opencl);` (usually placed at the end of the file).
 
