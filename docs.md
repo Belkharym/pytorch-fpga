@@ -46,13 +46,15 @@ This folder contains the implementations of every operations.
 
 ## ATen/native
 
+### Operations Registration
+
 This folder contains the low level implementations of every operations that can be applied on Tensors.
 
 Currently, there are 2 ways an operation can be registered in the dispatcher: The legacy way (directly through `ATen/native/native_functions.yaml`), and the new way (using the macro `REGISTER_DISPATCH(name, func)`)
 
 #### Legacy registration
 
-The legacy registration method passes through adding a new entry in the dispatch dictionary of the operation in `ATen/native/native_functions.yaml` .
+The legacy registration method passes through adding a new entry in the dispatch dictionary of the operation in `ATen/native/native_functions.yaml`.\
 Here is an example for the `and` operation:
 ```yaml
 - func: __and__.Tensor(Tensor self, Tensor other) -> Tensor
@@ -67,7 +69,7 @@ Here is an example for the `and` operation:
 This allows take care of the declaration of the function signature and of the registration of the function in the dispatcher.
 
 Then, the implementation of the function must be defined in the `at::native` namespace inside of a `.cpp` file in the `ATen/native/opencl/` folder.
-> NOTE: All the files under `ATen/native/opencl/` are automatically added to the source of the our shared library `libaten-opencl.so` when running `cmake`. You will need to re-run `cmake` when you add a new file to the folder. The inclusion of the folder is defined inside `ATen/CMakeLists.txt` .
+> ℹ️ All the `.cpp`/`.h` files under `ATen/native/opencl/` are automatically added to the source of our shared library `libaten-opencl.so` when running `cmake`. You will need to re-run `cmake` when you add a new file to the folder. The inclusion of the folder is defined inside `ATen/CMakeLists.txt`.
 
 #### New registration
 
@@ -100,7 +102,15 @@ For the second case, you don't have to modify the `.yaml` file at all.
 
 In any case, you have to implement in a file from `ATen/native/opencl/` a *kernel* function for the operation. Afterward, you can simply register the kernel with the macro `REGISTER_DISPATCH(add_stub, add_kernel_opencl);` (usually placed at the end of the file).
 
-> NOTE: The best example for the use-case of the new registration method is in the file `ATen/native/opencl/OpenCLComparison.cpp`
+> ℹ️ The best example for the use-case of the new registration method is in the file `ATen/native/opencl/OpenCLComparison.cpp`
+
+### OpenCL Methodology
+
+Since this repository is about having Pytorch running on FPGAs, we had to take the limitiations of those FPGAs in consideration. One of the limitations is that there is a limited amount of entry points the FPGA can support. (An entry point correspond to an OpenCL kernel.)
+
+To work around that limitation, we decided to have a kernel for each function signature, and pass the operation to apply as parameter. To reduce further the number of kernels, we get the buffers as `void *` in the kernels, and we pass the types of the data contained in the buffers as one of the parameters.
+
+## Listing of `ATen/native/opencl`
 
 The next few sections will describe what each file in the `ATen/native/opencl/` folder contains. Every file was inspired from an similarly-named file in the folder `ATen/native/cuda/` , if you need references to understand how to add new operations.
 
@@ -156,7 +166,7 @@ You can find the list here:
 - cat
 - remainder
 
-> NOTE: This file should not contain all of these functions. This file should only contain function related to producing/modifying tensors (e.g. `empty`, `uniform`, `random`, `normal`, `zero`, `set`, `cat`). This file need a refactoring (for example, `and` should go in `BinaryOps`).
+> ℹ️ This file should not contain all of these functions. This file should only contain function related to producing/modifying tensors (e.g. `empty`, `uniform`, `random`, `normal`, `zero`, `set`, `cat`). This file need a refactoring (for example, `and` should go in `BinaryOps`).
 
 # Caffe2
 
@@ -164,7 +174,7 @@ You can find the list here:
 
 # run locally
 
-> NOTE: Even though Pytorch technically supports Python 2, it is strongly recommended to use Python 3, since Python 2 will be officially discontinued starting from January 2020.
+> ℹ️ Even though Pytorch technically supports Python 2, it is strongly recommended to use Python 3, since Python 2 will be officially discontinued starting from January 2020.
 
 ```bash
 python3 -m pip install numpy ninja pyyaml mkl mkl-include setuptools cmake cffi typing
@@ -182,7 +192,7 @@ The pipeline to compile pytorch on aws instance is pretty tricky. The build inst
 
 So, we have to use this pipeline : 
 
-1. generate bitstream of pytorch on F1 instance
+1. Generate bitstream of pytorch on F1 instance
 
     ```bash
     python3 -m pip install numpy ninja pyyaml mkl mkl-include setuptools cmake cffi typing
@@ -194,11 +204,11 @@ So, we have to use this pipeline :
     ```
 
 2. Send the `.xclbin` file to a build instance. Use a build instance with SDAccel 2018.3 .
-   >NOTE: The `.xclbin` should be in the folder `<pytorch root>/torch/opencl/` if you are building from the `fpga` branch of the repository, and in `<pytorch root>/torch/opencl/kernels/` if you are using a more up-to-date branch.
+   > ℹ️ The `.xclbin` should be in the folder `<pytorch root>/torch/opencl/` if you are building from the `fpga` branch of the repository, and in `<pytorch root>/torch/opencl/kernels/` if you are using a more up-to-date branch.
 
 3. Generate the AFI
 
-    Here is a macro you can put inside a bash script and run in the same directory as the `.xclbin` file to generate a `.awsxclbin` file.
+    Here is a macro you can put inside a bash script, and you can run it in the same directory as the `.xclbin` file to generate a `.awsxclbin` file.
     ```bash
     makeAfi() {
         XCLBIN_FILE=$(find "${XCLBIN_DIR}" -type f -name '*.xclbin' 2>/dev/null | head -n 1)
