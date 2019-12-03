@@ -76,7 +76,7 @@ The next few sections will describe what each file in the `ATen/native/opencl/` 
 
 ### BinaryOpsKernel
 
-This file contains some simple functions of math. Actually, you can find function to add, sub, div, mul, atan2, logical_xor
+This file contains basic mathematical opearations applied element-wise and taking 2 operands. You can currently find the operations add, sub, div, mul, atan2, logical_xor.
 
 ### Copy
 
@@ -88,12 +88,12 @@ This file contains one functions which let to fill a Tensor in device with a val
 
 ### MathBlas
 
-This file contains some functions to call when you want to use MathBlas. MathBlas is a library that optimizes linear algebra calculations.
-Currently we don't have implement any functions. We just have dispatch them to cuda if it's available or cpu.
+This file contains BLAS (Basic Linear Algebra Subsystem) operations.
+Currently we don't have an implementation for any of these functions. We just redirect them to CUDA if it is available, or to the CPU otherwise.
 
 ### OpenCLComparison
 
-This file contains some functions of comparisation, as equal.
+This file contains the implementation of comparison operations, like `eq` (equal) or `lt` (less than).
 
 ### OpenCLScalar
 
@@ -109,7 +109,7 @@ This is a utility file for resizing tensors which mimics the legacy implementati
 
 ### TensorFactories
 
-This file contains advanced operations.
+This file (currently) contains advanced operations. (*See the NOTE at the end of this sub section*)\
 You can find the list here: 
 - empty
 - uniform
@@ -134,66 +134,70 @@ You can find the list here:
 
 # run locally
 
+> NOTE: Even though Pytorch technically supports Python 2, it is strongly recommended to use Python 3, since Python 2 will be officially discontinued starting from January 2020.
 
-```
+```bash
 python3 -m pip install numpy ninja pyyaml mkl mkl-include setuptools cmake cffi typing
 
 git submodule sync
 git submodule update --init --recursive
 
-USE_CUDA=0 USE_OPENCL=ON python3 ./setup.py install
+env CMAKE_BUILD_TYPE=RelWithDebInfo PYTHON_EXECUTABLE=$(which python3) USE_CUDA=0 USE_OPENCL=ON python3 -m pip install --user -v -e .
 ```
 
 # pipeline to run on aws instance
 
 
-The pipeline to compile pytorch on aws instance is pretty tricky. The build instance does not have the amount of ram (60 GB RAM + 20 GB swap) needed to finish the synthese. The bitstream can not be generated.
+The pipeline to compile pytorch on aws instance is pretty tricky. The build instance memory resources (60 GB RAM + 20 GB Swap) is insufficient to finish the synthesis. Thus, the bitstream can not be generated.
 
-So, use this pipeline : 
+So, we have to use this pipeline : 
 
 1. generate bitstream of pytorch on F1 instance
 
-```
-python3 -m pip install numpy ninja pyyaml mkl mkl-include setuptools cmake cffi typing
+    ```bash
+    python3 -m pip install numpy ninja pyyaml mkl mkl-include setuptools cmake cffi typing
 
-git submodule sync
-git submodule update --init --recursive
+    git submodule sync
+    git submodule update --init --recursive
 
-USE_CUDA=0 USE_OPENCL=ON USE_FPGA=ON  $(which python3) python3 ./setup.py install
-```
+    env CMAKE_BUILD_TYPE=Release PYTHON_EXECUTABLE=$(which python3) USE_CUDA=0 USE_OPENCL=ON USE_FPGA=ON python3 -m pip install --user -v -e .
+    ```
 
-2. Send the [name_project].xclbin to build instance. Use a build instance with SDAccel 2018.3 
+2. Send the `.xclbin` file to a build instance. Use a build instance with SDAccel 2018.3 .
+   >NOTE: The `.xclbin` should be in the folder `<pytorch root>/torch/opencl/` if you are building from the `fpga` branch of the repository, and in `<pytorch root>/torch/opencl/kernels/` if you are using a more up-to-date branch.
 
 3. Generate the AFI
 
-```
-makeAfi() {
-    XCLBIN_FILE=$(find "${XCLBIN_DIR}" -type f -name '*.xclbin' 2>/dev/null | head -n 1)
-    if [ "${RELEASE_VER}" == "" ] ; then
-        echo "run sdaccel_setup.sh"
-        source "${AWS_DIR}/sdaccel_setup.sh"
-    fi
-    if [ "${XCLBIN_FILE}" == "" ]; then
-        echo 'ERROR MakeAfi : XCLBIN not found'
-        echo "find in ${XCLBIN_DIR}"
-    else
-        echo 'XCLBIN file present ('"${XCLBIN_FILE}"')'
-        echo 'Requesting AFI...'
-        mkdir -p "${BINARY_DIR}"
-        pushd "${BINARY_DIR}"
-        local AWSXCLBIN_FILE=$(basename "${XCLBIN_FILE}" .xclbin)
-        "${AWS_FPGA_REPO_DIR}/SDAccel/tools/create_sdaccel_afi.sh" \
-            -s3_bucket="${S3_BUCKET}" \
-            -s3_dcp_key="${S3_DCP_DIR}" \
-            -s3_logs_key="${S3_LOGS_DIR}" \
-            -xclbin="${XCLBIN_FILE}" \
-            -o="${AWSXCLBIN_FILE}" && popd
-    fi
-}
-```
+    Here is a macro you can put inside a bash script and run in the same directory as the `.xclbin` file to generate a `.awsxclbin` file.
+    ```bash
+    makeAfi() {
+        XCLBIN_FILE=$(find "${XCLBIN_DIR}" -type f -name '*.xclbin' 2>/dev/null | head -n 1)
+        if [ "${RELEASE_VER}" == "" ] ; then
+            echo "run sdaccel_setup.sh"
+            source "${AWS_DIR}/sdaccel_setup.sh"
+        fi
+        if [ "${XCLBIN_FILE}" == "" ]; then
+            echo 'ERROR MakeAfi : XCLBIN not found'
+            echo "find in ${XCLBIN_DIR}"
+        else
+            echo 'XCLBIN file present ('"${XCLBIN_FILE}"')'
+            echo 'Requesting AFI...'
+            mkdir -p "${BINARY_DIR}"
+            pushd "${BINARY_DIR}"
+            local AWSXCLBIN_FILE=$(basename "${XCLBIN_FILE}" .xclbin)
+            "${AWS_FPGA_REPO_DIR}/SDAccel/tools/create_sdaccel_afi.sh" \
+                -s3_bucket="${S3_BUCKET}" \
+                -s3_dcp_key="${S3_DCP_DIR}" \
+                -s3_logs_key="${S3_LOGS_DIR}" \
+                -xclbin="${XCLBIN_FILE}" \
+                -o="${AWSXCLBIN_FILE}" && popd
+        fi
+    }
+    ```
 
-4. Send the [nameproject].awsxclbin to F1 instance
+4. Send the `.awsxclbin` file back to the F1 instance where you compiled Pytorch. Replace the old `.xclbin` file by the new `.awxsclbin` .
 
 5. Run Pytorch
-
-You can test any test file to check if pytorch is functionnal.
+    ```bash
+    python3 -c "import torch; ocl = torch.device('opencl'); x = torch.ones(3,3,device=ocl); print(x)"
+    ```
