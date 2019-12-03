@@ -7,6 +7,38 @@
 
 # C10
 
+C10 is the core library of Pytorch. It contains the implementation of the `Tensor` class, the *new* dispatcher, and many miscellaneous things.\
+For our purpose, the purpose of this library is to be a resource manager. It initialize the low level backends and communicate with it. It provides an API to the rest of Pytorch libraries (ATen and Caffe2) to allow them to use those backends.
+
+The OpenCL implementation of the c10 library is very heavily based on the CUDA implementation. (We litterally copy-pasted the files from `c10/cuda/`)
+
+The next sub sections will discribe the content of each files under `c10/opencl/` .
+
+## `OpenCLMacros.h`
+
+In addition to defining many of the basic macros, it is also the entry point of OpenCL in the code. This is the file where we setup which version of OpenCL we use and how we use it. (OpenCL 1.2, exceptions disabled)
+
+## `OpenCLException[.cpp/.h]`
+
+These files contains error handling macros and functions.
+
+TODO : List and explain every macro.
+
+## `OpenCLFunctions[.cpp/.h]`
+
+This file is the file that provides an indirect access to the OpenCL API. There is a lazy initialization of OpenCL which is called when we first try to access the API.
+
+## `OpenCLStream[.cpp/.h]`
+
+This file is a specialisation of the `c10::Stream` class for OpenCL "streams". (The equivalent of a stream in OpenCL is a `cl::CommandQueue`)
+
+## `OpenCLGuard.h` and `impl/OpenCLGuardImpl[.cpp/.h]`
+
+This is something analogous to the STL's `std::lock_guard` for `std::mutex`, but instead of guarding the locking and unlocking of a mutex, it guards the current device. When you create an OpenCLGuard, it fetch the current device id and keeps it. Then, it sets the current device id to be the one given as a parameter to the constructor. When the OpenCLGuard is destroyed, it sets the current device id to be the original one.
+
+## `OpenCLCachingAllocator[.cpp/.h]`
+
+Unused.
 
 # ATen
 
@@ -72,40 +104,40 @@ In any case, you have to implement in a file from `ATen/native/opencl/` a *kerne
 
 The next few sections will describe what each file in the `ATen/native/opencl/` folder contains. Every file was inspired from an similarly-named file in the folder `ATen/native/cuda/` , if you need references to understand how to add new operations.
 
-### BinaryOpsKernel
+### `BinaryOpsKernel`
 
 This file contains basic mathematical opearations applied element-wise and taking 2 operands. You can currently find the operations add, sub, div, mul, atan2, logical_xor.
 
-### Copy
+### `Copy`
 
 This file contains the implementation for the copy operation. This operation allows to copy from one tensor to an other, with or without a cast, between any OpenCL device and the CPU or between any two devices, synchronously or asynchronously.
 
-### FileKernel
+### `FillKernel`
 
-This file contains one functions which let to fill a Tensor in device with a value
+This file contains the `fill` operation which fills a Tensor with a given value.
 
-### MathBlas
+### `MathBlas`
 
 This file contains BLAS (Basic Linear Algebra Subsystem) operations.
 Currently we don't have an implementation for any of these functions. We just redirect them to CUDA if it is available, or to the CPU otherwise.
 
-### OpenCLComparison
+### `OpenCLComparison`
 
 This file contains the implementation of comparison operations, like `eq` (equal) or `lt` (less than).
 
-### OpenCLScalar
+### `OpenCLScalar`
 
 Based off of `native/cuda/CUDAScalar.cu` . The function implemented in this file is used when we call the Tensor method `tensor.item()`. It is only usable on *scalar* tensors (tensors of dimentionality 0 containing only 1 element).
 
-### OpenCLTensor
+### `OpenCLTensor`
 
 This is a utility file for tensors which mimics the legacy implementation inside of `THC`. (might be unnecessary after the merge of pytorch and caffe2)
 
-### Resize
+### `Resize`
 
 This is a utility file for resizing tensors which mimics the legacy implementation inside of `THC`. (might be unnecessary after the merge of pytorch and caffe2)
 
-### TensorFactories
+### `TensorFactories`
 
 This file (currently) contains advanced operations. (*See the NOTE at the end of this sub section*)\
 You can find the list here: 
