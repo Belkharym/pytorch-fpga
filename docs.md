@@ -4,11 +4,12 @@
 
 # [C10 Architecture](https://github.com/pytorch/pytorch/wiki/Software-Architecture-for-c10)
 
+---
 
 # C10
 
-C10 is the core library of Pytorch. It contains the implementation of the `Tensor` class, the *new* dispatcher, and many miscellaneous things.\
-For our purpose, the purpose of this library is to be a resource manager. It initialize the low level backends and communicate with it. It provides an API to the rest of Pytorch libraries (ATen and Caffe2) to allow them to use those backends.
+C10 is the core library of PyTorch. It contains the implementation of the `Tensor` class, the *new* dispatcher, and many miscellaneous things.\
+For our purpose, the purpose of this library is to be a resource manager. It initialize the low level backends and communicate with it. It provides an API to the rest of PyTorch libraries (ATen and Caffe2) to allow them to use those backends.
 
 The OpenCL implementation of the c10 library is very heavily based on the CUDA implementation. (We litterally copy-pasted the files from `c10/cuda/`)
 
@@ -69,7 +70,7 @@ Here is an example for the `and` operation:
 This allows take care of the declaration of the function signature and of the registration of the function in the dispatcher.
 
 Then, the implementation of the function must be defined in the `at::native` namespace inside of a `.cpp` file in the `ATen/native/opencl/` folder.
-> ℹ️ All the `.cpp`/`.h` files under `ATen/native/opencl/` are automatically added to the source of our shared library `libaten-opencl.so` when running `cmake`. You will need to re-run `cmake` when you add a new file to the folder. The inclusion of the folder is defined inside `ATen/CMakeLists.txt`.
+> <span style="color:#ffcc00">ℹ️</span> All the `.cpp`/`.h` files under `ATen/native/opencl/` are automatically added to the source of our shared library `libaten-opencl.so` when running `cmake`. You will need to re-run `cmake` when you add a new file to the folder. The inclusion of the folder is defined inside `ATen/CMakeLists.txt`.
 
 #### New registration
 
@@ -102,11 +103,11 @@ For the second case, you don't have to modify the `.yaml` file at all.
 
 In any case, you have to implement in a file from `ATen/native/opencl/` a *kernel* function for the operation. Afterward, you can simply register the kernel with the macro `REGISTER_DISPATCH(add_stub, add_kernel_opencl);` (usually placed at the end of the file).
 
-> ℹ️ The best example for the use-case of the new registration method is in the file `ATen/native/opencl/OpenCLComparison.cpp`
+> <span style="color:#ffcc00">ℹ️</span> The best example for the use-case of the new registration method is in the file `ATen/native/opencl/OpenCLComparison.cpp`
 
 ### OpenCL Methodology
 
-Since this repository is about having Pytorch running on FPGAs, we had to take the limitiations of those FPGAs in consideration. One of the limitations is that there is a limited amount of entry points the FPGA can support. (An entry point correspond to an OpenCL kernel.)
+Since this repository is about having **PyTorch** running on FPGAs, we had to take the limitiations of those FPGAs in consideration. One of the limitations is that there is a limited amount of entry points the FPGA can support. (An entry point correspond to an **OpenCL** kernel.)
 
 To work around that limitation, we decided to have a kernel for each function signature, and pass the operation to apply as parameter. To reduce further the number of kernels, we get the buffers as `void *` in the kernels, and we pass the types of the data contained in the buffers as one of the parameters.
 
@@ -141,11 +142,11 @@ Based off of `native/cuda/CUDAScalar.cu` . The function implemented in this file
 
 ### `OpenCLTensor`
 
-This is a utility file for tensors which mimics the legacy implementation inside of `THC`. (might be unnecessary after the merge of pytorch and caffe2)
+This is a utility file for tensors which mimics the legacy implementation inside of `THC`. (might be unnecessary after the merge of PyTorch and caffe2)
 
 ### `Resize`
 
-This is a utility file for resizing tensors which mimics the legacy implementation inside of `THC`. (might be unnecessary after the merge of pytorch and caffe2)
+This is a utility file for resizing tensors which mimics the legacy implementation inside of `THC`. (might be unnecessary after the merge of PyTorch and caffe2)
 
 ### `TensorFactories`
 
@@ -166,16 +167,24 @@ You can find the list here:
 - cat
 - remainder
 
-> ℹ️ This file should not contain all of these functions. This file should only contain function related to producing/modifying tensors (e.g. `empty`, `uniform`, `random`, `normal`, `zero`, `set`, `cat`). This file need a refactoring (for example, `and` should go in `BinaryOps`).
+> <span style="color:#ffcc00">ℹ️</span> This file should not contain all of these functions. This file should only contain function related to producing/modifying tensors (e.g. `empty`, `uniform`, `random`, `normal`, `zero`, `set`, `cat`). This file need a refactoring (for example, `and` should go in `BinaryOps`).
 
 # Caffe2
 
+Currently, **Caffe2** is the library that handles the highlevel calculations of the graph used to automatically calculate the gradiant of every operation applied to a tensor.
 
+For our purpose, this library contains the file `caffe2/opencl/context[.cc/.h]` which sole purpose is to provide an `Allocator` to allocate memory on the devices, and to provide basic data transfer functions.
 
-# run locally
+## The `torch` folder
 
-> ℹ️ Even though Pytorch technically supports Python 2, it is strongly recommended to use Python 3, since Python 2 will be officially discontinued starting from January 2020.
+We also added a few files to the `torch` folder, but it was mainly to give a similar user experience from how they can use **CUDA**.\
+We mainly added files to give access to functionalities to the user. For example `torch.opencl.is_available()`, `torch.opencl.device_count()`, `torch.opencl.get_device_name(deviceId)`, or `torch.opencl.get_device_properties(deviceId)`.
 
+# Run locally
+
+> <span style="color:#ffcc00">ℹ️</span> Even though **PyTorch** technically supports **Python 2**, it is strongly recommended to use **Python 3**, since **Python 2** will be [officially discontinued](https://pip.pypa.io/en/latest/development/release-process/#python-2-support) starting from January 2020.
+
+To compile and install **PyTorch** in developpement mode, you can run the following commands inside a bash terminal located under the root directory of **PyTorch**'s repository:
 ```bash
 python3 -m pip install numpy ninja pyyaml mkl mkl-include setuptools cmake cffi typing
 
@@ -185,14 +194,67 @@ git submodule update --init --recursive
 env CMAKE_BUILD_TYPE=RelWithDebInfo PYTHON_EXECUTABLE=$(which python3) USE_CUDA=0 USE_OPENCL=ON python3 -m pip install --user -v -e .
 ```
 
-# pipeline to run on aws instance
+The 2 first sections of this `bash` script are fairly straight forward:
+
+The first line installs the packages required to *build* PyTorch. (The ones needed only to run are in the file `requirements.txt`)
+
+The 2 next lines synchronize and initialize the git submodules used by PyTorch.
+
+The third line is a little more complex. So let's deconstruct it:
+- `env [OPTION]... [-] [NAME=VALUE]... [COMMAND [ARG]...]`: It's a `bash` command that sets environment variables, but only for the scope of the execution of the given command.
+- `CMAKE_BUILD_TYPE=RelWithDebInfo`: The build type `RelWithDebInfo` is equivalent to have the project compiled with optimisations (with the compile option `-O2`), but while keeping the debug information (with the compile opetion `-g`). Since a full build with a build type `Debug` is way longer than `Release` or `RelWithDebInfo`, this allows to debug the code while not taking too much time to compile.
+- `PYTHON_EXECUTABLE=$(which python3)`: By default, if **Python 2** is installed on the system, **PyTorch** will compile for **Python 2**. However, as stated above, **Python 2** will be/has been [discontinued](https://pip.pypa.io/en/latest/development/release-process/#python-2-support) starting from January 2020. This is why we use `python3`.
+- `USE_CUDA=0 USE_OPENCL=ON`: It basically does as it reads. It disables the **CUDA** implementation and enables the **OpenCL** one.
+- `python3 -m pip install --user -v -e .`: To build and install pytorch, we use the **Python** package manager **Pip**. There are 3 options we provide:
+  - `--user`: Specifies that we want to install it for the current user only, instead of globally. We don't want to install **PyTorch** globally when developping, since there can be some permission issues.
+  - `-v`: For verbose output. This allows us to get the output logs of the build.
+  - `-e .`: This option force `pip` to install **PyTorch** inplace. This mean that the results of the build will be installed directly inside the repository. There will still be 1 file installed in `pip`'s registry, but it is only to refer to the location of the repository where **PyTorch** was installed.
+
+# Pipeline to run on aws instance
 
 
-The pipeline to compile pytorch on aws instance is pretty tricky. The build instance memory resources (60 GB RAM + 20 GB Swap) is insufficient to finish the synthesis. Thus, the bitstream can not be generated.
+The pipeline to compile PyTorch on aws instance is pretty tricky. The build instance memory resources (60 GB RAM + 20 GB Swap) is insufficient to finish the synthesis. Thus, the bitstream can not be generated.
 
 So, we have to use this pipeline : 
 
-1. Generate bitstream of pytorch on F1 instance
+#### Prerequisites
+
+You first need to make sure **Python 3** is installed on the system.
+You might need to also install **OpenSSL** manually if **Python 3** is not on the system.
+
+```bash
+setupOpenSSL() {
+    if [ $(python -c "import sys; print(sys.version_info[0])") -eq "3" ]; then
+        sudo -s ln -fs $(which python2) $(which python)
+        sudo -s yum groupinstall -y "Developement Tools"
+        sudo -s ln -fs $(which python3) $(which python)
+    else
+        sudo -s yum groupinstall -y "Developement Tools"
+    fi
+    wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1.tar.gz
+
+    tar xvf openssl-1.1.1.tar.gz
+    rm -f openssl-1.1.1.tar.gz
+    cd openssl-1.1.1
+    ./config --prefix=/usr --openssldir=/etc/ssl --libdir=lib no-shared zlib-dynamic
+    make
+    sudo -s make install
+    cd ..
+
+    export LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64
+    ldconfig
+    openssl version
+}
+setupOpenSSL
+```
+
+You can then use the `yum` package manager to install **Python 3**:
+
+```bash
+sudo yum install -y python3 python3-pip
+```
+
+1. Generate bitstream of PyTorch on F1 instance
 
     ```bash
     python3 -m pip install numpy ninja pyyaml mkl mkl-include setuptools cmake cffi typing
@@ -204,7 +266,7 @@ So, we have to use this pipeline :
     ```
 
 2. Send the `.xclbin` file to a build instance. Use a build instance with SDAccel 2018.3 .
-   > ℹ️ The `.xclbin` should be in the folder `<pytorch root>/torch/opencl/` if you are building from the `fpga` branch of the repository, and in `<pytorch root>/torch/opencl/kernels/` if you are using a more up-to-date branch.
+   > <span style="color:#ffcc00">ℹ️</span> The `.xclbin` should be in the folder `<PyTorch root>/torch/opencl/` if you are building from the `fpga` branch of the repository, and in `<PyTorch root>/torch/opencl/kernels/` if you are using a more up-to-date branch.
 
 3. Generate the AFI
 
@@ -235,9 +297,9 @@ So, we have to use this pipeline :
     }
     ```
 
-4. Send the `.awsxclbin` file back to the F1 instance where you compiled Pytorch. Replace the old `.xclbin` file by the new `.awxsclbin` .
+4. Send the `.awsxclbin` file back to the F1 instance where you compiled PyTorch. Replace the old `.xclbin` file by the new `.awxsclbin` .
 
-5. Run Pytorch
+5. Run PyTorch
     ```bash
     python3 -c "import torch; ocl = torch.device('opencl'); x = torch.ones(3,3,device=ocl); print(x)"
     ```
